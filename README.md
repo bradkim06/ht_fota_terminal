@@ -84,6 +84,8 @@ Note over t: 단말 Sleep
 
 #### Main
 
+- [ ] Retry시 attch실패 -> certify실패 -> attach실패 무한 loop가 생길수 있음. 수정 필요
+
 - [x] Flash Read시 쓰레기 데이터가 들어오는지 확인, 초기화하는 기능 추가 필요
 
 - [x] 최종버전(U325) 현장 불량 검토 --> 신규 불량이 존재하는지?
@@ -118,7 +120,102 @@ Note over t: 단말 Sleep
 
 ### NB-IoT P/F 개선
 
-#### Device Fota 개발 [인증용]; (2022-04-20)
+#### Device Fota 개발 (인증용) (2022-04-20)
+
+- [ ] Fota 도중 실패시 복구 처리 추가 필요
+- [ ] Fota Application 영역은 실패 복구처리의 필수요소이므로 Upgrade시 이중화로 보호 필요
+
+##### FOTA Flow
+
+```mermaid
+sequenceDiagram
+autonumber
+participant s as 단말 운영 서버
+participant t as 단말기
+participant f as FOTA 서버
+
+rect rgb(191, 223, 255)
+Note over s,t: Fota Req to Terminal
+Note over s: 웹서버 Fota 명령 등록
+activate s
+t->>s: 주기 보고
+s->>t: Fota Req
+Note over s,t: ip,port,f/w version
+deactivate s
+end
+
+activate f
+rect rgb(191, 223, 255)
+Note over t,f: Fota Connect & Ready
+t->>f: TCP Connect Req
+f->>t: send ack
+
+t->>f: Fota Request Info
+Note over t,f: curr f/w ver, next f/w ver,imei,imsi
+Note over f: f/w file 준비, 전송 대기
+Note over t: Delay 2Sec, Fota Ready
+t->>f: send "ready"
+end
+
+rect rgb(191, 223, 255)
+Note over t,f: Fota Binary Send & Recv Start
+loop FOTA
+    f->>t: f/w binary send
+    Note over t: erase & write code memory
+    t->>f: send next req
+end
+end
+deactivate f
+
+Note over t: Reset
+```
+
+##### Fota Application Ram Code
+
+MSP430F5419A는 XIP구조로 Runtime중에 Text, Const 메모리를 수정하면서 정상 동작이 불가능하다.  
+따라서 Fota 동작시 구동되는 Application 영역은 따로 분리하여 Flash Memory save -> Run Ram의 구조로 되어야 한다.  
+이는 ccs linker script를 통해 컴파일러에게 Fota Application 실행 영역인 Ram 주소를 전달하고 Bootloading 이후 첫 시작[main]에서 Fota Flash Code를 Ram영역으로 User가 복사해준다.
+
+> ccs linker script는 Ram Code 복사 기능도 존재하지만 버그가 있어서 직접 복사로 한다.
+
+Fota Application은 isr code, fota code, c library, modem 처리등이 포함된다
+
+```
+ram_code   0    00020000    00000a80     RUN ADDR = 00001c00
+                  00020000    000000cc     uart.obj (.text:_isr:USCI_A2_ISR)
+                  000200cc    000000b0     uart.obj (.text:_isr:USCI_A3_ISR)
+                  0002017c    00000096     uart.obj (.text:_isr:USCI_A0_ISR)
+                  00020212    00000096     uart.obj (.text:_isr:USCI_A1_ISR)
+                  000202a8    00000088     osal_Timer.obj (.text:_isr:TIMER1_A0_ISR)
+                  00020330    00000074     app.obj (.text:_isr:Port_1)
+                  000203a4    0000006c     app.obj (.text:_isr:Port_2)
+                  00020410    00000066     NFC_i2c.obj (.text:_isr:USCI_B3_ISR)
+                  00020476    00000038     app.obj (.text:_isr:RTC_ISR)
+                  000204ae    00000028     app.obj (.text:_isr:UNMI_ISR)
+                  000204d6    00000008     rts430x_lc_ld_eabi.lib : isr_trap.asm.obj (.text:_isr:__TI_ISR_TRAP)
+                  000204de    00000006     test.obj (.text:TEST_isTestMode)
+                  000204e4    00000036     check_meter_misc.obj (.text:MISC_delayMs)
+                  0002051a    00000014     flashDriver.obj (.text:ascii2BCD)
+                  0002052e    00000036     flashDriver.obj (.text:ascii2Hex)
+                  00020564    00000016     meter.obj (.text:std_checksum)
+                  0002057a    00000012     rts430x_lc_ld_eabi.lib : strlen.c.obj (.text:strlen)
+                  0002058c    0000003c                            : strstr.c.obj (.text:strstr)
+                  000205c8    00000020                            : memset.c.obj (.text:memset)
+                  000205e8    000001c8     fota.obj (.text:fotaRecv)
+                  000207b0    0000006a     fota.obj (.text:writeCode)
+                  0002081a    00000062     fota.obj (.text:fotaModemPrint)
+                  0002087c    00000058     fota.obj (.text:eraseCode)
+                  000208d4    00000034     fota.obj (.text:testatoi)
+                  00020908    0000002e     fota.obj (.text:send)
+                  00020936    0000001a     fota.obj (.text:modemRxClear)
+                  00020950    00000018     fota.obj (.text:modemSend)
+                  00020968    00000016     fota.obj (.text:startFota)
+                  0002097e    00000014     fota.obj (.text:fotaPrint)
+                  00020992    00000014     fota.obj (.text:fotaSend)
+                  000209a6    0000000a     fota.obj (.text:checkFlashBusy)
+                  000209b0    000000d0     fota.obj (.const:.string)
+
+```
 
 #### NB-IoT 통신 절차 개선 (2022-03-16)
 
