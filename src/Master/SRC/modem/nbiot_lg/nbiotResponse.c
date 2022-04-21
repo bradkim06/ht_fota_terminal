@@ -306,6 +306,9 @@ static int parse_fota_downlink(char *p)
 		if (strstr(modemComm.dlData, "fota")) {
 			printf("dlData(%s), len(%d)\n", modemComm.dlData, modemComm.dlDataLen);
 			valid = 1;
+		} else if (strstr(modemComm.dlData, "ready")) {
+			printf("dlData(%s), len(%d)\n", modemComm.dlData, modemComm.dlDataLen);
+			valid = 1;
 		}
 	} while (0);
 
@@ -782,13 +785,6 @@ void MODEM_response(char *pHead, int len)
 	case AT_CMD_IDX_QLWULDATAEX:
 		if (parseQLWULDATAEX(pHead, &modemCtx)) {
 			modemCtx.pfUlCnt++;
-			isRleaseBusy = TRUE;
-		}
-		break;
-
-	case AT_CMD_IDX_TCP_SEND_UL:
-#define PATTERN_TCP_UPLINK_CONFIRM "+NSOSTR:1,101,1"
-		if ((strstr(pHead, PATTERN_TCP_UPLINK_CONFIRM))) {
 			isRleaseBusy = TRUE;
 		}
 		break;

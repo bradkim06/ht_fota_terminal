@@ -118,7 +118,7 @@ static AtCmd_t AtCmdSetReselect = { AT_CMD_IDX_SET_RESELECT, "AT+NCONFIG" };
 static AtCmd_t AtCmdSetNwAlarm = { AT_CMD_IDX_SET_NW_ALARM, "AT+CEREG" };
 static AtCmd_t AtCmdSocketCreate = { AT_CMD_IDX_SOCKET_CREATE, "AT+NSOCR" };
 static AtCmd_t AtCmdTcpConnect = { AT_CMD_IDX_TCP_CONNECT, "AT+NSOCO" };
-static AtCmd_t AtCmdTcpSendUL = { AT_CMD_IDX_TCP_SEND_UL, "AT+NSOSD" };
+static AtCmd_t AtCmdTcpSendUL = { AT_CMD_IDX_TCP_CONNECT, "AT+NSOSD" };
 static AtCmd_t AtCmdSocketSendUL = { AT_CMD_IDX_SOCKET_SEND_UL, "AT+NSOST" };
 static AtCmd_t AtCmdSocketClose = { AT_CMD_IDX_SOCKET_CLOSE, "AT+NSOCL" };
 static AtCmd_t AtCmdSetReportPSM = { AT_CMD_IDX_SET_REPORT_PSM, "AT+NPSMR" };
@@ -1198,6 +1198,12 @@ static ModemStep_t dFota()
 
 		sendAtCommand(FOTA_TIMEOUT, FOTA_RETRY, &AtCmdTcpSendUL, "=%d,%d,%s,0x100,101",
 			      modemCtx.socket, FOTA_REQMSG_SIZE, ul_data);
+		StepFlowIndex.dfota++;
+	} break;
+
+	case 4: {
+		sendAtCommand(FOTA_TIMEOUT, FOTA_RETRY, &AtCmdSocketRecvDL, "=%d,%d",
+			      modemCtx.socket, modemComm.dlDataLen);
 		StepFlowIndex.dfota++;
 	} break;
 
