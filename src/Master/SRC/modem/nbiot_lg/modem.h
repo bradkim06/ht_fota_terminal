@@ -125,6 +125,7 @@ int MODEM_getLastRssi();
 int MODEM_getLastRsrp();
 int MODEM_getLastRsrq();
 int MODEM_getLastSNR();
+void MODEM_changeBaudrate(int baudrate);
 
 int MODEM_getStateOrResult();
 

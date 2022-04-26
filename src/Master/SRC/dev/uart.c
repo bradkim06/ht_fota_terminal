@@ -316,6 +316,16 @@ void UART_open(UartNum_t num, UartInitParam_t *param)
 		*(UART_BASE + 0x06) = 0x45;
 		*(UART_BASE + 0x07) = 0;
 		*(UART_BASE + 0x08) |= UCBRS_4 + UCBRF_0;
+	} else if (param->baudrate == UART_BAUDRATE_230400) {
+		*(UART_BASE + 0x00) |= UCSSEL_2; // use SMCLK
+		*(UART_BASE + 0x06) = 34;
+		*(UART_BASE + 0x07) = 0;
+		*(UART_BASE + 0x08) |= UCBRS_6 + UCBRF_0;
+	} else if (param->baudrate == UART_BAUDRATE_460800) {
+		*(UART_BASE + 0x00) |= UCSSEL_2; // use SMCLK
+		*(UART_BASE + 0x06) = 17;
+		*(UART_BASE + 0x07) = 0;
+		*(UART_BASE + 0x08) |= UCBRS_3 + UCBRF_0;
 	} else {
 		return;
 	}

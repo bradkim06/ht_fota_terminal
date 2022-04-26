@@ -26,7 +26,7 @@
 #define SEND_REPEAT 3
 #define SEND_FINISH 4
 
-#define FOTA_DELAY 100
+#define FOTA_DELAY 10
 
 FotaStatus_t Fota;
 
@@ -177,7 +177,7 @@ static void fotaRecv()
 	while (1) {
 		volatile int len = 0;
 		volatile int count = 0;
-		for (; count < 600; count++) {
+		for (; count < 6000; count++) {
 			MISC_delayMs(FOTA_DELAY);
 			if (len != rxLen) {
 				len = rxLen;
@@ -186,14 +186,14 @@ static void fotaRecv()
 			}
 		}
 
-		if (len > 0) {
+		if (len > 5) {
 			char *p = NULL;
 
 			if ((p = strstr(rxBuf, AT_MODEM_RX))) {
 #ifdef FOTA_DEBUG
 				fotaModemPrint(rxBuf);
 #endif
-				fotaSend("AT+NSORF=1,1358\n\r");
+				fotaSend("AT+NSORF=1,514\n\r");
 			} else if ((p = strstr(rxBuf, AT_DFOTA_PORT))) {
 				// data len
 				p = strstr(p, ",") + 1;
@@ -212,12 +212,11 @@ static void fotaRecv()
 
 				if (rxData[payloadLen - 1] == checksum) {
 					if (rxData[0] == 0xB1) {
-						send(SEND_ACK);
 						eraseCode(address, SECT_ERASE);
 						writeCode(address, &rxData[1], payloadLen - 2);
 						address += 512;
-					} else if (rxData[0] == 0xB2) {
 						send(SEND_ACK);
+					} else if (rxData[0] == 0xB2) {
 						address = 0;
 						for (int i = 1; i < payloadLen - 1; i++) {
 							if (address) {
@@ -228,6 +227,7 @@ static void fotaRecv()
 							}
 							address |= rxData[i];
 						}
+						send(SEND_ACK);
 					} else if (rxData[0] == 0xB3) {
 						send(SEND_FINISH);
 #ifdef FOTA_DEBUG
@@ -275,7 +275,11 @@ void startFota()
 	char *str = "fota start, send Ready\n\r";
 	fotaPrint(str);
 #endif
-	// fotaSend("AT+NATSPEED=115200,3,1,2,1\n\r");
+	char *natspeed = "at+natspeed=460800,30,0,0,1\n\r";
+	fotaSend(natspeed);
+	MISC_delayMs(2000);
+	MODEM_changeBaudrate(UART_BAUDRATE_460800);
+
 	send(SEND_READY);
 
 	fotaRecv();

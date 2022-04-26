@@ -211,6 +211,20 @@ void MODEM_initialization()
 	modemCtx.proc.initialReport = 1;
 }
 
+void MODEM_changeBaudrate(int baudrate)
+{
+	UART_close(UART_A2, GPIO_LOW);
+
+	UartInitParam_t param = { .isTxEnable = TRUE,
+				  .isRxEnable = TRUE,
+				  .baudrate = baudrate,
+				  .parity = UART_PARITY_NONE,
+				  .stopbit = UART_STOPBIT_ONE,
+				  .charLen = UART_8BITS_CHAR };
+
+	UART_open(UART_A2, &(param));
+}
+
 void MODEM_enable()
 {
 	UartInitParam_t param = { .isTxEnable = TRUE,

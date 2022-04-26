@@ -147,13 +147,24 @@ __interrupt void RTC_ISR(void)
 #pragma vector = PORT1_VECTOR
 __interrupt void Port_1(void)
 {
+	if (PORT1_IFG & BM(PORT_NFC_TAG)) {
+		PORT1_IFG &= ~BM(PORT_NFC_TAG);
+		NFC_tagDetect();
+		OSAL_startEventTimer(AppTaskId, APP_EVENT_NFC_WAIT, (uint32)700);
+		WAKEUP_DEVICE();
+
+		NFCAPP_clearAsyncCmd();
+	}
+
 	if (PORT1_IFG & BM(PORT_NFC_FD_IN)) {
+		PORT1_IFG &= ~BM(PORT_NFC_FD_IN);
 		NFC_recvMessage();
 		OSAL_startEventTimer(AppTaskId, APP_EVENT_NFC_WAIT, (uint32)700);
 	}
 
 #if defined(AUX_REPEATER)
 	if (PORT1_IFG & BM(PORT_LCD_SWITCH)) {
+		PORT1_IFG &= ~BM(PORT_LCD_SWITCH);
 		if (conf.havePushButton) {
 			OSAL_stopEventTimer(AppTaskId, APP_EVENT_SENSOR_REED);
 			if (TEST_isTestMode() == TRUE) {
@@ -165,14 +176,6 @@ __interrupt void Port_1(void)
 		}
 	}
 #endif
-
-	if (PORT1_IFG & BM(PORT_NFC_TAG)) {
-		NFC_tagDetect();
-		OSAL_startEventTimer(AppTaskId, APP_EVENT_NFC_WAIT, (uint32)700);
-		WAKEUP_DEVICE();
-
-		NFCAPP_clearAsyncCmd();
-	}
 }
 
 // Port 2 interrupt service routine - Reed, Tamper, Flood
