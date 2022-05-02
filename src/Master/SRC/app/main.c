@@ -8,6 +8,7 @@
 #include "lcdDriver.h"
 #include "test.h"
 #include "NFC_i2c.h"
+#include "fota.h"
 #include "battery.h"
 
 static BOOL IsTestModeOn = FALSE;
@@ -237,12 +238,13 @@ int main()
 	WDTCTL = WDTPW | WDTHOLD;
 #define FOTA_RAM_ADDR 0x1C00
 #define FOTA_FLASH_ADDR 0x20000
-#define FOTA_SIZE 0xC00
+#define FOTA_SIZE 0xE00
 	// isr copy ram (size & addr need to check lnk.cmd)
 	memcpy((void *)FOTA_RAM_ADDR, (void *)FOTA_FLASH_ADDR, FOTA_SIZE);
 	WDTCTL = WDT_VRST_50SEC; // Start watchdog timer(3.2768 sec)
 
 	initSystem();
+	WDTCTL = WDT_ARST_16SEC; // Start watchdog timer(16 sec)
 
 	// 시스템 초기화 및 테스트모드 여부 확인 후 WDT는 16초로 재설정
 	// 1. App level의 코드 구동 시 Console 출력이 포함되어 동작 시간이 유동적으로 변함.

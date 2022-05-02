@@ -2,7 +2,7 @@
 #define __FOTA_H__
 
 #define HEADER_LEN 2
-#define MAX_DATA_LEN 1024
+#define MAX_DATA_LEN 1036
 #define CHECKSUM_LEN 2
 #define RX_MAX_LEN HEADER_LEN + MAX_DATA_LEN + CHECKSUM_LEN
 
@@ -38,5 +38,6 @@ static void fotaPrint(char *str);
 #endif
 
 void startFota();
+void readyFota();
 
 #endif

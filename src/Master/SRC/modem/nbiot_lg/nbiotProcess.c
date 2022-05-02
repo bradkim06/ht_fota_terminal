@@ -1182,6 +1182,14 @@ static ModemStep_t dFota()
 	} break;
 
 	case 3: {
+		if (strcmp(FIRMWARE_VER, Fota.Info.version) == 0) {
+			printf_ts("Curr[%s], Update[%s] Equal, No update\n", FIRMWARE_VER,
+				  Fota.Info.version);
+			memset(&Fota, 0, sizeof(Fota));
+			nextStep = MODEM_STEP_IDLE;
+			break;
+		}
+
 #define FOTA_REQMSG_SIZE 41
 		char msg[FOTA_REQMSG_SIZE];
 		snprintf(msg, FOTA_REQMSG_SIZE, "C1%s%s%s%s", FIRMWARE_VER, Fota.Info.version,
@@ -1208,7 +1216,10 @@ static ModemStep_t dFota()
 	} break;
 
 	default:
-		MISC_delayMs(2000);
+		P2OUT &= ~0x20;
+		TIMER_stop();
+		LCD_disable();
+		METER_disable();
 		startFota();
 		break;
 	}

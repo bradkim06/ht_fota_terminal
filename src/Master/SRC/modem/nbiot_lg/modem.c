@@ -211,7 +211,7 @@ void MODEM_initialization()
 	modemCtx.proc.initialReport = 1;
 }
 
-void MODEM_changeBaudrate(int baudrate)
+void MODEM_changeBaudrate(UartBaudrate_t baudrate)
 {
 	UART_close(UART_A2, GPIO_LOW);
 
