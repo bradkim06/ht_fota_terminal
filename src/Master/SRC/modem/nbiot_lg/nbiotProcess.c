@@ -1186,26 +1186,28 @@ static ModemStep_t dFota()
 			printf_ts("Curr[%s], Update[%s] Equal, No update\n", FIRMWARE_VER,
 				  Fota.Info.version);
 			memset(&Fota, 0, sizeof(Fota));
-			nextStep = MODEM_STEP_IDLE;
+			sendNoRespAtCommand(DEREGISTER_DELAY, &AtCmdSocketClose, "=%d",
+					    modemCtx.socket);
+			nextStep = MODEM_STEP_DETACH_NW;
 			break;
 		}
 
-#define FOTA_REQMSG_SIZE 41
 		char msg[FOTA_REQMSG_SIZE];
 		snprintf(msg, FOTA_REQMSG_SIZE, "C1%s%s%s%s", FIRMWARE_VER, Fota.Info.version,
 			 modem.imeiStr, modem.imsiStr);
-		memset(ul_data, 0, sizeof(ul_data));
+		memset(Fota.reqMsg, 0, sizeof(Fota.reqMsg));
 
 		char checksum = 0;
 		for (int i = 0; i < sizeof(msg); i++) {
 			char data = *(msg + i);
 			checksum += data;
-			snprintf(ul_data, FOTA_REQMSG_SIZE * 2 - 1, "%s%02X", ul_data, data);
+			snprintf(Fota.reqMsg, FOTA_REQMSG_SIZE * 2 - 1, "%s%02X", Fota.reqMsg,
+				 data);
 		}
-		snprintf(ul_data, FOTA_REQMSG_SIZE * 2 + 2, "%s%02X", ul_data, checksum);
+		snprintf(Fota.reqMsg, FOTA_REQMSG_SIZE * 2 + 2, "%s%02X", Fota.reqMsg, checksum);
 
 		sendAtCommand(FOTA_TIMEOUT, FOTA_RETRY, &AtCmdTcpSendUL, "=%d,%d,%s,0x100,101",
-			      modemCtx.socket, FOTA_REQMSG_SIZE, ul_data);
+			      modemCtx.socket, FOTA_REQMSG_SIZE, Fota.reqMsg);
 		StepFlowIndex.dfota++;
 	} break;
 

@@ -2,6 +2,7 @@
 #include "check_meter_misc.h"
 #include "intrinsics.h"
 #include "modem.h"
+#include "nbiotModem.h"
 #include "osal.h"
 #include "osal_Timer.h"
 #include <stdio.h>
@@ -29,6 +30,9 @@
 #define FOTA_DELAY 10
 
 FotaStatus_t Fota;
+static char socket[3];
+static char port[5];
+static char initialMsgSize[3];
 
 char rxBuf[RX_MAX_LEN];
 int rxLen;
@@ -137,11 +141,10 @@ static void fotaModemPrint(char *p)
 static void fotaSend(char *str)
 {
 	modemSend(str);
-	fotaPrint("[TX] ");
 	fotaPrint(str);
 }
 
-int testatoi(char *cdata)
+static int fotaatoi(char *cdata)
 {
 	int data = 0;
 
@@ -180,17 +183,16 @@ static void recvModem(char *sendMsg, char *recvMsg, int repeat)
 			}
 		}
 
-#ifdef FOTA_DEBUG
-		fotaModemPrint(rxBuf);
-#endif
-
 		if (strstr(rxBuf, recvMsg)) {
+			fotaModemPrint(rxBuf);
 			return;
 		} else {
 			modemRxClear();
 			MISC_delayMs(3000);
 			if (repeat) {
 				fotaSend(sendMsg);
+			} else {
+				return;
 			}
 		}
 	}
@@ -222,7 +224,7 @@ static void fotaRecv()
 			} else if ((p = strstr(rxBuf, AT_DFOTA_PORT))) {
 				// data len
 				p = strstr(p, ",") + 1;
-				int payloadLen = testatoi(p);
+				int payloadLen = fotaatoi(p);
 
 				// payload
 				p = strstr(p, ",") + 1;
@@ -237,6 +239,7 @@ static void fotaRecv()
 
 				if (rxData[payloadLen - 1] == checksum) {
 					volatile unsigned long address = 0;
+					// address parsing
 					for (int i = 1; i < 4; i++) {
 						if (address) {
 							unsigned long mulData = address;
@@ -252,6 +255,7 @@ static void fotaRecv()
 						writeCode(address, &rxData[4], payloadLen - 5);
 						send(SEND_ACK);
 					} else if (rxData[0] == 0xB3) {
+						// last update
 						send(SEND_FINISH);
 						fotaPrint("FOTA Finish\n\r");
 						__disable_interrupt();
@@ -265,15 +269,17 @@ static void fotaRecv()
 					send(SEND_REPEAT);
 				}
 			} else if ((p = strstr(rxBuf, "+NSOCLI:"))) {
+				fotaModemPrint(rxBuf);
 				recvModem("at+cgatt=0\n\r", "+NPSMR:1", 0);
 				fotaPrint("socket closed sleep\n\r");
 				break;
 			} else {
-				fotaModemPrint(rxBuf);
 				modemRxClear();
 			}
 		} else {
-			send(SEND_REPEAT);
+			recvModem("at+cgatt=0\n\r", "+NPSMR:1", 0);
+			fotaPrint("server no resp sleep\n\r");
+			break;
 		}
 	}
 
@@ -284,34 +290,36 @@ static void fotaRecv()
 
 	P2OUT &= ~0x20;
 
-	for (int i = 0; i < 5; i++) {
-		// minute
-		MISC_delayMs(60000);
-	}
+	MISC_delayMs(2000);
+	// for (int i = 0; i < 5; i++) {
+	// 	// minute
+	// 	MISC_delayMs(60000);
+	// }
 }
 
 static void send(int option)
 {
 	if (option == SEND_READY) {
-		fotaSend("AT+NSOSD=1,2,C1C1\n\r");
+		txData("2,C1C1\n\r");
 	} else if (option == SEND_ACK) {
-		fotaSend("AT+NSOSD=1,2,C2C2\n\r");
+		txData("2,C2C2\n\r");
 	} else if (option == SEND_REPEAT) {
-		fotaSend("AT+NSOSD=1,2,C3C3\n\r");
+		txData("2,C3C3\n\r");
 	} else if (option == SEND_FINISH) {
-		fotaSend("AT+NSOSD=1,2,C4C4\n\r");
+		txData("2,C4C4\n\r");
 	}
 }
 
 void startFota()
 {
 	Fota.Status = 1;
+	sprintf(socket, "%1d,", modemCtx.socket);
+	sprintf(port, "%d", Fota.Info.port);
+	sprintf(initialMsgSize, "%d,", FOTA_REQMSG_SIZE);
 
 	while (1) {
-		char *str = "fota start, send Ready\n\r";
-		fotaPrint(str);
-		char *natspeed = "at+natspeed=115200,30,0,0,1\n\r";
-		recvModem(natspeed, "OK", 0);
+		fotaPrint("fota start, send Ready\n\r");
+		recvModem("at+natspeed=115200,30,0,0,1\n\r", "OK", 0);
 		MODEM_changeBaudrate(UART_BAUDRATE_115200);
 		send(SEND_READY);
 
@@ -331,22 +339,43 @@ void modemWakeup()
 	MISC_delayMs(100);
 }
 
-void readyFota()
+static void txData(char *msg)
 {
-	Fota.Status = 1;
+	fotaSend("AT+NSOSD=");
+	fotaSend(socket);
+	recvModem(msg, "OK", 0);
+}
 
+static void readyFota()
+{
 	modemWakeup();
-	for (int i = 0; i < 100; i++) {
-		MISC_delayMs(100);
-	}
+	MISC_delayMs(10000);
 
 	recvModem("at+cfun=1\n\r", "OK", 1);
 	recvModem("at+cgatt=1\n\r", "OK", 1);
 	recvModem("at+cereg=5\n\r", "OK", 1);
 	recvModem("at+cereg?\n\r", "+CEREG:5,1", 1);
 	recvModem("AT+NSOCR=STREAM,6,0,1\n\r", "OK", 0);
-	recvModem("AT+NSOCO=1,1.233.95.235,18099\n\r", "+NSONMI:1,4", 0);
-	recvModem("AT+NSORF=1,4\n\r", "OK", 0);
-	recvModem("AT+NSOSD=1,2,C2C2,0x100,101\n\r", "+NSONMI:1,5", 0);
-	recvModem("AT+NSORF=1,5\n\r", "OK", 0);
+	// connect fota server
+	fotaSend("AT+NSOCO=");
+	fotaSend(socket);
+	fotaSend(Fota.Info.ip);
+	fotaSend(",");
+	fotaSend(port);
+	recvModem("\n\r", "+NSONMI", 0);
+
+	fotaSend("AT+NSORF=");
+	fotaSend(socket);
+	recvModem("4\n\r", "OK", 0);
+
+	// fota initial msg send
+	fotaSend("AT+NSOSD=");
+	fotaSend(socket);
+	fotaSend(initialMsgSize);
+	fotaSend(Fota.reqMsg);
+	recvModem("\n\r", "+NSONMI", 0);
+
+	fotaSend("AT+NSORF=");
+	fotaSend(socket);
+	recvModem("5\n\r", "OK", 0);
 }

@@ -2,12 +2,15 @@
 #define __FOTA_H__
 
 #define HEADER_LEN 2
-#define MAX_DATA_LEN 1036
+#define MAX_DATA_LEN 1050
 #define CHECKSUM_LEN 2
 #define RX_MAX_LEN HEADER_LEN + MAX_DATA_LEN + CHECKSUM_LEN
 
 #define FOTA_IP_ADDR_LEN 16
 #define FOTA_FW_VER_LEN 4
+
+#define FOTA_REQMSG_SIZE 41
+
 typedef struct {
 	char ip[FOTA_IP_ADDR_LEN + 1];
 	unsigned int port;
@@ -17,6 +20,8 @@ typedef struct {
 typedef struct {
 	char Req;
 	char Status;
+	char connectMsg;
+	char reqMsg[FOTA_REQMSG_SIZE * 2 + 2];
 	FotaReqInfo_t Info;
 } FotaStatus_t;
 
@@ -31,13 +36,14 @@ static void writeCode(unsigned long addr, volatile unsigned char data[], int siz
 static void modemSend(char *str);
 static void fotaSend(char *str);
 static void fotaRecv();
+static void txData(char *msg);
 static void send(int option);
-#ifdef FOTA_DEBUG
+static int fotaatoi(char *cdata);
 static void fotaModemPrint(char *p);
 static void fotaPrint(char *str);
-#endif
+static void readyFota();
+static void recvModem(char *sendMsg, char *recvMsg, int repeat);
 
 void startFota();
-void readyFota();
 
 #endif
