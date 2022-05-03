@@ -64,13 +64,13 @@
 #define RTC_ALARM_LEN 0xA00
 
 #define MAIN_ADDR RTC_ALARM_ADDR + RTC_ALARM_LEN
-#define MAIN_LEN 0x200
+#define MAIN_LEN 0x400
 
 #define DATA_FLASH_ADDR MAIN_ADDR + MAIN_LEN
-#define DATA_FLASH_LEN 0x1800
+#define DATA_FLASH_LEN 0x1A00
 
 #define UART_ADDR DATA_FLASH_ADDR + DATA_FLASH_LEN
-#define UART_LEN 0xC00
+#define UART_LEN 0xE00
 
 #define NFC_I2C_ADDR UART_ADDR + UART_LEN
 #define NFC_I2C_LEN 0xA00
@@ -97,13 +97,13 @@
 #define TASK_MGR_LEN 0x200
 
 #define NB_PROCESS_ADDR TASK_MGR_ADDR + TASK_MGR_LEN
-#define NB_PROCESS_LEN 0x1C00
+#define NB_PROCESS_LEN 0x2000
 
 #define NB_RESPONSE_ADDR NB_PROCESS_ADDR + NB_PROCESS_LEN
-#define NB_RESPONSE_LEN 0x1400
+#define NB_RESPONSE_LEN 0x1600
 
 #define MESSAGE_ADDR NB_RESPONSE_ADDR + NB_RESPONSE_LEN
-#define MESSAGE_LEN 0x1200
+#define MESSAGE_LEN 0x1400
 
 #define MODEM_ADDR MESSAGE_ADDR + MESSAGE_LEN
 #define MODEM_LEN 0x1000
@@ -127,26 +127,26 @@ MEMORY
     MAIN_CODE	        	: origin = 0x5C00, length = 0x0200
     TEST                    : origin = 0x5E00, length = 0x5200
     FLASHB                  : origin = 0xB000, length = 0x4FD2
-    /* METER                   : origin = METER_ADDR, length = METER_LEN */
-    /* APP                     : origin = APP_ADDR, length = APP_LEN */
-    /* NFC_PROTOCOL            : origin = NFC_PROTOCOL_ADDR, length = NFC_PROTOCOL_LEN */
-    /* RTC_ALARM               : origin = RTC_ALARM_ADDR, length = RTC_ALARM_LEN */
-    /* MAIN_TEXT               : origin = MAIN_ADDR, length = MAIN_LEN */
-    /* DATA_FLASH              : origin = DATA_FLASH_ADDR, length = DATA_FLASH_LEN */
-    /* UART                    : origin = UART_ADDR, length = UART_LEN */
-    /* NFC_I2C                 : origin = NFC_I2C_ADDR, length = NFC_I2C_LEN */
-    /* FLASH_DRIVER            : origin = FLASH_DRIVER_ADDR, length = FLASH_DRIVER_LEN */
-    /* LCD_DRIVER              : origin = LCD_DRIVER_ADDR, length = LCD_DRIVER_LEN */
-    /* FLASH_UTIL              : origin = FLASH_UTIL_ADDR, length = FLASH_UTIL_LEN */
-    /* BATTERY                 : origin = BATTERY_ADDR, length = BATTERY_LEN */
-    /* METER_MISC              : origin = METER_MISC_ADDR, length = METER_MISC_LEN */
-    /* OSAL_TIMER              : origin = OSAL_TIMER_ADDR, length = OSAL_TIMER_LEN */
-    /* TASK_MGR                : origin = TASK_MGR_ADDR, length = TASK_MGR_LEN */
-    /* NB_PROCESS              : origin = NB_PROCESS_ADDR, length = NB_PROCESS_LEN */
-    /* NB_RESPONSE             : origin = NB_RESPONSE_ADDR, length = NB_RESPONSE_LEN */
-    /* MESSAGE                 : origin = MESSAGE_ADDR, length = MESSAGE_LEN */
-    /* MODEM                   : origin = MODEM_ADDR, length = MODEM_LEN */
-    FLASHC                  : origin = 0x10200,length = 0xFE00
+    METER                   : origin = METER_ADDR, length = METER_LEN
+    APP                     : origin = APP_ADDR, length = APP_LEN
+    NFC_PROTOCOL            : origin = NFC_PROTOCOL_ADDR, length = NFC_PROTOCOL_LEN
+    RTC_ALARM               : origin = RTC_ALARM_ADDR, length = RTC_ALARM_LEN
+    MAIN_TEXT               : origin = MAIN_ADDR, length = MAIN_LEN
+    DATA_FLASH              : origin = DATA_FLASH_ADDR, length = DATA_FLASH_LEN
+    UART                    : origin = UART_ADDR, length = UART_LEN
+    NFC_I2C                 : origin = NFC_I2C_ADDR, length = NFC_I2C_LEN
+    FLASH_DRIVER            : origin = FLASH_DRIVER_ADDR, length = FLASH_DRIVER_LEN
+    LCD_DRIVER              : origin = LCD_DRIVER_ADDR, length = LCD_DRIVER_LEN
+    FLASH_UTIL              : origin = FLASH_UTIL_ADDR, length = FLASH_UTIL_LEN
+    BATTERY                 : origin = BATTERY_ADDR, length = BATTERY_LEN
+    METER_MISC              : origin = METER_MISC_ADDR, length = METER_MISC_LEN
+    OSAL_TIMER              : origin = OSAL_TIMER_ADDR, length = OSAL_TIMER_LEN
+    TASK_MGR                : origin = TASK_MGR_ADDR, length = TASK_MGR_LEN
+    NB_PROCESS              : origin = NB_PROCESS_ADDR, length = NB_PROCESS_LEN
+    NB_RESPONSE             : origin = NB_RESPONSE_ADDR, length = NB_RESPONSE_LEN
+    MESSAGE                 : origin = MESSAGE_ADDR, length = MESSAGE_LEN
+    MODEM                   : origin = MODEM_ADDR, length = MODEM_LEN
+    FLASHC                  : origin = 0x1FE00,length = 0x200
     FOTA_FLASH              : origin = 0x20000, length = FOTA_LEN
     FLASHD                  : origin = 0x20000+FOTA_LEN,length = 0x2600
     INT41                   : origin = 0xFFD2, length = 0x0002
@@ -201,100 +201,99 @@ SECTIONS
         uuid.obj (.text)
     } > FLASHD
 
-    /* meter { */
-    /*     meter.obj (.text) */ 
-    /*     meter.obj (.const) */
-    /* } > METER */
+    meter {
+        meter.obj (.text) 
+        meter.obj (.const)
+    } > METER
 
-    /* app { */
-    /*     app.obj (.text) */
-    /*     app.obj (.const) */
-    /* } > APP */
+    app {
+        app.obj (.text)
+        app.obj (.const)
+    } > APP
 
-    /* nfcProtocol { */
-    /*     nfcProtocol.obj (.text) */
-    /*     nfcProtocol.obj (.const) */
-    /* } > NFC_PROTOCOL */
+    nfcProtocol {
+        nfcProtocol.obj (.text)
+        nfcProtocol.obj (.const)
+    } > NFC_PROTOCOL
 
-    /* rtcAlarm { */
-    /*     rtcAlarm.obj (.text) */
-    /*     rtcAlarm.obj (.const) */
-    /* } > RTC_ALARM */
+    rtcAlarm {
+        rtcAlarm.obj (.text)
+        rtcAlarm.obj (.const)
+    } > RTC_ALARM
 
-    /* main_text { */
-    /*     main.obj (.text:initSystem) */
-    /*     main.obj (.text:initPort) */
-    /*     main.obj (.text:initClock) */
-    /* } > MAIN_TEXT */
+    main_text {
+        main.obj (.text)
+        main.obj (.const)
+    } > MAIN_TEXT
 
-    /* dataFlash_text { */
-    /*     dataFlash.obj (.text) */
-    /*     dataFlash.obj (.const) */
-    /* } > DATA_FLASH */
+    dataFlash_text {
+        dataFlash.obj (.text)
+        dataFlash.obj (.const)
+    } > DATA_FLASH
 
-    /* uart_text { */
-    /*     uart.obj (.text) */
-    /*     uart.obj (.const) */
-    /* } > UART */
+    uart_text {
+        uart.obj (.text)
+        uart.obj (.const)
+    } > UART
 
-    /* nfci2c_text { */
-    /*     NFC_i2c.obj (.text) */
-    /*     NFC_i2c.obj (.const) */
-    /* } > NFC_I2C */
+    nfci2c_text {
+        NFC_i2c.obj (.text)
+        NFC_i2c.obj (.const)
+    } > NFC_I2C
 
-    /* flashDriver_text { */
-    /*     flashDriver.obj (.text) */
-    /*     flashDriver.obj (.const) */
-    /* } > FLASH_DRIVER */
+    flashDriver_text {
+        flashDriver.obj (.text)
+        flashDriver.obj (.const)
+    } > FLASH_DRIVER
 
-    /* lcdDriver_text { */
-    /*     lcdDriver.obj (.text) */
-    /*     lcdDriver.obj (.const) */
-    /* } > LCD_DRIVER */
+    lcdDriver_text {
+        lcdDriver.obj (.text)
+        lcdDriver.obj (.const)
+    } > LCD_DRIVER
 
-    /* flashUtil_text { */
-    /*     MSP430FlashUtil.obj (.text) */
-    /*     MSP430FlashUtil.obj (.const) */
-    /* } > FLASH_UTIL */
+    flashUtil_text {
+        MSP430FlashUtil.obj (.text)
+        MSP430FlashUtil.obj (.const)
+    } > FLASH_UTIL
 
-    /* battery_text { */
-    /*     battery.obj (.text) */
-    /* } > BATTERY */
+    battery_text {
+        battery.obj (.text)
+    } > BATTERY
 
-    /* meterMisc_text { */
-    /*     check_meter_misc.obj (.text) */
-    /* } > METER_MISC */
+    meterMisc_text {
+        check_meter_misc.obj (.text)
+    } > METER_MISC
 
-    /* osalTimer { */
-    /*     osal_Timer.obj (.text) */
-    /*     osal.obj (.text) */
-    /*     osal_Timer.obj (.const) */
-    /* } > OSAL_TIMER */
+    osalTimer {
+        osal_Timer.obj (.text)
+        osal.obj (.text)
+        osal_Timer.obj (.const)
+    } > OSAL_TIMER
 
-    /* taskMgr_text { */
-    /*     Task_Mgr.obj (.text) */
-    /*     Task_Mgr.obj (.const) */
-    /* } > TASK_MGR */
+    taskMgr_text {
+        Task_Mgr.obj (.text)
+        Task_Mgr.obj (.const)
+    } > TASK_MGR
 
-    /* nbiotProcess_text { */
-    /*     nbiotProcess.obj (.text) */
-    /*     nbiotProcess.obj (.const) */
-    /* } > NB_PROCESS */
+    nbiotProcess_text {
+        nbiotProcess.obj (.text)
+        nbiotProcess.obj (.const)
+    } > NB_PROCESS
 
-    /* nbiotResponse_text { */
-    /*     nbiotResponse.obj (.text) */
-    /*     nbiotResponse.obj (.const) */
-    /* } > NB_RESPONSE */
+    nbiotResponse_text {
+        nbiotResponse.obj (.text)
+        nbiotResponse.obj (.const)
+    } > NB_RESPONSE
 
-    /* message_text { */
-    /*     message.obj (.text) */
-    /*     message.obj (.const) */
-    /* } > MESSAGE */
+    message_text {
+        message.obj (.text)
+        message.obj (.const)
+    } > MESSAGE
 
-    /* modem_text { */
-    /*     modem.obj (.text) */
-    /*     modem.obj (.const) */
-    /* } > MODEM */
+    modem_text {
+        modem.obj (.text)
+        modem.obj (.const)
+    } > MODEM
 
     library_section : > FLASHB
     {
@@ -322,26 +321,26 @@ SECTIONS
     } load=FOTA_FLASH, run=FOTA_RAM
 
 #ifndef __LARGE_CODE_MODEL__
-    .text       : {} > FLASHC       /* Code                              */
+    .text       : {} > FLASHB       /* Code                              */
 #else
-    .text       : {} >> FLASHC | FLASHB       /* Code                              */
+    .text       : {} > FLASHB       /* Code                              */
 #endif
 /* Errata Flash Read Error and Susceptibility for MSP430F54xxA 
 Manual placement of interrupt service routines into memory locations above 0x008000
 can eliminate the effect on interrupt vector address fetches. */
     .cinit      : {} > FLASHB                /* Initialization tables             */
 #ifndef __LARGE_DATA_MODEL__
-    .const      : {} > FLASHC                /* Constant data                     */
+    .const      : {} > FLASHB                /* Constant data                     */
 #else
-    .const      : {} >> FLASHC | FLASHB      /* Constant data                     */
+    .const      : {} > FLASHB      /* Constant data                     */
 #endif
     .cio        : {} > RAM                  /* C I/O Buffer                      */
 
-    .pinit      : {} > FLASHC                /* C++ Constructor tables            */
-    .binit      : {} > FLASHC                /* Boot-time Initialization tables   */
-    .init_array : {} > FLASHC                /* C++ Constructor tables            */
-    .mspabi.exidx : {} > FLASHC              /* C++ Constructor tables            */
-    .mspabi.extab : {} > FLASHC              /* C++ Constructor tables            */
+    .pinit      : {} > FLASHB                /* C++ Constructor tables            */
+    .binit      : {} > FLASHB                /* Boot-time Initialization tables   */
+    .init_array : {} > FLASHB                /* C++ Constructor tables            */
+    .mspabi.exidx : {} > FLASHB              /* C++ Constructor tables            */
+    .mspabi.extab : {} > FLASHB              /* C++ Constructor tables            */
 
     .infoA     : {} > INFOA              /* MSP430 INFO FLASH Memory segments */
     .infoB     : {} > INFOB
