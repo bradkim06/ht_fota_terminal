@@ -2,7 +2,7 @@
 #define __FOTA_H__
 
 #define HEADER_LEN 2
-#define MAX_DATA_LEN 1050
+#define MAX_DATA_LEN 1200
 #define CHECKSUM_LEN 2
 #define RX_MAX_LEN HEADER_LEN + MAX_DATA_LEN + CHECKSUM_LEN
 
@@ -39,7 +39,7 @@ static void fotaRecv();
 static void txData(char *msg);
 static void send(int option);
 static int fotaatoi(char *cdata);
-static void fotaModemPrint(char *p);
+static void fotaModemPrint(char *p, int len);
 static void fotaPrint(char *str);
 static void readyFota();
 static void recvModem(char *sendMsg, char *recvMsg, int repeat);

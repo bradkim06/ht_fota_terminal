@@ -122,11 +122,11 @@ static void modemSend(char *str)
 	}
 }
 
-static void fotaModemPrint(char *p)
+static void fotaModemPrint(char *p, int len)
 {
 #ifdef FOTA_DEBUG
 	fotaPrint("[RX] ");
-	for (int i = 0; i < strlen(p); i++) {
+	for (int i = 0; i < len; i++) {
 		char ch = *(p + i);
 		if (ch == '\r' || ch == '\n') {
 			fotaPrint(".");
@@ -184,7 +184,8 @@ static void recvModem(char *sendMsg, char *recvMsg, int repeat)
 		}
 
 		if (strstr(rxBuf, recvMsg)) {
-			fotaModemPrint(rxBuf);
+			fotaModemPrint(rxBuf, rxLen);
+			modemRxClear();
 			return;
 		} else {
 			modemRxClear();
@@ -219,7 +220,7 @@ static void fotaRecv()
 			char *p = NULL;
 
 			if ((p = strstr(rxBuf, AT_MODEM_RX))) {
-				fotaModemPrint(rxBuf);
+				fotaModemPrint(rxBuf, rxLen);
 				fotaSend("AT+NSORF=1,1024\n\r");
 			} else if ((p = strstr(rxBuf, AT_DFOTA_PORT))) {
 				// data len
@@ -269,7 +270,7 @@ static void fotaRecv()
 					send(SEND_REPEAT);
 				}
 			} else if ((p = strstr(rxBuf, "+NSOCLI:"))) {
-				fotaModemPrint(rxBuf);
+				fotaModemPrint(rxBuf, rxLen);
 				recvModem("at+cgatt=0\n\r", "+NPSMR:1", 0);
 				fotaPrint("socket closed sleep\n\r");
 				break;
@@ -290,11 +291,10 @@ static void fotaRecv()
 
 	P2OUT &= ~0x20;
 
-	MISC_delayMs(2000);
-	// for (int i = 0; i < 5; i++) {
-	// 	// minute
-	// 	MISC_delayMs(60000);
-	// }
+	for (int i = 0; i < 5; i++) {
+		// minute
+		MISC_delayMs(60000);
+	}
 }
 
 static void send(int option)
@@ -319,8 +319,8 @@ void startFota()
 
 	while (1) {
 		fotaPrint("fota start, send Ready\n\r");
-		recvModem("at+natspeed=115200,30,0,0,1\n\r", "OK", 0);
-		MODEM_changeBaudrate(UART_BAUDRATE_115200);
+		recvModem("at+natspeed=460800,30,0,0,1\n\r", "OK", 0);
+		MODEM_changeBaudrate(UART_BAUDRATE_460800);
 		send(SEND_READY);
 
 		fotaRecv();
