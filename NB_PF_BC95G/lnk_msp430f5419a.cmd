@@ -109,7 +109,7 @@
 #define MODEM_LEN 0x1000
 
 #define FOTA_ADDR 0x1C00
-#define FOTA_LEN 0xE00
+#define FOTA_LEN 0x1000
 
 #define RAM_ADDR FOTA_ADDR + FOTA_LEN
 
@@ -119,7 +119,7 @@ MEMORY
     PERIPHERALS_8BIT        : origin = 0x0010, length = 0x00F0
     PERIPHERALS_16BIT       : origin = 0x0100, length = 0x0100
     FOTA_RAM                : origin = FOTA_ADDR, length = FOTA_LEN
-    RAM                     : origin = RAM_ADDR, length = 0x3200
+    RAM                     : origin = RAM_ADDR, length = 0x3000
     INFOA                   : origin = 0x1980, length = 0x0080
     INFOB                   : origin = 0x1900, length = 0x0080
     INFOC                   : origin = 0x1880, length = 0x0080
@@ -148,7 +148,7 @@ MEMORY
     MODEM                   : origin = MODEM_ADDR, length = MODEM_LEN
     FLASHC                  : origin = 0x1FE00,length = 0x200
     FOTA_FLASH              : origin = 0x20000, length = FOTA_LEN
-    FLASHD                  : origin = 0x20000+FOTA_LEN,length = 0x2600
+    FLASHD                  : origin = 0x20000+FOTA_LEN,length = 0x2400
     INT41                   : origin = 0xFFD2, length = 0x0002
     INT42                   : origin = 0xFFD4, length = 0x0002
     INT43                   : origin = 0xFFD6, length = 0x0002
