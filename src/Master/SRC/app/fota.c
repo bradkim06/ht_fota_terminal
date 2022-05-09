@@ -322,10 +322,10 @@ void startFota()
 
 	while (1) {
 		fotaPrint("fota start, send Ready\n\r");
-		if (recvModem("at+natspeed=230400,30,0,0,1\n\r", "OK", FOTA_10SEC)) {
+		if (recvModem("at+natspeed=57600,30,0,0,1\n\r", "OK", FOTA_10SEC)) {
 			reboot();
 		}
-		MODEM_changeBaudrate(UART_BAUDRATE_230400);
+		MODEM_changeBaudrate(UART_BAUDRATE_57600);
 		if (send(SEND_READY)) {
 			reboot();
 		}

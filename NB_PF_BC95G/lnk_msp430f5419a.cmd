@@ -115,10 +115,10 @@
 #define NOINIT_LEN 0x80
 
 #define BSS_ADDR NOINIT_ADDR + NOINIT_LEN
-#define BSS_LEN 0xC00
+#define BSS_LEN 0xCA0
 
 #define DATA_ADDR BSS_ADDR + BSS_LEN
-#define DATA_LEN 0x300
+#define DATA_LEN 0x3A0
 
 #define RAM_ADDR DATA_ADDR + DATA_LEN
 
@@ -130,15 +130,17 @@ MEMORY
     FOTA_RAM                : origin = FOTA_ADDR, length = FOTA_LEN
     NOINIT_RAM              : origin = NOINIT_ADDR, length = NOINIT_LEN
     BSS_RAM                 : origin = BSS_ADDR, length = BSS_LEN
-    DATA_RAM               : origin = DATA_ADDR, length = DATA_LEN
-    RAM                     : origin = RAM_ADDR, length = 0x2080
+    DATA_RAM                : origin = DATA_ADDR, length = DATA_LEN
+    RAM                     : origin = RAM_ADDR, length = 0x1F40
     INFOA                   : origin = 0x1980, length = 0x0080
     INFOB                   : origin = 0x1900, length = 0x0080
     INFOC                   : origin = 0x1880, length = 0x0080
     INFOD                   : origin = 0x1800, length = 0x0080
     MAIN_CODE	        	: origin = 0x5C00, length = 0x0200
-    TEST                    : origin = 0x5E00, length = 0x5200
-    FLASHB                  : origin = 0xB000, length = 0x4FD2
+    TEST                    : origin = 0x5E00, length = 0x2000
+    MTEST                   : origin = 0x7E00, length = 0x1200
+    SHELL                   : origin = 0x9000, length = 0x2200
+    FLASHB                  : origin = 0xB200, length = 0x4DD2
     METER                   : origin = METER_ADDR, length = METER_LEN
     APP                     : origin = APP_ADDR, length = APP_LEN
     NFC_PROTOCOL            : origin = NFC_PROTOCOL_ADDR, length = NFC_PROTOCOL_LEN
@@ -200,13 +202,19 @@ SECTIONS
     MAIN		: {} > MAIN_CODE
 
     test_section {
-        mTest.obj (.text)
-        mTest.obj (.const)
         test.obj (.text)        
         test.obj (.const)        
+    } > TEST
+
+    mtest_section {
+        mTest.obj (.text)
+        mTest.obj (.const)
+    } > MTEST
+
+    shell_section {
         shell.obj (.text)
         shell.obj (.const)
-    } > TEST
+    } > SHELL
 
     md5_section {
         md5.obj (.text)
@@ -235,7 +243,7 @@ SECTIONS
 
     main_text {
         main.obj (.text)
-        main.obj (.const)
+        /* main.obj (.const) */
     } > MAIN_TEXT
 
     dataFlash_text {
