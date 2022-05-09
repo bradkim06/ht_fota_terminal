@@ -304,10 +304,8 @@ static int parse_fota_downlink(char *p)
 		int more = atoi(p);
 
 		if (strstr(modemComm.dlData, "fota")) {
-			printf("dlData(%s), len(%d)\n", modemComm.dlData, modemComm.dlDataLen);
 			valid = 1;
 		} else if (strstr(modemComm.dlData, "ready")) {
-			printf("dlData(%s), len(%d)\n", modemComm.dlData, modemComm.dlDataLen);
 			valid = 1;
 		}
 	} while (0);

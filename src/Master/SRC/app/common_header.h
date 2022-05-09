@@ -175,6 +175,7 @@ typedef struct {
 	uint8 termModel;
 	uint8 periodMode;
 	uint8 bslModel;
+	uint8 checksum;
 } Config_t;
 
 extern Config_t conf;

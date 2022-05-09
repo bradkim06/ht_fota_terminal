@@ -111,7 +111,16 @@
 #define FOTA_ADDR 0x1C00
 #define FOTA_LEN 0x1000
 
-#define RAM_ADDR FOTA_ADDR + FOTA_LEN
+#define NOINIT_ADDR FOTA_ADDR + FOTA_LEN
+#define NOINIT_LEN 0x80
+
+#define BSS_ADDR NOINIT_ADDR + NOINIT_LEN
+#define BSS_LEN 0xC00
+
+#define DATA_ADDR BSS_ADDR + BSS_LEN
+#define DATA_LEN 0x300
+
+#define RAM_ADDR DATA_ADDR + DATA_LEN
 
 MEMORY
 {
@@ -119,7 +128,10 @@ MEMORY
     PERIPHERALS_8BIT        : origin = 0x0010, length = 0x00F0
     PERIPHERALS_16BIT       : origin = 0x0100, length = 0x0100
     FOTA_RAM                : origin = FOTA_ADDR, length = FOTA_LEN
-    RAM                     : origin = RAM_ADDR, length = 0x3000
+    NOINIT_RAM              : origin = NOINIT_ADDR, length = NOINIT_LEN
+    BSS_RAM                 : origin = BSS_ADDR, length = BSS_LEN
+    DATA_RAM               : origin = DATA_ADDR, length = DATA_LEN
+    RAM                     : origin = RAM_ADDR, length = 0x2080
     INFOA                   : origin = 0x1980, length = 0x0080
     INFOB                   : origin = 0x1900, length = 0x0080
     INFOC                   : origin = 0x1880, length = 0x0080
@@ -180,9 +192,9 @@ MEMORY
 
 SECTIONS
 {
-    .bss        : {} > RAM                  /* Global & static vars              */
-    .data       : {} > RAM                  /* Global & static vars              */
-    .TI.noinit  : {} > RAM                  /* For #pragma noinit                */
+    .bss        : {} > BSS_RAM              /* Global & static vars              */
+    .data       : {} > DATA_RAM             /* Global & static vars              */
+    .TI.noinit  : {} > NOINIT_RAM           /* For #pragma noinit                */
     .sysmem     : {} > RAM                  /* Dynamic memory allocation area    */
     .stack      : {} > RAM (HIGH)           /* Software system stack             */
     MAIN		: {} > MAIN_CODE

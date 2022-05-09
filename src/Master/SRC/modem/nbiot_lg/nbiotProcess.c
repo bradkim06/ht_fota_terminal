@@ -1,5 +1,6 @@
 #include "device.h"
 #include "flashDriver.h"
+#include "intrinsics.h"
 #include "stdio.h"
 #include "string.h"
 #include <msp430.h>
@@ -498,6 +499,7 @@ static ModemStep_t bip()
 		MODEM_copyImsi(imsi);
 		if (memcmp(conf.imsi, imsi, 8) != 0) {
 			memcpy(conf.imsi, imsi, 8);
+			saveConfChecksum();
 			printf_ts("MODEM : changed USIM\n");
 			modem.lastAttachStatus = MODEM_NW_STATUS_NORMAL;
 		}

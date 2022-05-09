@@ -37,7 +37,7 @@ static char socket[3];
 static char fotaPort[6];
 static char initialMsgSize[4];
 
-char rxBuf[RX_MAX_LEN];
+char *rxBuf;
 int rxLen;
 
 static int checkFlashBusy()
@@ -109,7 +109,7 @@ static void fotaPrint(char *str)
 
 static void modemRxClear()
 {
-	for (int i = 0; i < sizeof(rxBuf); i++) {
+	for (int i = 0; i < RX_MAX_LEN; i++) {
 		rxBuf[i] = 0;
 	}
 	rxLen = 0;
@@ -309,6 +309,13 @@ static int send(int option)
 void startFota()
 {
 	Fota.Status = 1;
+	fota_uart();
+
+	rxBuf = (char *)malloc(RX_MAX_LEN);
+	if (rxBuf == NULL) {
+		fotaPrint("malloc(Fota rxBuf) failed\n\r");
+		reboot();
+	}
 	snprintf(socket, sizeof(socket), "%1d,", modemCtx.socket);
 	snprintf(fotaPort, sizeof(fotaPort), "%d", Fota.Info.port);
 	snprintf(initialMsgSize, sizeof(initialMsgSize), "%d,", FOTA_REQMSG_SIZE);

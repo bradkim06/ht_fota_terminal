@@ -1,5 +1,6 @@
 #include "flashDriver.h"
 #include "common_header.h"
+#include "string.h"
 #include "tdd.h"
 #if NBIOT_DEVICE
 #include "modem.h"
@@ -7,6 +8,7 @@
 
 #ifndef TDD_TEST
 #include <msp430.h>
+#include <stddef.h>
 #include "check_meter_misc.h"
 #include "MSP430FlashUtil.h"
 #include "app.h"
@@ -84,7 +86,7 @@ static BOOL readConfig(FlashConfig_t *pInfo)
 	FlashConfig_t info_a;
 	memcpy((uint8 *)&info_a, flash, sizeof(FlashConfig_t));
 
-	uint8 checksum = calChecksum((uint8 *)&info_a, LEN_FLASH_CONFIG);
+	uint8 checksum = calChecksum((uint8 *)&info_a, offsetof(FlashConfig_t, checksum));
 	BOOL a_valid = (checksum == info_a.checksum) ? TRUE : FALSE;
 
 	HAL_ENTER_CRITICAL_SECTION(intState);
@@ -93,7 +95,7 @@ static BOOL readConfig(FlashConfig_t *pInfo)
 
 	FlashConfig_t info_c;
 	memcpy((uint8 *)&info_c, flash, sizeof(FlashConfig_t));
-	checksum = calChecksum((uint8 *)&info_c, LEN_FLASH_CONFIG);
+	checksum = calChecksum((uint8 *)&info_c, offsetof(FlashConfig_t, checksum));
 	BOOL c_valid = (checksum == info_c.checksum) ? TRUE : FALSE;
 
 	if (a_valid == TRUE && c_valid == TRUE) {
@@ -182,7 +184,7 @@ static BOOL readID(FlashId_t *pInfo)
 	FlashId_t info_b;
 	memcpy((uint8 *)&info_b, flash, sizeof(FlashId_t));
 
-	uint8 checksum = calChecksum((uint8 *)&info_b, LEN_FLASH_ID);
+	uint8 checksum = calChecksum((uint8 *)&info_b, offsetof(FlashId_t, checksum));
 	BOOL b_valid = (checksum == info_b.checksum) ? TRUE : FALSE;
 
 	HAL_ENTER_CRITICAL_SECTION(intState);
@@ -192,7 +194,7 @@ static BOOL readID(FlashId_t *pInfo)
 	FlashId_t info_d;
 	memcpy((uint8 *)&info_d, flash, sizeof(FlashId_t));
 
-	checksum = calChecksum((uint8 *)&info_d, LEN_FLASH_ID);
+	checksum = calChecksum((uint8 *)&info_d, offsetof(FlashId_t, checksum));
 	BOOL d_valid = (checksum == info_d.checksum) ? TRUE : FALSE;
 
 	if (b_valid == TRUE && d_valid == TRUE) {
@@ -272,7 +274,7 @@ void FLASH_saveConfigInfo(Config_t *config)
 	memcpy(flashID.imei, config->imei, 8);
 #endif
 
-	flashID.checksum = calChecksum((uint8 *)&flashID, LEN_FLASH_ID);
+	flashID.checksum = calChecksum((uint8 *)&flashID, offsetof(FlashId_t, checksum));
 
 	saveID(&flashID);
 
@@ -302,14 +304,23 @@ void FLASH_saveConfigInfo(Config_t *config)
 	Date_t date;
 	RTC_read(&date);
 
-	flashConfig.checksum = calChecksum((uint8 *)&flashConfig, LEN_FLASH_CONFIG);
+	flashConfig.checksum = calChecksum((uint8 *)&flashConfig, offsetof(FlashId_t, checksum));
 	saveConfig(&flashConfig);
+
+	saveConfChecksum();
 }
 
 void FLASH_readConfigInfo(Config_t *config)
 {
 	// read others
 	FlashConfig_t flashConfig;
+	uint8 checksum = calChecksum((uint8 *)config, offsetof(Config_t, checksum));
+
+	if (checksum != config->checksum) {
+		printf("config ram checksum fail\n");
+		memset(config, 0, sizeof(Config_t));
+	}
+
 	BOOL result_conf = readConfig(&flashConfig);
 
 	if (result_conf == TRUE) {
@@ -375,9 +386,15 @@ void FLASH_readConfigInfo(Config_t *config)
 	distributingReportTime(serialBase, config);
 
 	if ((result_id & result_conf) == FALSE) {
-		config->resetCount = 0;
 		FLASH_saveConfigInfo(config);
+	} else {
+		saveConfChecksum();
 	}
+}
+
+void saveConfChecksum()
+{
+	conf.checksum = calChecksum((uint8 *)&conf, offsetof(Config_t, checksum));
 }
 
 void ip2hexArray(char *ip, uint8 *hexIp)
@@ -406,7 +423,7 @@ void FLASH_updateResetCount(Config_t *config)
 {
 	if (config->resetCount < 65000) {
 		config->resetCount++;
-		// FLASH_saveConfigInfo(config);
+		saveConfChecksum();
 	}
 }
 

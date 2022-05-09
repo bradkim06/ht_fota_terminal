@@ -85,6 +85,7 @@ void UART_close(UartNum_t num, UartPinMode_t mode);
 void UART_send(UartNum_t num, void *buffer, int len, BOOL isAppendCR);
 int UART_receive(UartNum_t num, void *buffer, int limit);
 BOOL UART_getChar(UartNum_t num, char *ch);
+void fota_uart();
 
 // Default print functions
 int printf(const char *format, ...);

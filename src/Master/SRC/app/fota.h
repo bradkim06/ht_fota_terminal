@@ -2,7 +2,7 @@
 #define __FOTA_H__
 
 #define HEADER_LEN 2
-#define MAX_DATA_LEN 600
+#define MAX_DATA_LEN 0x300
 #define CHECKSUM_LEN 2
 #define RX_MAX_LEN HEADER_LEN + MAX_DATA_LEN + CHECKSUM_LEN
 
@@ -26,7 +26,7 @@ typedef struct {
 } FotaStatus_t;
 
 extern FotaStatus_t Fota;
-extern char rxBuf[RX_MAX_LEN];
+extern char *rxBuf;
 extern int rxLen;
 
 static int checkFlashBusy();

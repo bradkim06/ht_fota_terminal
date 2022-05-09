@@ -10,7 +10,7 @@
 #define LEN_INFO_FLASH_SECTOR 128
 
 //! Configuration data length without checksum
-#define LEN_FLASH_CONFIG 31
+// #define LEN_FLASH_CONFIG 31
 
 #if LORA_DEVICE
 typedef struct {
@@ -56,7 +56,7 @@ typedef struct {
 
 #endif
 
-#define LEN_FLASH_ID 31
+// #define LEN_FLASH_ID 31
 #if LORA_DEVICE
 typedef struct {
 	uint8 serialNum[SERIAL_NUM_LEN]; //  0 ~ 11
@@ -88,6 +88,8 @@ typedef struct {
 	uint8 checksum; // 31
 } FlashId_t;
 #endif
+
+void saveConfChecksum();
 
 /**************************************************
  * Flash R/W/E interface for Configuration data

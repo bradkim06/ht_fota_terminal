@@ -182,7 +182,7 @@ static void mallocUartBuf(UartIoBuf_t **ioBuf, int txBufLen, int rxBufLen)
 
 void UART_init()
 {
-	mallocUartBuf(&uartA0, LCD_TX_BUF_LEN, 0);
+	mallocUartBuf(&uartA0, LCD_TX_BUF_LEN, 1);
 	mallocUartBuf(&uartA1, DEBUG_TX_BUF_LEN, DEBUG_RX_BUF_LEN);
 	mallocUartBuf(&uartA2, MODEM_TX_BUF_LEN, MODEM_RX_BUF_LEN);
 	mallocUartBuf(&uartA3, METER_TX_BUF_LEN, METER_RX_BUF_LEN);
@@ -190,7 +190,7 @@ void UART_init()
 
 void UART_debugMode()
 {
-	mallocUartBuf(&uartA0, LCD_TX_BUF_LEN, 0);
+	mallocUartBuf(&uartA0, LCD_TX_BUF_LEN, 1);
 	mallocUartBuf(&uartA1, METER_TX_BUF_LEN, METER_RX_BUF_LEN);
 	mallocUartBuf(&uartA2, MODEM_TX_BUF_LEN, MODEM_RX_BUF_LEN);
 	mallocUartBuf(&uartA3, DEBUG_TX_BUF_LEN, DEBUG_RX_BUF_LEN);
@@ -203,6 +203,14 @@ void UART_debugMode()
 				  .charLen = UART_8BITS_CHAR };
 
 	UART_open(UART_A3, &param);
+}
+
+void fota_uart()
+{
+	mallocUartBuf(&uartA0, 1, 1);
+	mallocUartBuf(&uartA1, 1, 1);
+	mallocUartBuf(&uartA2, 1, 1);
+	mallocUartBuf(&uartA3, 1, 1);
 }
 
 void UART_open(UartNum_t num, UartInitParam_t *param)
@@ -706,6 +714,10 @@ __interrupt void USCI_A0_ISR(void)
 #pragma vector = USCI_A1_VECTOR
 __interrupt void USCI_A1_ISR(void)
 {
+	if (Fota.Status) {
+		return;
+	}
+
 	if (UCA1IFG & UCTXIFG) { // USCI_A1 TX
 		if (uartA1->txBuf == NULL) {
 			return;
@@ -788,6 +800,10 @@ __interrupt void USCI_A2_ISR(void)
 #pragma vector = USCI_A3_VECTOR
 __interrupt void USCI_A3_ISR(void)
 {
+	if (Fota.Status) {
+		return;
+	}
+
 	if (UCA3IFG & UCTXIFG) {
 		if (uartA3->txBuf == NULL) {
 			return;
