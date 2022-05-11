@@ -549,8 +549,8 @@ void MODEM_response(char *pHead, int len)
 	case AT_CMD_IDX_SW_RESET:
 #define PATTERN_REBOOT_REPORT "REBOOT_CAUSE_APPLICATION_AT"
 		if (strstr(pHead, PATTERN_REBOOT_REPORT)) {
-			modemCtx.status.cellreg = 0;
-			modemCtx.lwm2m.value &= 0x01; // bsFinish Flag no clear
+			// modemCtx.status.cellreg = 0;
+			modemCtx.lwm2m.value = 0; // bsFinish Flag no clear
 			IsReboot = TRUE;
 		}
 
@@ -592,6 +592,12 @@ void MODEM_response(char *pHead, int len)
 		if ((p = strstr(pHead, PATTERN_NUESTATS_RADIO))) {
 			if (parse_radioQuality(p + strlen(PATTERN_NUESTATS_RADIO))) {
 				isRleaseBusy = TRUE;
+				printf_ts(
+					"MODEM : CGI(%ld) CID(%d) TX_POWER(%d) RSRP(%d) SNR(%d) RSRQ(%d) RSSI(%d) \n",
+					modem.modemQuality.cgi, modem.modemQuality.cid,
+					modem.modemQuality.txPower, modem.modemQuality.rsrp,
+					modem.modemQuality.snr, modem.modemQuality.rsrq,
+					modem.modemQuality.lastRSSI);
 			}
 		}
 		break;

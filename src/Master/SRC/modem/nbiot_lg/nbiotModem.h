@@ -136,7 +136,7 @@ typedef struct {
 typedef struct {
 	int retry; // command retry count
 	uint32 timeout; // command working timeout
-	AtCmd_t *atCmd; // AT command
+	const AtCmd_t *atCmd; // AT command
 	char atData[LEN_MAX_AT_DATA]; // AT data(=command + parameter, ASCII)
 	int dlDataLen; // Downlink data length
 	char dlData[LEN_MAX_DL_DATA]; // Downlink data

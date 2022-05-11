@@ -68,97 +68,93 @@ static BOOL isPowerOn = FALSE;
 
 void MODEM_turnOff()
 {
-	if (isPowerOn) {
-		printf_ts("MODEM : power off\n");
+	printf_ts("MODEM : power off\n");
 
 #if (DEVICE_REVISION == DEV_REV_PWRCTRL_MOSFET_LDO)
-		if (conf.bslModel) {
-			// MOSFET work turn on power (P4.6)
-			P4SEL &= ~BM(6);
-			P4DIR |= BM(6);
-			P4OUT |= BM(6); // make low
-		} else {
-			// MOSFET work turn on power (P1.1)
-			P1SEL &= ~BM(1);
-			P1DIR |= BM(1);
-			P1OUT |= BM(1); // make low
-		}
+	if (conf.bslModel) {
+		// MOSFET work turn on power (P4.6)
+		P4SEL &= ~BM(6);
+		P4DIR |= BM(6);
+		P4OUT |= BM(6); // make low
+	} else {
+		// MOSFET work turn on power (P1.1)
+		P1SEL &= ~BM(1);
+		P1DIR |= BM(1);
+		P1OUT |= BM(1); // make low
+	}
 
-		MISC_delayMs(10);
+	MISC_delayMs(10);
 
-		// LDO work turn off power (P2.0)
-		P2SEL &= ~BM(0);
-		P2DIR |= BM(0);
-		P2OUT &= ~BM(0); // make low
+	// LDO work turn off power (P2.0)
+	P2SEL &= ~BM(0);
+	P2DIR |= BM(0);
+	P2OUT &= ~BM(0); // make low
 
-		MISC_delayMs(100);
+	MISC_delayMs(100);
 #elif (DEVICE_REVISION == DEV_REV_PWRCTRL_LDO_ONLY)
-		// LDO work turn off power (P2.0)
-		P2SEL &= ~BM(0);
-		P2DIR |= BM(0);
-		P2OUT &= ~BM(0); // make low
+	// LDO work turn off power (P2.0)
+	P2SEL &= ~BM(0);
+	P2DIR |= BM(0);
+	P2OUT &= ~BM(0); // make low
 
-		MISC_delayMs(100);
+	MISC_delayMs(100);
 #elif (DEVICE_REVISION == DEV_REV_PWRCTRL_MOSFET_ONLY)
-		// turn off power (P2.0)
-		P2SEL &= ~BM(0);
-		P2DIR |= BM(0);
-		P2OUT |= BM(0); // make high
+	// turn off power (P2.0)
+	P2SEL &= ~BM(0);
+	P2DIR |= BM(0);
+	P2OUT |= BM(0); // make high
 
-		MISC_delayMs(10);
+	MISC_delayMs(10);
 #endif
 
-		isPowerOn = FALSE;
+	isPowerOn = FALSE;
 
-		modemCtx.lwm2m.value = 0;
-		modemCtx.status.cellreg = 0;
-		/* memset(&modem.lastCertifyTime, 0, sizeof(Date_t)); */
-	}
+	modemCtx.lwm2m.value = 0;
+	modemCtx.status.cellreg = 0;
+	/* memset(&modem.lastCertifyTime, 0, sizeof(Date_t)); */
 }
 
 void MODEM_turnOn()
 {
-	if (!isPowerOn) {
-		printf_ts("MODEM : power on\n");
+	printf_ts("MODEM : power on\n");
 
 #if (DEVICE_REVISION == DEV_REV_PWRCTRL_MOSFET_LDO)
-		// LDO work turn on power (P2.0)
-		P2SEL &= ~BM(0);
-		P2DIR |= BM(0);
-		P2OUT |= BM(0); // make high
+	// LDO work turn on power (P2.0)
+	P2SEL &= ~BM(0);
+	P2DIR |= BM(0);
+	P2OUT |= BM(0); // make high
 
-		MISC_delayMs(100);
+	MISC_delayMs(100);
 
-		if (conf.bslModel) {
-			// MOSFET work turn on power (P4.6)
-			P4SEL &= ~BM(6);
-			P4DIR |= BM(6);
-			P4OUT &= ~BM(6); // make low
-		} else {
-			// MOSFET work turn on power (P1.1)
-			P1SEL &= ~BM(1);
-			P1DIR |= BM(1);
-			P1OUT &= ~BM(1); // make low
-		}
-
-		MISC_delayMs(10);
-#elif (DEVICE_REVISION == DEV_REV_PWRCTRL_LDO_ONLY)
-		// LDO work turn on power (P2.0)
-		P2SEL &= ~BM(0);
-		P2DIR |= BM(0);
-		P2OUT |= BM(0); // make high
-
-		MISC_delayMs(100);
-#elif (DEVICE_REVISION == DEV_REV_PWRCTRL_MOSFET_ONLY)
-		// turn on power (P2.0)
-		P2SEL &= ~BM(0);
-		P2DIR |= BM(0);
-		P2OUT &= ~BM(0); // make low
-
-		MISC_delayMs(10);
-#endif
-		isPowerOn = TRUE;
+	if (conf.bslModel) {
+		// MOSFET work turn on power (P4.6)
+		P4SEL &= ~BM(6);
+		P4DIR |= BM(6);
+		P4OUT &= ~BM(6); // make low
+	} else {
+		// MOSFET work turn on power (P1.1)
+		P1SEL &= ~BM(1);
+		P1DIR |= BM(1);
+		P1OUT &= ~BM(1); // make low
 	}
+
+	MISC_delayMs(10);
+#elif (DEVICE_REVISION == DEV_REV_PWRCTRL_LDO_ONLY)
+	// LDO work turn on power (P2.0)
+	P2SEL &= ~BM(0);
+	P2DIR |= BM(0);
+	P2OUT |= BM(0); // make high
+
+	MISC_delayMs(100);
+#elif (DEVICE_REVISION == DEV_REV_PWRCTRL_MOSFET_ONLY)
+	// turn on power (P2.0)
+	P2SEL &= ~BM(0);
+	P2DIR |= BM(0);
+	P2OUT &= ~BM(0); // make low
+
+	MISC_delayMs(10);
+#endif
+	isPowerOn = TRUE;
 }
 
 void MODEM_sleep()
@@ -402,12 +398,9 @@ void MODEM_timeout()
 
 		// INIT/RETRY 단계가 아니면서 현재 재시도 횟수가 MAX미만인 경우 재시도.
 		// 그 외 INIT/RETRY 단계이거나 현재 재시도 횟수가 MAX이상인 경우 종료.
-		static int maxRetryCount = 0;
+		static int maxRetryCount = 2;
 		if (modemCtx.retryStep == MODEM_STEP_UNKNOWN) {
 			switch (modemCtx.step) {
-			case MODEM_STEP_BIP:
-				maxRetryCount = NBIOT_BIP_RETRY;
-				break;
 			case MODEM_STEP_ATTACH_NW:
 				maxRetryCount = NBIOT_ATTACH_RETRY;
 				break;
@@ -438,12 +431,12 @@ void MODEM_timeout()
 
 			// Retry count 증가 후 마지막 재시도로 판단될 경우 H/W reset on
 			// 단, Max retry 가 단 1회인 경우 H/W reset 을 사용하지 않는다.
-			if (maxRetryCount == 1) {
-				modemCtx.proc.hwRstRetry = FALSE;
-			} else {
-				modemCtx.proc.hwRstRetry =
-					(modemCtx.retryCount == maxRetryCount) ? TRUE : FALSE;
-			}
+			// if (maxRetryCount == 1) {
+			// 	modemCtx.proc.hwRstRetry = FALSE;
+			// } else {
+			modemCtx.proc.hwRstRetry =
+				(modemCtx.retryCount == maxRetryCount) ? TRUE : FALSE;
+			// }
 			OSAL_setEvent(AppTaskId, APP_EVENT_MODEM_PROCESS);
 		} else {
 			printf("- fail and close(%d/%d)\n", modemCtx.retryCount, maxRetryCount);

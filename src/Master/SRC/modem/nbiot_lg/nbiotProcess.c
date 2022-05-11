@@ -64,8 +64,8 @@
 #define AT_CMD_LWM2M_RETRY 0
 
 // MODEM remote open timeout/retry
-#define MODEM_CHECK_ALIVE_TIMEOUT 5000
-#define MODEM_CHECK_ALIVE_RETRY 10
+#define MODEM_CHECK_ALIVE_TIMEOUT 3000
+#define MODEM_CHECK_ALIVE_RETRY 13
 
 #define MODEM_ENTER_PSM_TIMEOUT 30000
 #define MODEM_FW_DOWN_REQ_TIMEOUT 40000
@@ -87,6 +87,7 @@ ModemContext_t modemCtx;
 
 uchar raw_data[LEN_MAX_NBIOT_DATA];
 char ul_data[LEN_MAX_AT_DATA + 1];
+static uint32 startEventTimeMsec = 0;
 
 typedef struct {
 	uint8 idle;
@@ -104,43 +105,43 @@ typedef struct {
 static StepFlowIndex_t StepFlowIndex;
 
 // NB-IoT Modem AT command list
-static AtCmd_t AtCmdSwReset = { AT_CMD_IDX_SW_RESET, "AT+NRB" };
-static AtCmd_t AtCmdDetachNw = { AT_CMD_IDX_DETACH_NW, "AT+CGATT" };
-static AtCmd_t AtCmdGetIMEI = { AT_CMD_IDX_GET_IMEI, "AT+CGSN" };
-static AtCmd_t AtCmdGetIMSI = { AT_CMD_IDX_GET_IMSI, "AT+CIMI" };
-static AtCmd_t AtCmdGetICCID = { AT_CMD_IDX_GET_ICCID, "AT+NCCID" };
-static AtCmd_t AtCmdGetRadioQuality = { AT_CMD_IDX_GET_RADIO_QUALITY, "AT+NUESTATS" };
-static AtCmd_t AtCmdGetNwAlarm = { AT_CMD_IDX_GET_NW_ALARM, "AT+CEREG?" };
-static AtCmd_t AtCmdGetTime = { AT_CMD_IDX_GET_TIME, "AT+CCLK?" };
-static AtCmd_t AtCmdSetRfCtrl = { AT_CMD_IDX_SET_RF_CTRL, "AT+CFUN" };
-static AtCmd_t AtCmdSetPSM = { AT_CMD_IDX_SET_PSM, "AT+CPSMS" };
-static AtCmd_t AtCmdSetBAND = { AT_CMD_IDX_SET_BAND, "AT+NBAND" };
-static AtCmd_t AtCmdSetReselect = { AT_CMD_IDX_SET_RESELECT, "AT+NCONFIG" };
-static AtCmd_t AtCmdSetNwAlarm = { AT_CMD_IDX_SET_NW_ALARM, "AT+CEREG" };
-static AtCmd_t AtCmdSocketCreate = { AT_CMD_IDX_SOCKET_CREATE, "AT+NSOCR" };
-static AtCmd_t AtCmdTcpConnect = { AT_CMD_IDX_TCP_CONNECT, "AT+NSOCO" };
-static AtCmd_t AtCmdTcpSendUL = { AT_CMD_IDX_TCP_CONNECT, "AT+NSOSD" };
-static AtCmd_t AtCmdSocketSendUL = { AT_CMD_IDX_SOCKET_SEND_UL, "AT+NSOST" };
-static AtCmd_t AtCmdSocketClose = { AT_CMD_IDX_SOCKET_CLOSE, "AT+NSOCL" };
-static AtCmd_t AtCmdSetReportPSM = { AT_CMD_IDX_SET_REPORT_PSM, "AT+NPSMR" };
-static AtCmd_t AtCmdGetReportPSM = { AT_CMD_IDX_GET_REPORT_PSM, "AT+NPSMR?" };
-static AtCmd_t AtCmdSocketRecvDL = { AT_CMD_IDX_SOCKET_RECV_DL, "AT+NSORF" };
+static const AtCmd_t AtCmdSwReset = { AT_CMD_IDX_SW_RESET, "AT+NRB" };
+static const AtCmd_t AtCmdDetachNw = { AT_CMD_IDX_DETACH_NW, "AT+CGATT" };
+static const AtCmd_t AtCmdGetIMEI = { AT_CMD_IDX_GET_IMEI, "AT+CGSN" };
+static const AtCmd_t AtCmdGetIMSI = { AT_CMD_IDX_GET_IMSI, "AT+CIMI" };
+static const AtCmd_t AtCmdGetICCID = { AT_CMD_IDX_GET_ICCID, "AT+NCCID" };
+static const AtCmd_t AtCmdGetRadioQuality = { AT_CMD_IDX_GET_RADIO_QUALITY, "AT+NUESTATS" };
+static const AtCmd_t AtCmdGetNwAlarm = { AT_CMD_IDX_GET_NW_ALARM, "AT+CEREG?" };
+static const AtCmd_t AtCmdGetTime = { AT_CMD_IDX_GET_TIME, "AT+CCLK?" };
+static const AtCmd_t AtCmdSetRfCtrl = { AT_CMD_IDX_SET_RF_CTRL, "AT+CFUN" };
+static const AtCmd_t AtCmdSetPSM = { AT_CMD_IDX_SET_PSM, "AT+CPSMS" };
+static const AtCmd_t AtCmdSetBAND = { AT_CMD_IDX_SET_BAND, "AT+NBAND" };
+static const AtCmd_t AtCmdSetReselect = { AT_CMD_IDX_SET_RESELECT, "AT+NCONFIG" };
+static const AtCmd_t AtCmdSetNwAlarm = { AT_CMD_IDX_SET_NW_ALARM, "AT+CEREG" };
+static const AtCmd_t AtCmdSocketCreate = { AT_CMD_IDX_SOCKET_CREATE, "AT+NSOCR" };
+static const AtCmd_t AtCmdTcpConnect = { AT_CMD_IDX_TCP_CONNECT, "AT+NSOCO" };
+static const AtCmd_t AtCmdTcpSendUL = { AT_CMD_IDX_TCP_CONNECT, "AT+NSOSD" };
+static const AtCmd_t AtCmdSocketSendUL = { AT_CMD_IDX_SOCKET_SEND_UL, "AT+NSOST" };
+static const AtCmd_t AtCmdSocketClose = { AT_CMD_IDX_SOCKET_CLOSE, "AT+NSOCL" };
+static const AtCmd_t AtCmdSetReportPSM = { AT_CMD_IDX_SET_REPORT_PSM, "AT+NPSMR" };
+static const AtCmd_t AtCmdGetReportPSM = { AT_CMD_IDX_GET_REPORT_PSM, "AT+NPSMR?" };
+static const AtCmd_t AtCmdSocketRecvDL = { AT_CMD_IDX_SOCKET_RECV_DL, "AT+NSORF" };
 
-static AtCmd_t AtCmdGetFwRev = { AT_CMD_IDX_GET_FW_REV, "AT+QGMR" };
-static AtCmd_t AtCmdSetLWM2M = { AT_CMD_IDX_SET_LWM2M, "AT+QBOOTSTRAPHOLDOFF" };
-static AtCmd_t AtCmdSetLWServer = { AT_CMD_IDX_SET_LWM2M_SERVER, "AT+QLWSERVERIP" };
-static AtCmd_t AtCmdSetEPN = { AT_CMD_IDX_SET_EPN, "AT+QLWEPNS" };
-static AtCmd_t AtCmdSetBSPS = { AT_CMD_IDX_SET_BSPS, "AT+QLWMBSPS" };
-static AtCmd_t AtCmdGetLWServer = { AT_CMD_IDX_GET_LWM2M_SERVER, "AT+QLWSERVERIP?" };
-static AtCmd_t AtCmdGetBSPS = { AT_CMD_IDX_GET_BSPS, "AT+QLWMBSPS?" };
-static AtCmd_t AtCmdGetEPN = { AT_CMD_IDX_GET_EPN, "AT+QLWEPNS?" };
-static AtCmd_t AtCmdSwtLWM2M = { AT_CMD_IDX_SWITCH_LWM2M, "AT+QREGSWT" };
-static AtCmd_t AtCmdGetSwtLWM2M = { AT_CMD_IDX_GET_SWITCH_LWM2M, "AT+QREGSWT?" };
-static AtCmd_t AtCmdSetFOTA = { AT_CMD_IDX_SET_FOTA, "AT+QLWFOTAIND" };
-static AtCmd_t AtCmdRunRegister = { AT_CMD_IDX_RUN_REGISTER, "AT+QLWSREGIND" };
-/* static AtCmd_t AtCmdRunNmStatus = { AT_CMD_IDX_GET_NM_STATUS, "AT+NMSTATUS?" }; */
+static const AtCmd_t AtCmdGetFwRev = { AT_CMD_IDX_GET_FW_REV, "AT+QGMR" };
+static const AtCmd_t AtCmdSetLWM2M = { AT_CMD_IDX_SET_LWM2M, "AT+QBOOTSTRAPHOLDOFF" };
+static const AtCmd_t AtCmdSetLWServer = { AT_CMD_IDX_SET_LWM2M_SERVER, "AT+QLWSERVERIP" };
+static const AtCmd_t AtCmdSetEPN = { AT_CMD_IDX_SET_EPN, "AT+QLWEPNS" };
+static const AtCmd_t AtCmdSetBSPS = { AT_CMD_IDX_SET_BSPS, "AT+QLWMBSPS" };
+static const AtCmd_t AtCmdGetLWServer = { AT_CMD_IDX_GET_LWM2M_SERVER, "AT+QLWSERVERIP?" };
+static const AtCmd_t AtCmdGetBSPS = { AT_CMD_IDX_GET_BSPS, "AT+QLWMBSPS?" };
+static const AtCmd_t AtCmdGetEPN = { AT_CMD_IDX_GET_EPN, "AT+QLWEPNS?" };
+static const AtCmd_t AtCmdSwtLWM2M = { AT_CMD_IDX_SWITCH_LWM2M, "AT+QREGSWT" };
+static const AtCmd_t AtCmdGetSwtLWM2M = { AT_CMD_IDX_GET_SWITCH_LWM2M, "AT+QREGSWT?" };
+static const AtCmd_t AtCmdSetFOTA = { AT_CMD_IDX_SET_FOTA, "AT+QLWFOTAIND" };
+static const AtCmd_t AtCmdRunRegister = { AT_CMD_IDX_RUN_REGISTER, "AT+QLWSREGIND" };
+/* static const AtCmd_t AtCmdRunNmStatus = { AT_CMD_IDX_GET_NM_STATUS, "AT+NMSTATUS?" }; */
 #if defined(NBIOT_LG_TYPE)
-static AtCmd_t AtCmdULDATAEX = { AT_CMD_IDX_QLWULDATAEX, "AT+QLWULDATAEX" };
+static const AtCmd_t AtCmdULDATAEX = { AT_CMD_IDX_QLWULDATAEX, "AT+QLWULDATAEX" };
 #endif
 
 /**
@@ -253,7 +254,7 @@ static void setModemData()
  * @param param   Parameter (string, support format)
  * @param ...     Parameter format argument
  */
-static void sendAtCommand(uint32 timeout, int retry, AtCmd_t *atCmd, char *param, ...)
+static void sendAtCommand(uint32 timeout, int retry, const AtCmd_t *atCmd, char *param, ...)
 {
 	if (retry >= 0) {
 		snprintf(modemComm.atData, LEN_MAX_AT_DATA, "%s", atCmd->cmd);
@@ -287,7 +288,7 @@ static void sendAtCommand(uint32 timeout, int retry, AtCmd_t *atCmd, char *param
  * @param param   Parameter (string, support format)
  * @param ...     Parameter format argument
  */
-static void sendNoRespAtCommand(uint32 delay, AtCmd_t *atCmd, char *param, ...)
+static void sendNoRespAtCommand(uint32 delay, const AtCmd_t *atCmd, char *param, ...)
 {
 	snprintf(modemComm.atData, LEN_MAX_AT_DATA, "%s", atCmd->cmd);
 
@@ -469,7 +470,6 @@ static ModemStep_t bip()
 		StepFlowIndex.bip = 0;
 	}
 
-	static uint32 startEventTimeMsec = 0;
 	switch (StepFlowIndex.bip) {
 	case 0: {
 		startEventTimeMsec = TIMER_getMsec();
@@ -640,7 +640,7 @@ static ModemStep_t init()
 	case 18: {
 		if (modemCtx.proc.runFota) {
 			sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, AT_CMD_DEFAULT_RETRY, &AtCmdSwtLWM2M,
-				      "=0");
+				      "=1");
 		} else {
 			sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, AT_CMD_DEFAULT_RETRY, &AtCmdSwtLWM2M,
 				      "=2");
@@ -733,21 +733,10 @@ static ModemStep_t attachNw()
 	} break;
 
 	default: {
-		printf_ts(
-			"MODEM : CGI(%ld) CID(%d) TX_POWER(%d) RSRP(%d) SNR(%d) RSRQ(%d) RSSI(%d) \n",
-			modem.modemQuality.cgi, modem.modemQuality.cid, modem.modemQuality.txPower,
-			modem.modemQuality.rsrp, modem.modemQuality.snr, modem.modemQuality.rsrq,
-			modem.modemQuality.lastRSSI);
-
-		if (modemCtx.retryStep != MODEM_STEP_UNKNOWN &&
-		    modemCtx.retryStep != MODEM_STEP_ATTACH_NW) {
-			nextStep = MODEM_STEP_CERTIFY;
+		if (modemCtx.proc.updateQa) {
+			nextStep = MODEM_STEP_UPDATE_QA;
 		} else {
-			if (modemCtx.proc.updateQa) {
-				nextStep = MODEM_STEP_UPDATE_QA;
-			} else {
-				nextStep = MODEM_STEP_CERTIFY;
-			}
+			nextStep = MODEM_STEP_CERTIFY;
 		}
 	} break;
 	}
@@ -771,7 +760,6 @@ static ModemStep_t updateQa()
 		StepFlowIndex.updateQa = 0;
 	}
 
-	static uint32 startEventTimeMsec = 0;
 	switch (StepFlowIndex.updateQa) {
 	case 0: {
 		sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, AT_CMD_DEFAULT_RETRY, &AtCmdSocketCreate,
@@ -864,7 +852,6 @@ static ModemStep_t transfer()
 		printf_ts("transfer count : %d\n", ++transfer_count);
 	}
 
-	static uint32 startEventTimeMsec = 0;
 	switch (StepFlowIndex.transfer) {
 	case 0: {
 		int len;
@@ -946,7 +933,6 @@ static ModemStep_t certify()
 		StepFlowIndex.certify = 0;
 	}
 
-	static uint32 startEventTimeMsec = 0;
 	switch (StepFlowIndex.certify) {
 	case 0: {
 		startEventTimeMsec = TIMER_getMsec();
@@ -1033,7 +1019,6 @@ static ModemStep_t fota()
 		StepFlowIndex.fota = 0;
 	}
 
-	static uint32 startEventTimeMsec = 0;
 	switch (StepFlowIndex.fota) {
 	case 0: {
 		startEventTimeMsec = TIMER_getMsec();
@@ -1245,7 +1230,6 @@ static ModemStep_t detachNw()
 		StepFlowIndex.detach = 0;
 	}
 
-	static uint32 startEventTimeMsec = 0;
 	switch (StepFlowIndex.detach) {
 	case 0: {
 		// FOTA 완료 시 기존 인증절차도 초기화 되므로 De-register를 할 필요가 없음.
@@ -1293,7 +1277,6 @@ static ModemStep_t retry()
 		StepFlowIndex.retry = 0;
 	}
 
-	static uint32 startEventTimeMsec = 0;
 	switch (StepFlowIndex.retry) {
 	case 0: {
 		if (modemCtx.lwm2m.regFinish) {
@@ -1306,8 +1289,7 @@ static ModemStep_t retry()
 
 	case 1: {
 		if (modemCtx.status.cellreg == MODEM_CELLREG_ATTACHED) {
-			sendAtCommand(AT_CMD_COMM_TIMEOUT, AT_CMD_COMM_DETACH_RETRY, &AtCmdDetachNw,
-				      "=0");
+			sendNoRespAtCommand(DEREGISTER_DELAY, &AtCmdDetachNw, "=0");
 		} else {
 			OSAL_setEvent(AppTaskId, APP_EVENT_MODEM_PROCESS);
 		}
@@ -1317,45 +1299,37 @@ static ModemStep_t retry()
 	case 2: {
 		if (modemCtx.proc.hwRstRetry) {
 			MODEM_turnOff();
-#define HW_RESET_DELAY_TIME 120000 // 2 minute
-			OSAL_startEventTimer(AppTaskId, APP_EVENT_MODEM_PROCESS,
-					     HW_RESET_DELAY_TIME);
-		} else {
-			OSAL_setEvent(AppTaskId, APP_EVENT_MODEM_PROCESS);
 		}
 		StepFlowIndex.retry++;
+		OSAL_setEvent(AppTaskId, APP_EVENT_MODEM_PROCESS);
 	} break;
 
 	case 3: {
 		if (modemCtx.proc.hwRstRetry) {
 			MODEM_turnOn();
-			startEventTimeMsec = TIMER_getMsec();
-			StepFlowIndex.retry++;
 		} else {
 			sendAtCommand(AT_CMD_RESET_TIMEOUT, AT_CMD_RESET_RETRY, &AtCmdSwReset,
 				      NULL);
-			StepFlowIndex.retry = END_STEP_FLOW_INDEX;
 		}
+		startEventTimeMsec = TIMER_getMsec();
+		StepFlowIndex.retry++;
+		OSAL_setEvent(AppTaskId, APP_EVENT_MODEM_PROCESS);
 	} break;
 
 	case 4: {
 		if (TIMER_getMsecDiff(startEventTimeMsec) >= MODEM_BOOTUP_INTERVAL) {
-			OSAL_setEvent(AppTaskId, APP_EVENT_MODEM_PROCESS);
 			StepFlowIndex.retry++;
-		} else {
-			OSAL_startEventTimer(AppTaskId, APP_EVENT_MODEM_PROCESS,
-					     MODEM_EVENT_INTERVAL);
 		}
+		OSAL_setEvent(AppTaskId, APP_EVENT_MODEM_PROCESS);
 	} break;
 
-	case END_STEP_FLOW_INDEX:
 	default: {
 		if (modemCtx.proc.hwRstRetry) {
 			// H/W reset 시 Idle 바로 다음 Step인 BIP 부터 수행.
 			nextStep = MODEM_STEP_BIP;
 		} else {
-			if (modemCtx.retryStep == MODEM_STEP_BIP) {
-				nextStep = MODEM_STEP_BIP;
+			if (modemCtx.lwm2m.bsFinish == 1) {
+				nextStep = modemCtx.retryStep;
 			} else {
 				nextStep = MODEM_STEP_ATTACH_NW;
 			}
@@ -1459,7 +1433,7 @@ BOOL MODEM_process()
 		// 완료된 현재 step과 retry step이 동일한 경우
 		// retry 동작이 정상적으로 수행된 것을 의미하므로 retry 관련 context를 초기화.
 		if (modemCtx.step == modemCtx.retryStep) {
-			modemCtx.retryCount = 0;
+			// modemCtx.retryCount = 0;
 			modemCtx.retryStep = MODEM_STEP_UNKNOWN;
 		}
 
