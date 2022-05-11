@@ -112,7 +112,7 @@ static BOOL readConfig(FlashConfig_t *pInfo)
 		pInfo->meterType = W_STANDARD_D;
 		pInfo->meterInterval = 1;
 		pInfo->reportInterval = 6;
-		pInfo->reportRange = pInfo->reportInterval; // default
+		pInfo->reportRange = 6;
 		pInfo->sleepMode = 0;
 		pInfo->riCtrlMode = 0;
 		pInfo->periodMode = 0;
@@ -463,14 +463,14 @@ uint8 ascii2Hex(char ch)
 
 void distributingReportTime(int serialBase, Config_t *config)
 {
-#if 1 // sholee
-	int nSpread = config->reportRange * 50;
-#else
-	int nSpread = config->reportInterval * 50;
-#endif
+	if (config->reportRange == 0) {
+		config->reportRange = config->reportInterval;
+	}
 
-	config->reportSec = ((serialBase / nSpread) % 4) *
-			    15; // 같은 '분'에 보고하는 단말기들간에 시간을 15초 단위로 4개로 나눔
+	int nSpread = config->reportRange * 50;
+
+	// 같은 '분'에 보고하는 단말기들간에 시간을 15초 단위로 4개로 나눔
+	config->reportSec = ((serialBase / nSpread) % 4) * 15;
 	serialBase %= nSpread;
 
 	config->intervalBaseTime = serialBase / 50;

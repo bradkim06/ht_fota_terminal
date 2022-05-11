@@ -70,10 +70,10 @@
     - NBIOT_LG_TYPE
     # - NBIOT_DEVICE
     - NDEBUG
+    - TDD_DEBUG
   :test:
     - *common_defines
     - TEST
-    - TDD_DEBUG
   :test_preprocess:
     - *common_defines
     - TEST
@@ -94,8 +94,8 @@
 
 :plugins:
   :enabled:
-    - stdout_gtestlike_tests_report
-    # - stdout_pretty_tests_report
+    - stdout_pretty_tests_report
+    # - stdout_gtestlike_tests_report
     - warnings_report
     - raw_output_report
     - module_generator
