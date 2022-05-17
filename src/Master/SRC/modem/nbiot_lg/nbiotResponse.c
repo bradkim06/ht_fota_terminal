@@ -180,10 +180,10 @@ static int parse_ep_name(char *p)
 
 static int parse_server_notify(char *p)
 {
-	int valid = 1, cerify = 0;
+	int valid = 1;
 	if (*p == '0') {
 		printf_ts("LWM2M : register finish \n");
-		modemCtx.lwm2m.regFinish = cerify = 1;
+		modemCtx.lwm2m.regFinish = 1;
 		modemCtx.lwm2m.regDelete = 0;
 	} else if (*p == '1') {
 		printf_ts("LWM2M : register delete \n");
@@ -193,7 +193,7 @@ static int parse_server_notify(char *p)
 		modemCtx.lwm2m.obsObj16241 = 0;
 	} else if (*p == '2') {
 		printf_ts("LWM2M : register update \n");
-		modemCtx.lwm2m.regUpdate = cerify = 1;
+		modemCtx.lwm2m.regUpdate = 1;
 	} else if (*p == '3') {
 		printf_ts("LWM2M : observe object 10250 \n");
 		modemCtx.lwm2m.obsObj10250 = 1;
@@ -217,10 +217,6 @@ static int parse_server_notify(char *p)
 		modemCtx.lwm2m.cxlObj10250 = 1;
 	} else {
 		valid = 0;
-	}
-
-	if (cerify) {
-		RTC_read(&modem.lastCertifyTime);
 	}
 
 	return valid;
@@ -474,6 +470,7 @@ void MODEM_response(char *pHead, int len)
 #define PATTERN_ERROR "ERROR"
 	if (strstr(pHead, PATTERN_ERROR)) {
 		modemCtx.status.error = 1;
+		OSAL_startEventTimer(AppTaskId, APP_EVENT_MODEM_TIMEOUT, 1000);
 	}
 
 #define PATTERN_FOTA_RESET "REBOOT_CAUSE_SECURITY_FOTA_UPGRADE"
@@ -549,8 +546,8 @@ void MODEM_response(char *pHead, int len)
 	case AT_CMD_IDX_SW_RESET:
 #define PATTERN_REBOOT_REPORT "REBOOT_CAUSE_APPLICATION_AT"
 		if (strstr(pHead, PATTERN_REBOOT_REPORT)) {
-			// modemCtx.status.cellreg = 0;
-			modemCtx.lwm2m.value = 0; // bsFinish Flag no clear
+			modemCtx.status.cellreg = 0;
+			modemCtx.lwm2m.value = 0;
 			IsReboot = TRUE;
 		}
 
@@ -768,90 +765,82 @@ void MODEM_response(char *pHead, int len)
 
 	case AT_CMD_IDX_GET_SWITCH_LWM2M:
 #define PATTERN_SWT_LWM2M "+QREGSWT:"
-#define FLAG_DISABLE_LWM2M 2
+#define FLAG_MANUAL_LWM2M 0
+#define FLAG_AUTO_LWM2M 1
 		if ((p = strstr(pHead, PATTERN_SWT_LWM2M))) {
 			isRleaseBusy = TRUE;
 			int status = atoi(p + strlen(PATTERN_SWT_LWM2M));
-			if (status != FLAG_DISABLE_LWM2M) {
-				modemCtx.status.lwm2mOn = 1;
-				if (!modemCtx.proc.runFota) {
-					modemCtx.proc.runInit = 1;
-				}
-			} else {
-				modemCtx.status.lwm2mOn = 0;
-				if (modemCtx.proc.runFota) {
-					modemCtx.proc.runInit = 1;
-				}
+			if (status != FLAG_AUTO_LWM2M) {
+				modemCtx.proc.runInit = 1;
 			}
-		}
-		break;
+			break;
 
-	case AT_CMD_IDX_QLWULDATAEX:
-		if (parseQLWULDATAEX(pHead, &modemCtx)) {
-			modemCtx.pfUlCnt++;
-			isRleaseBusy = TRUE;
-		}
-		break;
-
-	case AT_CMD_IDX_TCP_CONNECT:
-#define PATTERN_RECV_DL "+NSONMI:"
-		if ((p = strstr(pHead, PATTERN_RECV_DL))) {
-			if (modemCtx.socket == atoi(p + strlen(PATTERN_RECV_DL))) {
-				if ((p = strstr(p, ","))) {
-					modemComm.dlDataLen = atoi(++p);
-					isRleaseBusy = TRUE;
-					modemCtx.dlCnt++;
-				}
-			}
-		}
-		break;
-
-	case AT_CMD_IDX_DETACH_NW:
-		if (isAckOk) {
-			isRleaseBusy = TRUE;
-		}
-		break;
-
-	case AT_CMD_IDX_GET_REPORT_PSM:
-		if ((p = strstr(pHead, PATTERN_CHK_PSM_PREFIX))) {
-			if (modemCtx.status.psmOn == 0) {
+		case AT_CMD_IDX_QLWULDATAEX:
+			if (parseQLWULDATAEX(pHead, &modemCtx)) {
+				modemCtx.pfUlCnt++;
 				isRleaseBusy = TRUE;
 			}
-		}
-		break;
+			break;
 
-	case AT_CMD_IDX_GET_FW_REV:
-		if (parseQGMR(pHead, &modem)) {
-			isRleaseBusy = TRUE;
-		}
-		break;
+		case AT_CMD_IDX_TCP_CONNECT:
+#define PATTERN_RECV_DL "+NSONMI:"
+			if ((p = strstr(pHead, PATTERN_RECV_DL))) {
+				if (modemCtx.socket == atoi(p + strlen(PATTERN_RECV_DL))) {
+					if ((p = strstr(p, ","))) {
+						modemComm.dlDataLen = atoi(++p);
+						isRleaseBusy = TRUE;
+						modemCtx.dlCnt++;
+					}
+				}
+			}
+			break;
 
-	case AT_CMD_IDX_SET_PSM:
-	case AT_CMD_IDX_SET_BAND:
-	case AT_CMD_IDX_SET_RESELECT:
-	case AT_CMD_IDX_SET_CDP:
-	case AT_CMD_IDX_SET_EPN:
-	case AT_CMD_IDX_SET_BSPS:
-	case AT_CMD_IDX_SET_LWM2M:
-	case AT_CMD_IDX_CHECK_ALIVE:
-	case AT_CMD_IDX_SOCKET_CLOSE:
-	case AT_CMD_IDX_SET_RF_CTRL:
-	case AT_CMD_IDX_SET_NW_ALARM:
-	case AT_CMD_IDX_SET_REPORT_PSM:
-	case AT_CMD_IDX_SET_LWM2M_SERVER:
-	case AT_CMD_IDX_SWITCH_LWM2M:
-	case AT_CMD_IDX_GET_NM_STATUS:
-	case AT_CMD_IDX_GET_DATA_STATUS:
-	case AT_CMD_IDX_SET_FOTA:
-		if (isAckOk) {
-			isRleaseBusy = TRUE;
-		}
-		break;
+		case AT_CMD_IDX_DETACH_NW:
+			if (isAckOk) {
+				isRleaseBusy = TRUE;
+			}
+			break;
 
-	default:
-		break;
+		case AT_CMD_IDX_GET_REPORT_PSM:
+			if ((p = strstr(pHead, PATTERN_CHK_PSM_PREFIX))) {
+				if (modemCtx.status.psmOn == 0) {
+					isRleaseBusy = TRUE;
+				}
+			}
+			break;
+
+		case AT_CMD_IDX_GET_FW_REV:
+			if (parseQGMR(pHead, &modem)) {
+				isRleaseBusy = TRUE;
+			}
+			break;
+
+		case AT_CMD_IDX_SET_PSM:
+		case AT_CMD_IDX_SET_BAND:
+		case AT_CMD_IDX_SET_RESELECT:
+		case AT_CMD_IDX_SET_CDP:
+		case AT_CMD_IDX_SET_EPN:
+		case AT_CMD_IDX_SET_BSPS:
+		case AT_CMD_IDX_SET_LWM2M:
+		case AT_CMD_IDX_CHECK_ALIVE:
+		case AT_CMD_IDX_SOCKET_CLOSE:
+		case AT_CMD_IDX_SET_RF_CTRL:
+		case AT_CMD_IDX_SET_NW_ALARM:
+		case AT_CMD_IDX_SET_REPORT_PSM:
+		case AT_CMD_IDX_SET_LWM2M_SERVER:
+		case AT_CMD_IDX_SWITCH_LWM2M:
+		case AT_CMD_IDX_GET_NM_STATUS:
+		case AT_CMD_IDX_GET_DATA_STATUS:
+		case AT_CMD_IDX_SET_FOTA:
+			if (isAckOk) {
+				isRleaseBusy = TRUE;
+			}
+			break;
+
+		default:
+			break;
+		}
 	}
-
 	if (isRleaseBusy) {
 		modemCtx.status.busy = 0;
 	}

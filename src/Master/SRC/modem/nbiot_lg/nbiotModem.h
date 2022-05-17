@@ -93,7 +93,7 @@ typedef union {
 			stop : 1, // 동작 여부를 표시. (시작 시 설정, 종료 시 초기화)
 			cellreg : 3, // 네트워크 접속 상태를 표시. (Power off, reboot, detach 시 초기화)
 			psmOn : 1, // PSM 동작 여부를 표시. (기능 여부 및 동작에 따라 설정 및 초기화)
-			lwm2mOn : 1; // LWM2M 동작여부를 표시.
+			reserved : 1;
 	};
 } ModemStatus_t;
 
@@ -102,11 +102,9 @@ typedef union {
 	struct {
 		uint8 runInit : 1, // Flag to set whether MODEM configuration is necessary in INIT step
 			hwRstRetry : 1, // Flag to set whether H/W reset is necessary in RETRY step
-			updateReg : 1, // Flag to set whether Register Update is necessary in CERTIFY step
 			updateQa : 1, // Flag to set whether Update QA is necessary after attached
-			runFota : 1, // Flag to set whether to check FOTA request.
 			initialReport : 1, // Flag to set whether to check initial Report, For LGU QA Report
-			reserved : 2;
+			reserved : 4;
 	};
 } ModemProc_t;
 

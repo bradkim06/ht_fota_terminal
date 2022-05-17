@@ -68,6 +68,9 @@ static BOOL isPowerOn = FALSE;
 
 void MODEM_turnOff()
 {
+	if (isPowerOn) {
+		isPowerOn = FALSE;
+	}
 	printf_ts("MODEM : power off\n");
 
 #if (DEVICE_REVISION == DEV_REV_PWRCTRL_MOSFET_LDO)
@@ -106,8 +109,6 @@ void MODEM_turnOff()
 
 	MISC_delayMs(10);
 #endif
-
-	isPowerOn = FALSE;
 
 	modemCtx.lwm2m.value = 0;
 	modemCtx.status.cellreg = 0;
@@ -154,46 +155,33 @@ void MODEM_turnOn()
 
 	MISC_delayMs(10);
 #endif
-	isPowerOn = TRUE;
 }
 
 void MODEM_sleep()
 {
 #if (DEVICE_REVISION == DEV_REV_PWRCTRL_MOSFET_LDO)
-	printf_ts("MODEM : sleep");
+	printf_ts("MODEM : sleep\n");
 
-	if (!isPowerOn) {
-		printf(" - fail, MODEM is not on\n");
-	} else {
-		printf(" - success\n");
+	// LDO work
+	P2SEL &= ~BM(0);
+	P2DIR |= BM(0);
+	P2OUT &= ~BM(0); // make low
 
-		// LDO work
-		P2SEL &= ~BM(0);
-		P2DIR |= BM(0);
-		P2OUT &= ~BM(0); // make low
-
-		MISC_delayMs(100);
-	}
+	MISC_delayMs(100);
 #endif
 }
 
 void MODEM_wakeup()
 {
 #if (DEVICE_REVISION == DEV_REV_PWRCTRL_MOSFET_LDO)
-	printf_ts("MODEM : wake-up");
+	printf_ts("MODEM : wake-up\n");
 
-	if (!isPowerOn) {
-		printf(" - fail, MODEM is not on\n");
-	} else {
-		printf(" - success\n");
+	// LDO work
+	P2SEL &= ~BM(0);
+	P2DIR |= BM(0);
+	P2OUT |= BM(0); // make high
 
-		// LDO work
-		P2SEL &= ~BM(0);
-		P2DIR |= BM(0);
-		P2OUT |= BM(0); // make high
-
-		MISC_delayMs(100);
-	}
+	MISC_delayMs(100);
 #endif
 }
 
@@ -429,14 +417,8 @@ void MODEM_timeout()
 			modemCtx.step = MODEM_STEP_RETRY;
 			modemCtx.stepReset = TRUE;
 
-			// Retry count 증가 후 마지막 재시도로 판단될 경우 H/W reset on
-			// 단, Max retry 가 단 1회인 경우 H/W reset 을 사용하지 않는다.
-			// if (maxRetryCount == 1) {
-			// 	modemCtx.proc.hwRstRetry = FALSE;
-			// } else {
 			modemCtx.proc.hwRstRetry =
 				(modemCtx.retryCount == maxRetryCount) ? TRUE : FALSE;
-			// }
 			OSAL_setEvent(AppTaskId, APP_EVENT_MODEM_PROCESS);
 		} else {
 			printf("- fail and close(%d/%d)\n", modemCtx.retryCount, maxRetryCount);
@@ -454,7 +436,6 @@ void MODEM_open(int process)
 		modemCtx.status.error = 0;
 		modemCtx.status.busy = 0;
 		modemCtx.status.stop = 0;
-		modemCtx.status.lwm2mOn = 0;
 	}
 
 	AppProcess = process;

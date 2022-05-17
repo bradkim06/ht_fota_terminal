@@ -190,9 +190,7 @@ void UART_init()
 
 void UART_debugMode()
 {
-	mallocUartBuf(&uartA0, LCD_TX_BUF_LEN, 1);
-	mallocUartBuf(&uartA1, METER_TX_BUF_LEN, METER_RX_BUF_LEN);
-	mallocUartBuf(&uartA2, MODEM_TX_BUF_LEN, MODEM_RX_BUF_LEN);
+	mallocUartBuf(&uartA1, 1, 1);
 	mallocUartBuf(&uartA3, DEBUG_TX_BUF_LEN, DEBUG_RX_BUF_LEN);
 
 	UartInitParam_t param = { .isTxEnable = TRUE,
@@ -675,6 +673,10 @@ void set_meterPortForBSL()
 #pragma vector = USCI_A0_VECTOR
 __interrupt void USCI_A0_ISR(void)
 {
+	if (Fota.Status) {
+		return;
+	}
+
 	if (UCA0IFG & UCTXIFG) {
 		if (uartA0->txBuf == NULL) {
 			return;

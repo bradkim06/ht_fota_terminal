@@ -1450,7 +1450,7 @@ void recvBdControlReq(byte *data, uint8 len)
 			conf.debugPrint = 2;
 			UART_debugMode();
 			PRINT_resume();
-		} else if (pMsg->debugMode == DEBUG_JATG_MODE_USE) {
+		} else if (pMsg->debugMode == DEBUG_JTAG_MODE_USE) {
 			conf.debugPrint = 1;
 			UART_init();
 			PRINT_resume();
@@ -1540,7 +1540,7 @@ void sendBdControlAck(uint8 mversion, uint8 reset)
 		if (conf.debugPrint == 2) {
 			p->debugMode = DEBUG_METER_MODE_USE;
 		} else if (conf.debugPrint == 1) {
-			p->debugMode = DEBUG_JATG_MODE_USE;
+			p->debugMode = DEBUG_JTAG_MODE_USE;
 		} else {
 			p->debugMode = DEBUG_MODE_NO_USE;
 		}

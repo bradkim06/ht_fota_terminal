@@ -320,18 +320,19 @@ void startFota()
 	snprintf(fotaPort, sizeof(fotaPort), "%d", Fota.Info.port);
 	snprintf(initialMsgSize, sizeof(initialMsgSize), "%d,", FOTA_REQMSG_SIZE);
 
+	fotaPrint("fota start, send Ready\n\r");
+	if (recvModem("at+natspeed=57600,30,0,0,1\n\r", "OK", FOTA_10SEC)) {
+		reboot();
+	}
+
+	MODEM_changeBaudrate(UART_BAUDRATE_57600);
+
+	if (send(SEND_READY) == -1) {
+		reboot();
+	}
+
 	while (1) {
-		fotaPrint("fota start, send Ready\n\r");
-		if (recvModem("at+natspeed=57600,30,0,0,1\n\r", "OK", FOTA_10SEC)) {
-			reboot();
-		}
-		MODEM_changeBaudrate(UART_BAUDRATE_57600);
-		if (send(SEND_READY)) {
-			reboot();
-		}
-
 		fotaRecv();
-
 		readyFota();
 	}
 }
@@ -430,6 +431,10 @@ RETRY:
 	fotaSend("AT+NSORF=");
 	fotaSend(socket);
 	if (recvModem("5\n\r", "OK", FOTA_10SEC)) {
+		goto RETRY;
+	}
+
+	if (send(SEND_READY) == -1) {
 		goto RETRY;
 	}
 }

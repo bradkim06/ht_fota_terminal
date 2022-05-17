@@ -15,8 +15,6 @@
 #define LG_DEFAULT_FOTA_DAY_INTERVAL 15
 
 #define LG_QA_HOUR_INTERVAL 24
-#define LG_CERTIFY_HOUR_INTERVAL 18
-// #define LG_PUASED_RETRY_HOUR_INTERVAL   48
 #define LG_PUASED_RETRY_HOUR_INTERVAL 24
 
 // NB-IoT 총 재시도 횟수 (마지막 1회는 H/W reset, 그 외 재시도는 S/W reset)

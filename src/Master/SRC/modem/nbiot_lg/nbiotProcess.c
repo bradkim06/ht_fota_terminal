@@ -38,8 +38,8 @@
 #define AT_CMD_DEFAULT_RETRY 6
 
 // QLWULDATA timeout/retry
-#define AT_CMD_DATA_SEND_TIMEOUT 30000
-#define AT_CMD_DATA_SEND_RETRY 1
+#define AT_CMD_DATA_SEND_TIMEOUT 40000
+#define AT_CMD_DATA_SEND_RETRY 0
 
 // NPSMR timeout/retry
 #define AT_CMD_CHECK_PSM_TIMEOUT 5000
@@ -416,18 +416,11 @@ static ModemStep_t idle()
 		nextStep = MODEM_STEP_BIP;
 	}
 
-	// FOTA 요청을 무시할 경우 다음 주기 데이터 전송을 실패하므로 매번 확인.
-	modemCtx.proc.runFota = 1;
 	if (RTC_isTimeSync()) {
 		Date_t now;
 		RTC_read(&now);
 		if (RTC_calcHourDiff(&modem.lastUpdateTime, &now) >= LG_QA_HOUR_INTERVAL) {
 			modemCtx.proc.updateQa = 1;
-		}
-
-		if (RTC_calcHourDiff(&modem.lastCertifyTime, &now) >= LG_CERTIFY_HOUR_INTERVAL) {
-			// MODEM PSM이 아닌 경우 update register를 수행하지 않는다. (초기 인증 재 수행)
-			modemCtx.proc.updateReg = (modemCtx.status.psmOn) ? 1 : 0;
 		}
 	} else {
 		modemCtx.proc.updateQa = 1;
@@ -439,18 +432,12 @@ static ModemStep_t idle()
 	if (modemCtx.proc.updateQa) {
 		printf_ts("PROC : Enable Update QA.\n");
 	}
-	if (modemCtx.proc.updateReg) {
-		printf_ts("PROC : Enable Update Register.\n");
-		// 재인증 수행을 위한 Flag 초기화
-		modemCtx.lwm2m.regUpdate = 0;
-	}
-	if (modemCtx.proc.runFota) {
-		printf_ts("PROC : Enable FOTA.\n");
-		// FOTA 수행을 위한 Flag 초기화
-		modemCtx.lwm2m.fotaDownReq = 0;
-		modemCtx.lwm2m.fotaUpgradeReq = 0;
-		modemCtx.lwm2m.fotaFinish = 0;
-	}
+
+	printf_ts("PROC : Enable FOTA.\n");
+	// FOTA 수행을 위한 Flag 초기화
+	modemCtx.lwm2m.fotaDownReq = 0;
+	modemCtx.lwm2m.fotaUpgradeReq = 0;
+	modemCtx.lwm2m.fotaFinish = 0;
 
 	return nextStep;
 }
@@ -628,23 +615,12 @@ static ModemStep_t init()
 	} break;
 
 	case 17: {
-		if (modemCtx.status.lwm2mOn) {
-			sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, AT_CMD_DEFAULT_RETRY, &AtCmdSetFOTA,
-				      "=1");
-		} else {
-			OSAL_setEvent(AppTaskId, APP_EVENT_MODEM_PROCESS);
-		}
+		sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, AT_CMD_DEFAULT_RETRY, &AtCmdSetFOTA, "=1");
 		StepFlowIndex.init++;
 	} break;
 
 	case 18: {
-		if (modemCtx.proc.runFota) {
-			sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, AT_CMD_DEFAULT_RETRY, &AtCmdSwtLWM2M,
-				      "=1");
-		} else {
-			sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, AT_CMD_DEFAULT_RETRY, &AtCmdSwtLWM2M,
-				      "=2");
-		}
+		sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, AT_CMD_DEFAULT_RETRY, &AtCmdSwtLWM2M, "=1");
 		StepFlowIndex.init++;
 	} break;
 
@@ -908,7 +884,7 @@ static ModemStep_t transfer()
 	default: {
 		if (Fota.Req) {
 			nextStep = MODEM_STEP_DFOTA;
-		} else if (modemCtx.lwm2m.fotaDownReq && modemCtx.proc.runFota) {
+		} else if (modemCtx.lwm2m.fotaDownReq) {
 			nextStep = MODEM_STEP_FOTA;
 		} else {
 			nextStep = MODEM_STEP_DETACH_NW;
@@ -942,13 +918,7 @@ static ModemStep_t certify()
 
 	case 1: {
 		if (modemCtx.lwm2m.bsFinish) {
-			if (modemCtx.lwm2m.regFinish == FALSE) {
-				sendAtCommand(AT_CMD_LWM2M_TIMEOUT, AT_CMD_LWM2M_RETRY,
-					      &AtCmdRunRegister, "=0");
-				OSAL_setEvent(AppTaskId, APP_EVENT_MODEM_PROCESS);
-			} else {
-				OSAL_setEvent(AppTaskId, APP_EVENT_MODEM_PROCESS);
-			}
+			OSAL_setEvent(AppTaskId, APP_EVENT_MODEM_PROCESS);
 			StepFlowIndex.certify++;
 		} else {
 			if (TIMER_getMsecDiff(startEventTimeMsec) >= AT_CMD_LWM2M_TIMEOUT) {
@@ -1129,7 +1099,6 @@ static ModemStep_t fota()
 					conf.isModemInit = FALSE;
 					FLASH_saveConfigInfo(&conf);
 
-					modemCtx.proc.runFota = 0;
 					nextStep = MODEM_STEP_DETACH_NW;
 				}
 			}
@@ -1279,15 +1248,6 @@ static ModemStep_t retry()
 
 	switch (StepFlowIndex.retry) {
 	case 0: {
-		if (modemCtx.lwm2m.regFinish) {
-			sendNoRespAtCommand(DEREGISTER_DELAY, &AtCmdRunRegister, "=1");
-		} else {
-			OSAL_setEvent(AppTaskId, APP_EVENT_MODEM_PROCESS);
-		}
-		StepFlowIndex.retry++;
-	} break;
-
-	case 1: {
 		if (modemCtx.status.cellreg == MODEM_CELLREG_ATTACHED) {
 			sendNoRespAtCommand(DEREGISTER_DELAY, &AtCmdDetachNw, "=0");
 		} else {
@@ -1296,7 +1256,7 @@ static ModemStep_t retry()
 		StepFlowIndex.retry++;
 	} break;
 
-	case 2: {
+	case 1: {
 		if (modemCtx.proc.hwRstRetry) {
 			MODEM_turnOff();
 		}
@@ -1304,7 +1264,7 @@ static ModemStep_t retry()
 		OSAL_setEvent(AppTaskId, APP_EVENT_MODEM_PROCESS);
 	} break;
 
-	case 3: {
+	case 2: {
 		if (modemCtx.proc.hwRstRetry) {
 			MODEM_turnOn();
 		} else {
@@ -1316,7 +1276,7 @@ static ModemStep_t retry()
 		OSAL_setEvent(AppTaskId, APP_EVENT_MODEM_PROCESS);
 	} break;
 
-	case 4: {
+	case 3: {
 		if (TIMER_getMsecDiff(startEventTimeMsec) >= MODEM_BOOTUP_INTERVAL) {
 			StepFlowIndex.retry++;
 		}

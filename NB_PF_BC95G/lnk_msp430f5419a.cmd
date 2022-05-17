@@ -51,6 +51,8 @@
 /* Specify the system memory map                                            */
 /****************************************************************************/
 /* FLASHB boundaries have been changed to fix CPU20 (see errata sheet)      */
+
+/* FLASH */
 #define METER_ADDR 0x10200
 #define METER_LEN 0x1C00
 
@@ -111,6 +113,7 @@
 #define FOTA_ADDR 0x1C00
 #define FOTA_LEN 0x1000
 
+/* RAM */
 #define NOINIT_ADDR FOTA_ADDR + FOTA_LEN
 #define NOINIT_LEN 0x80
 
