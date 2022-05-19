@@ -30,11 +30,11 @@
 #include "cc1200.h"
 #endif
 
-uint8 AppTaskId;
+uint8 AppTaskId = 0;
 uint8 AppProcess = APP_IDLE;
 #pragma NOINIT(conf)
 Config_t conf;
-Metering_t Metering;
+Metering_t Metering = { 0 };
 
 void APP_showConfig(Config_t *p)
 {

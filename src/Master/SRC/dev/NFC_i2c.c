@@ -18,17 +18,16 @@
 #define MAX_I2C_RX_BUFF_SIZE 16 + 2
 #define MAX_I2C_TX_BUFF_SIZE 16 + 2
 
-uint8 *I2cRxData; // Pointer to RX data
-uint8 I2cRxPos;
-uint8 I2cRxByteLen;
+static uint8 I2cRxPos;
+static uint8 I2cRxByteLen;
 
-uint8 *I2cTxData; // Pointer to TX data
-uint8 I2cTxByteCtr;
+static uint8 *I2cTxData; // Pointer to TX data
+static uint8 I2cTxByteCtr;
 
-BOOL IsI2cComplete;
+static BOOL IsI2cComplete;
 
-uint8 RxBuffer[MAX_I2C_RX_BUFF_SIZE]; // Allocate 16 byte of RAM
-uint8 TxBuffer[MAX_I2C_TX_BUFF_SIZE]; // Allocate 16 byte of RAM
+static uint8 RxBuffer[MAX_I2C_RX_BUFF_SIZE]; // Allocate 16 byte of RAM
+static uint8 TxBuffer[MAX_I2C_TX_BUFF_SIZE]; // Allocate 16 byte of RAM
 
 /* yikim 추후 예정
 static const uint8 Default_NDEF_Message[] = {
@@ -69,8 +68,6 @@ BOOL I2C_rxMultipleBytes(uint8 slaveAddr, uint8 *data, uint8 len)
 	uint8 status = NTAG_RET_OK;
 
 	memset(RxBuffer, 0, MAX_I2C_RX_BUFF_SIZE);
-
-	I2cRxData = (uint8 *)RxBuffer; // Start of RX buffer
 
 	if (len > MAX_I2C_RX_BUFF_SIZE) {
 		len = MAX_I2C_RX_BUFF_SIZE;

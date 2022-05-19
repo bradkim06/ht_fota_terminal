@@ -53,119 +53,98 @@
 /* FLASHB boundaries have been changed to fix CPU20 (see errata sheet)      */
 
 /* FLASH */
-#define METER_ADDR 0x10200
+#define USER_TEST_ORIGIN 0x5E00
+
+#define TEST_LEN 0x2600
+#define MTEST_LEN 0x1400
+#define SHELL_LEN 0x2600
+
+#define LIBRARY_ORIGIN 0xBE00
+#define LIBRARY_LEN 0x2800
+
+#define USER_FLASH_ORIGIN 0x10200
+
 #define METER_LEN 0x1C00
-
-#define APP_ADDR 0x10200 + METER_LEN
 #define APP_LEN 0x1000
-
-#define NFC_PROTOCOL_ADDR APP_ADDR + APP_LEN
 #define NFC_PROTOCOL_LEN 0x1200
-
-#define RTC_ALARM_ADDR NFC_PROTOCOL_ADDR + NFC_PROTOCOL_LEN
 #define RTC_ALARM_LEN 0xA00
-
-#define MAIN_ADDR RTC_ALARM_ADDR + RTC_ALARM_LEN
 #define MAIN_LEN 0x400
-
-#define DATA_FLASH_ADDR MAIN_ADDR + MAIN_LEN
 #define DATA_FLASH_LEN 0x1A00
-
-#define UART_ADDR DATA_FLASH_ADDR + DATA_FLASH_LEN
 #define UART_LEN 0xE00
-
-#define NFC_I2C_ADDR UART_ADDR + UART_LEN
-#define NFC_I2C_LEN 0xA00
-
-#define FLASH_DRIVER_ADDR NFC_I2C_ADDR + NFC_I2C_LEN
-#define FLASH_DRIVER_LEN 0xA00
-
-#define LCD_DRIVER_ADDR FLASH_DRIVER_ADDR + FLASH_DRIVER_LEN
-#define LCD_DRIVER_LEN 0x400
-
-#define FLASH_UTIL_ADDR LCD_DRIVER_ADDR + LCD_DRIVER_LEN
-#define FLASH_UTIL_LEN 0x200
-
-#define BATTERY_ADDR FLASH_UTIL_ADDR + FLASH_UTIL_LEN
+#define NFC_I2C_LEN 0xC00
+#define FLASH_DRIVER_LEN 0xC00
+#define LCD_DRIVER_LEN 0x600
+#define FLASH_UTIL_LEN 0x400
 #define BATTERY_LEN 0x200
-
-#define METER_MISC_ADDR BATTERY_ADDR + BATTERY_LEN
 #define METER_MISC_LEN 0x200
-
-#define OSAL_TIMER_ADDR METER_MISC_ADDR + METER_MISC_LEN
 #define OSAL_TIMER_LEN 0x400
-
-#define TASK_MGR_ADDR OSAL_TIMER_ADDR + OSAL_TIMER_LEN
 #define TASK_MGR_LEN 0x200
-
-#define NB_PROCESS_ADDR TASK_MGR_ADDR + TASK_MGR_LEN
 #define NB_PROCESS_LEN 0x2000
-
-#define NB_RESPONSE_ADDR NB_PROCESS_ADDR + NB_PROCESS_LEN
-#define NB_RESPONSE_LEN 0x1600
-
-#define MESSAGE_ADDR NB_RESPONSE_ADDR + NB_RESPONSE_LEN
+#define NB_RESPONSE_LEN 0x1800
 #define MESSAGE_LEN 0x1400
-
-#define MODEM_ADDR MESSAGE_ADDR + MESSAGE_LEN
 #define MODEM_LEN 0x1000
 
-#define FOTA_ADDR 0x1C00
-#define FOTA_LEN 0x1000
 
 /* RAM */
-#define NOINIT_ADDR FOTA_ADDR + FOTA_LEN
+#define RAM_ORIGIN 0x1C00
+
+#define FOTA_LEN 0x1000
 #define NOINIT_LEN 0x80
-
-#define BSS_ADDR NOINIT_ADDR + NOINIT_LEN
-#define BSS_LEN 0xCA0
-
-#define DATA_ADDR BSS_ADDR + BSS_LEN
-#define DATA_LEN 0x3A0
-
-#define RAM_ADDR DATA_ADDR + DATA_LEN
+#define PROC_BSS_LEN 0x300
+#define STATIC_BSS_LEN 0xB0
+#define FOTA_DATA_LEN 0xF0
+#define METER_BSS_LEN 0x260
+#define MODEM_DATA_LEN 0x3A0
+#define DATA_RAM_LEN 0x1A0
 
 MEMORY
 {
     SFR                     : origin = 0x0000, length = 0x0010
     PERIPHERALS_8BIT        : origin = 0x0010, length = 0x00F0
     PERIPHERALS_16BIT       : origin = 0x0100, length = 0x0100
-    FOTA_RAM                : origin = FOTA_ADDR, length = FOTA_LEN
-    NOINIT_RAM              : origin = NOINIT_ADDR, length = NOINIT_LEN
-    BSS_RAM                 : origin = BSS_ADDR, length = BSS_LEN
-    DATA_RAM                : origin = DATA_ADDR, length = DATA_LEN
-    RAM                     : origin = RAM_ADDR, length = 0x1F40
+    FOTA_RAM                : origin = RAM_ORIGIN, length = FOTA_LEN
+    NOINIT_RAM              : origin = end(FOTA_RAM), length = NOINIT_LEN
+    NB_PROC_BSS             : origin = end(NOINIT_RAM), length = PROC_BSS_LEN
+    OTHER_BSS               : origin = end(NB_PROC_BSS), length = STATIC_BSS_LEN
+    FOTA_DATA               : origin = end(OTHER_BSS), length = FOTA_DATA_LEN
+    METER_BSS               : origin = end(FOTA_DATA), length = METER_BSS_LEN
+    MODEM_BSS               : origin = end(METER_BSS), length = MODEM_DATA_LEN
+    DATA_RAM                : origin = end(MODEM_BSS), length = DATA_RAM_LEN
+    RAM                     : origin = end(DATA_RAM), length = 0x3CC0 - end(DATA_RAM)
+    HEAP                    : origin = 0x3CC0, length = 0xFA0
+    STACK                   : origin = 0x4C60, length = 0xFA0
     INFOA                   : origin = 0x1980, length = 0x0080
     INFOB                   : origin = 0x1900, length = 0x0080
     INFOC                   : origin = 0x1880, length = 0x0080
     INFOD                   : origin = 0x1800, length = 0x0080
     MAIN_CODE	        	: origin = 0x5C00, length = 0x0200
-    TEST                    : origin = 0x5E00, length = 0x2000
-    MTEST                   : origin = 0x7E00, length = 0x1200
-    SHELL                   : origin = 0x9000, length = 0x2200
-    FLASHB                  : origin = 0xB200, length = 0x4DD2
-    METER                   : origin = METER_ADDR, length = METER_LEN
-    APP                     : origin = APP_ADDR, length = APP_LEN
-    NFC_PROTOCOL            : origin = NFC_PROTOCOL_ADDR, length = NFC_PROTOCOL_LEN
-    RTC_ALARM               : origin = RTC_ALARM_ADDR, length = RTC_ALARM_LEN
-    MAIN_TEXT               : origin = MAIN_ADDR, length = MAIN_LEN
-    DATA_FLASH              : origin = DATA_FLASH_ADDR, length = DATA_FLASH_LEN
-    UART                    : origin = UART_ADDR, length = UART_LEN
-    NFC_I2C                 : origin = NFC_I2C_ADDR, length = NFC_I2C_LEN
-    FLASH_DRIVER            : origin = FLASH_DRIVER_ADDR, length = FLASH_DRIVER_LEN
-    LCD_DRIVER              : origin = LCD_DRIVER_ADDR, length = LCD_DRIVER_LEN
-    FLASH_UTIL              : origin = FLASH_UTIL_ADDR, length = FLASH_UTIL_LEN
-    BATTERY                 : origin = BATTERY_ADDR, length = BATTERY_LEN
-    METER_MISC              : origin = METER_MISC_ADDR, length = METER_MISC_LEN
-    OSAL_TIMER              : origin = OSAL_TIMER_ADDR, length = OSAL_TIMER_LEN
-    TASK_MGR                : origin = TASK_MGR_ADDR, length = TASK_MGR_LEN
-    NB_PROCESS              : origin = NB_PROCESS_ADDR, length = NB_PROCESS_LEN
-    NB_RESPONSE             : origin = NB_RESPONSE_ADDR, length = NB_RESPONSE_LEN
-    MESSAGE                 : origin = MESSAGE_ADDR, length = MESSAGE_LEN
-    MODEM                   : origin = MODEM_ADDR, length = MODEM_LEN
-    FLASHC                  : origin = 0x1FE00,length = 0x200
-    FOTA_FLASH              : origin = 0x20000, length = FOTA_LEN
-    FLASHD                  : origin = 0x20000+FOTA_LEN,length = 0x2400
+    TEST                    : origin = 0x5E00, length = TEST_LEN
+    MTEST                   : origin = end(TEST), length = MTEST_LEN
+    SHELL                   : origin = end(MTEST), length = SHELL_LEN
+    LIBRARY                 : origin = LIBRARY_ORIGIN, length = LIBRARY_LEN
+    FLASHB                  : origin = end(LIBRARY), length = 0xFFD2 - end(LIBRARY)
+    METER                   : origin = USER_FLASH_ORIGIN, length = METER_LEN
+    APP                     : origin = end(METER), length = APP_LEN
+    NFC_PROTOCOL            : origin = end(APP), length = NFC_PROTOCOL_LEN
+    RTC_ALARM               : origin = end(NFC_PROTOCOL), length = RTC_ALARM_LEN
+    MAIN_TEXT               : origin = end(RTC_ALARM), length = MAIN_LEN
+    DATA_FLASH              : origin = end(MAIN_TEXT), length = DATA_FLASH_LEN
+    UART                    : origin = end(DATA_FLASH), length = UART_LEN
+    NFC_I2C                 : origin = end(UART), length = NFC_I2C_LEN
+    FLASH_DRIVER            : origin = end(NFC_I2C), length = FLASH_DRIVER_LEN
+    LCD_DRIVER              : origin = end(FLASH_DRIVER), length = LCD_DRIVER_LEN
+    FLASH_UTIL              : origin = end(LCD_DRIVER), length = FLASH_UTIL_LEN
+    BATTERY                 : origin = end(FLASH_UTIL), length = BATTERY_LEN
+    METER_MISC              : origin = end(BATTERY), length = METER_MISC_LEN
+    OSAL_TIMER              : origin = end(METER_MISC), length = OSAL_TIMER_LEN
+    TASK_MGR                : origin = end(OSAL_TIMER), length = TASK_MGR_LEN
+    MODEM                   : origin = end(TASK_MGR), length = MODEM_LEN
+    NB_RESPONSE             : origin = end(MODEM), length = NB_RESPONSE_LEN
+    MESSAGE                 : origin = end(NB_RESPONSE), length = MESSAGE_LEN
+    NB_PROCESS              : origin = end(MESSAGE), length = 0x20000 - end(MESSAGE)
+    FOTA_FLASH              : origin = 0x20200, length = FOTA_LEN
+    MD5                     : origin = end(FOTA_FLASH), length = 0x1000
+    FLASHD                  : origin = end(MD5),length = 0x23400 - end(MD5)
     INT41                   : origin = 0xFFD2, length = 0x0002
     INT42                   : origin = 0xFFD4, length = 0x0002
     INT43                   : origin = 0xFFD6, length = 0x0002
@@ -195,134 +174,385 @@ MEMORY
 /* Specify the sections allocation into memory                              */
 /****************************************************************************/
 
+
 SECTIONS
 {
-    .bss        : {} > BSS_RAM              /* Global & static vars              */
-    .data       : {} > DATA_RAM             /* Global & static vars              */
-    .TI.noinit  : {} > NOINIT_RAM           /* For #pragma noinit                */
-    .sysmem     : {} > RAM                  /* Dynamic memory allocation area    */
-    .stack      : {} > RAM (HIGH)           /* Software system stack             */
-    MAIN		: {} > MAIN_CODE
+#define RAM_ALIGN 32
+#define SMALL_ALIGN 64
+#define CODE_ALIGN 512
 
-    test_section {
-        test.obj (.text)        
-        test.obj (.const)        
+    .nbiotProcess_bss : {
+        nbiotProcess.obj (.bss:ul_data), . = align(RAM_ALIGN);
+        nbiotProcess.obj (.bss:raw_data), . = align(RAM_ALIGN);
+        nbiotProcess.obj (.bss:StepFlowIndex)
+    } > NB_PROC_BSS
+
+    .static_bss : {
+        NFC_i2c.obj (.bss:RxBuffer), . = align(RAM_ALIGN);
+        NFC_i2c.obj (.bss:TxBuffer), . = align(RAM_ALIGN);
+        rtcAlarm.obj (.bss:AlarmList), . = align(RAM_ALIGN);
+        rtcAlarm.obj (.bss:TimeSyncDate), . = align(RAM_ALIGN);
+        battery.obj (.bss:BattAdcBuffer), . = align(RAM_ALIGN);
+        lcdDriver.obj (.bss:currentLCD)
+    } > OTHER_BSS
+
+    .fota_data : {
+        fota.obj (.bss:fotaPort), . = align(RAM_ALIGN);
+        fota.obj (.bss:initialMsgSize), . = align(RAM_ALIGN);
+        fota.obj (.bss:socket), . = align(RAM_ALIGN);
+        fota.obj (.data:Fota)
+    } > FOTA_DATA
+
+    .meter_bss : {
+        meter.obj (.bss:StoredMeterData)
+    } > METER_BSS
+
+    .modem_data : {
+        modem.obj (.data:modem), . = align(RAM_ALIGN);
+        modem.obj (.data:modemComm)
+    } > MODEM_BSS
+
+    .data_ram : {
+        --library=rts430x_lc_ld_eabi.lib (.data:_tz)
+        --library=rts430x_lc_ld_eabi.lib (.data:_lock)
+        --library=rts430x_lc_ld_eabi.lib (.data:_unlock)
+        nfcProtocol.obj (.data:nfcAsyncRx), . = align(RAM_ALIGN);
+        md5.obj (.data:PADDING), . = align(RAM_ALIGN);
+        mTest.obj (.data:modemTestCtx), . = align(RAM_ALIGN);
+        modem.obj (.data:modemCtx), . = align(RAM_ALIGN);
+        meter.obj (.data:TempMeterData), . = align(RAM_ALIGN);
+        flashDriver.obj (.data:FlashAddr), . = align(RAM_ALIGN);
+        app.obj (.data:Metering)
+    } > DATA_RAM
+
+    .data : {
+        rts430x_lc_ld_eabi.lib (.data), . = align(RAM_ALIGN);
+        osal_Timer.obj (.data), . = align(RAM_ALIGN);
+        rtcAlarm.obj (.data), . = align(RAM_ALIGN);
+        Task_Mgr.obj (.data), . = align(RAM_ALIGN);
+        battery.obj (.data), . = align(RAM_ALIGN);
+        lcdDriver.obj (.data:lcdCon), . = align(RAM_ALIGN);
+        main.obj (.data), . = align(RAM_ALIGN);
+        test.obj (.data), . = align(RAM_ALIGN);
+        fota.obj (.data), . = align(RAM_ALIGN);
+        shell.obj (.data), . = align(RAM_ALIGN);
+        uart.obj (.data), . = align(RAM_ALIGN);
+        modem.obj (.data), . = align(RAM_ALIGN);
+        app.obj (.data), . = align(RAM_ALIGN);
+        nbiotResponse.obj (.data), . = align(RAM_ALIGN);
+        nfcProtocol.obj (.data), . = align(RAM_ALIGN);
+        nbiotProcess.obj (.data), . = align(RAM_ALIGN);
+        *(.data)
+    } > RAM              /* Global vars              */
+    .bss        : align(CODE_ALIGN) {} > RAM (HIGH)             /* Global & static vars              */
+    .TI.noinit  : {} > NOINIT_RAM           /* For #pragma noinit                */
+    .sysmem     : {} > HEAP                 /* Dynamic memory allocation area    */
+    .stack      : {} > STACK                /* Software system stack             */
+    MAIN		: align(CODE_ALIGN) {} > MAIN_CODE
+
+
+    .test_text : align(CODE_ALIGN) fill=0xFF {
+        test.obj (.text:TEST_pmrsn), .=align(SMALL_ALIGN);
+        test.obj (.text:TEST_readMeter), .=align(SMALL_ALIGN);
+        test.obj (.text:TEST_pmwsn), .=align(SMALL_ALIGN);
+        test.obj (.text:TEST_writeMeter), .=align(SMALL_ALIGN);
+        test.obj (.text:TEST_setMeterType), .=align(SMALL_ALIGN);
+        test.obj (.text:saveTerminalConfig), .=align(SMALL_ALIGN);
+        test.obj (.text:TEST_run), .=align(SMALL_ALIGN);
+        test.obj (.text:TEST_readFlash), .=align(SMALL_ALIGN);
+        test.obj (.text:TEST_pmeter), .=align(SMALL_ALIGN);
+        test.obj (.text:TEST_lpm3), .=align(SMALL_ALIGN);
+        test.obj (.text:TEST_runTasks), .=align(SMALL_ALIGN);
+        test.obj (.text:TEST_meteringParamer), .=align(SMALL_ALIGN);
+        test.obj (.text:TEST_readBattery), .=align(SMALL_ALIGN);
+        test.obj (.text:TEST_prsn), .=align(SMALL_ALIGN);
+        test.obj (.text:TEST_resetNFC), .=align(SMALL_ALIGN);
+        test.obj (.text:TEST_lpm2), .=align(SMALL_ALIGN);
+        test.obj (.text:TEST_pwmeter), .=align(SMALL_ALIGN);
+        test.obj (.text:TEST_readRTC), .=align(SMALL_ALIGN);
+        test.obj (.text:TEST_setRTC), .=align(SMALL_ALIGN);
+        test.obj (.text:TEST_riCtrlMode), .=align(SMALL_ALIGN);
+        test.obj (.text:TEST_writeSerialNum), .=align(SMALL_ALIGN);
+        test.obj (.text:TEST_readSerialNum), .=align(SMALL_ALIGN);
+        test.obj (.text:TEST_debugPrint), .=align(SMALL_ALIGN);
+        test.obj (.text:TEST_shortInterval), .=align(SMALL_ALIGN);
+        test.obj (.text:TEST_sleepMode), .=align(SMALL_ALIGN);
+        test.obj (.text:TEST_eraseFlash), .=align(SMALL_ALIGN);
+        test.obj (.text:TEST_lcd), .=align(SMALL_ALIGN);
+        test.obj (.text:interruptTask), .=align(SMALL_ALIGN);
+        test.obj (.text:TEST_reedSensor), .=align(SMALL_ALIGN);
+        test.obj (.text:TEST_checkNFC), .=align(SMALL_ALIGN);
+        test.obj (.text:TEST_checkTestMode), .=align(SMALL_ALIGN);
+        test.obj (.text:TEST_pwsn), .=align(SMALL_ALIGN);
+        test.obj (.text:TEST_meterLCD), .=align(SMALL_ALIGN);
+        test.obj (.text:TEST_readFwVersion), .=align(SMALL_ALIGN);
+        test.obj (.text:TEST_stop), .=align(SMALL_ALIGN);
+        test.obj (.text:reedResponse), .=align(SMALL_ALIGN);
+        test.obj (.text:TEST_config)
     } > TEST
 
-    mtest_section {
-        mTest.obj (.text)
-        mTest.obj (.const)
+    .test_const : align(CODE_ALIGN) fill=0xff {
+        test.obj (.const:.string), .=align(SMALL_ALIGN);
+        test.obj (.const:TestTasksArray)
+    } > TEST (HIGH)
+
+    .mtest_text : align(CODE_ALIGN) fill=0xff {
+        mTest.obj (.text:TEST_prnbid), .=align(SMALL_ALIGN);
+        mTest.obj (.text:parseNbiotModemResp), .=align(SMALL_ALIGN);
+        mTest.obj (.text:printAtCmdList), .=align(SMALL_ALIGN);
+        mTest.obj (.text:TEST_modemResponse), .=align(SMALL_ALIGN);
+        mTest.obj (.text:TEST_modem), .=align(SMALL_ALIGN);
+        mTest.obj (.text:TEST_pnbctx), .=align(SMALL_ALIGN);
+        mTest.obj (.text:waitModemBipOk), .=align(SMALL_ALIGN);
+        mTest.obj (.text:waitModemReady), .=align(SMALL_ALIGN);
+        mTest.obj (.text:waitModemAck), .=align(SMALL_ALIGN);
+        mTest.obj (.text:TEST_pwserver), .=align(SMALL_ALIGN);
+        mTest.obj (.text:TEST_prserver), .=align(SMALL_ALIGN);
+        mTest.obj (.text:TEST_prfota), .=align(SMALL_ALIGN);
+        mTest.obj (.text:TEST_pwfota), .=align(SMALL_ALIGN);
+        mTest.obj (.text:sendToModem), .=align(SMALL_ALIGN);
+        mTest.obj (.text:TEST_pmodem), .=align(SMALL_ALIGN);
+        mTest.obj (.text:waitModem), .=align(SMALL_ALIGN);
+        mTest.obj (.text:TEST_initModem), .=align(SMALL_ALIGN);
+        mTest.obj (.text:resetModem)
     } > MTEST
 
-    shell_section {
-        shell.obj (.text)
-        shell.obj (.const)
+    .mtest_const : align(CODE_ALIGN) fill=0xff {
+        mTest.obj (.const:.string)
+    } > MTEST (HIGH)
+
+    .shell_text : align(CODE_ALIGN) fill=0xff {
+        shell.obj (.text:SHELL_run), .=align(SMALL_ALIGN);
+        shell.obj (.text:SHELL_gets), .=align(SMALL_ALIGN);
+        shell.obj (.text:SHELL_getChar), .=align(SMALL_ALIGN);
+        shell.obj (.text:help), .=align(SMALL_ALIGN);
+        shell.obj (.text:getArguments), .=align(SMALL_ALIGN);
+        shell.obj (.text:whatCommand), .=align(SMALL_ALIGN);
+        shell.obj (.text:SHELL_decimal), .=align(SMALL_ALIGN);
+        shell.obj (.text:SHELL_init), .=align(SMALL_ALIGN);
+        shell.obj (.text:SHELL_string)
     } > SHELL
 
-    md5_section {
-        md5.obj (.text)
-        uuid.obj (.text)
-    } > FLASHD
+    .shell_const : align(CODE_ALIGN) {
+        shell.obj (.const:.string), .=align(SMALL_ALIGN);
+        shell.obj (.const:CmdSet)
+    } > SHELL (HIGH)
 
-    meter {
-        meter.obj (.text) 
-        meter.obj (.const)
+    .library_text : align(CODE_ALIGN) {
+        --library=rts430x_lc_ld_eabi.lib (.text:__mktime32)
+        --library=rts430x_lc_ld_eabi.lib (.text:__mspabi_divull)
+        --library=rts430x_lc_ld_eabi.lib (.text:__TI_printfi_nofloat:_setfield___TI_printfi_nofloat)
+        --library=rts430x_lc_ld_eabi.lib (.text:__TI_printfi_nofloat:__TI_printfi_nofloat)
+        --library=rts430x_lc_ld_eabi.lib (.text:__TI_printfi_nofloat:_getarg_diouxp___TI_printfi_nofloat)
+        --library=rts430x_lc_ld_eabi.lib (.text:aligned_alloc)
+        --library=rts430x_lc_ld_eabi.lib (.text:__TI_printfi_nofloat:_ltostr___TI_printfi_nofloat)
+        --library=rts430x_lc_ld_eabi.lib (.text:free)
+        --library=rts430x_lc_ld_eabi.lib (.text:__TI_printfi_nofloat:_pproc_diouxp___TI_printfi_nofloat)
+        --library=rts430x_lc_ld_eabi.lib (.text:__mspabi_divlli)
+        --library=rts430x_lc_ld_eabi.lib (.text:__TI_printfi_nofloat:_pproc_fwp___TI_printfi_nofloat)
+        --library=rts430x_lc_ld_eabi.lib (.text:__TI_printfi_nofloat:_pproc_wstr___TI_printfi_nofloat)
+        --library=rts430x_lc_ld_eabi.lib (.text:split)
+        --library=rts430x_lc_ld_eabi.lib (.text:__TI_printfi_nofloat:_pproc_str___TI_printfi_nofloat)
+        --library=rts430x_lc_ld_eabi.lib (.text:__TI_auto_init_nobinit_nopinit_hold_wdt:__TI_auto_init_nobinit_nopinit_hold_wdt)
+        --library=rts430x_lc_ld_eabi.lib (.text:snprintf)
+        --library=rts430x_lc_ld_eabi.lib (.text:decompress:lzss:__TI_decompress_lzss)
+        --library=rts430x_lc_ld_eabi.lib (.text:atol)
+        --library=rts430x_lc_ld_eabi.lib (.text:vsnprintf)
+        --library=rts430x_lc_ld_eabi.lib (.text:_outs)
+        --library=rts430x_lc_ld_eabi.lib (.text:atoi)
+        --library=rts430x_lc_ld_eabi.lib (.text:strtok)
+        --library=rts430x_lc_ld_eabi.lib (.text:__mpyll)
+        --library=rts430x_lc_ld_eabi.lib (.text:__mspabi_remlli)
+        --library=rts430x_lc_ld_eabi.lib (.text:strncpy)
+        --library=rts430x_lc_ld_eabi.lib (.text:free_list_insert)
+        --library=rts430x_lc_ld_eabi.lib (.text:sprintf)
+        --library=rts430x_lc_ld_eabi.lib (.text:__mspabi_srall)
+        --library=rts430x_lc_ld_eabi.lib (.text:l_asr_const)
+        --library=rts430x_lc_ld_eabi.lib (.text:l_lsl_const)
+        --library=rts430x_lc_ld_eabi.lib (.text:l_lsr_const)
+        --library=rts430x_lc_ld_eabi.lib (.text:memcpy)
+        --library=rts430x_lc_ld_eabi.lib (.text:__mspabi_sllll)
+        --library=rts430x_lc_ld_eabi.lib (.text:__mspabi_srlll)
+        --library=rts430x_lc_ld_eabi.lib (.text:strncmp)
+        --library=rts430x_lc_ld_eabi.lib (.text:memccpy)
+        --library=rts430x_lc_ld_eabi.lib (.text:memcmp)
+        --library=rts430x_lc_ld_eabi.lib (.text:strcspn)
+        --library=rts430x_lc_ld_eabi.lib (.text:strspn)
+        --library=rts430x_lc_ld_eabi.lib (.text:_outc)
+        --library=rts430x_lc_ld_eabi.lib (.text:free_list_remove)
+        --library=rts430x_lc_ld_eabi.lib (.text:wcslen)
+        --library=rts430x_lc_ld_eabi.lib (.text:decompress:ZI:__TI_zero_init)
+        --library=rts430x_lc_ld_eabi.lib (.text:strcmp)
+        --library=rts430x_lc_ld_eabi.lib (.text:decompress:none:__TI_decompress_none)
+        --library=rts430x_lc_ld_eabi.lib (.text:heap_start)
+        --library=rts430x_lc_ld_eabi.lib (.text:llabs)
+        --library=rts430x_lc_ld_eabi.lib (.text:strcpy)
+        --library=rts430x_lc_ld_eabi.lib (.text:l_lsr)
+        --library=rts430x_lc_ld_eabi.lib (.text:isxdigit)
+        --library=rts430x_lc_ld_eabi.lib (.text:isdigit)
+        --library=rts430x_lc_ld_eabi.lib (.text:malloc)
+        --library=rts430x_lc_ld_eabi.lib (.text:abs)
+        --library=rts430x_lc_ld_eabi.lib (.text:abort)
+        --library=rts430x_lc_ld_eabi.lib (.text:_system_pre_init)
+        --library=rts430x_lc_ld_eabi.lib (.text:_nop)
+        --library=rts430x_lc_ld_eabi.lib (.text:_system_post_cinit)
+    } > LIBRARY
+
+    .library_const : align(CODE_ALIGN) {
+        --library=rts430x_lc_ld_eabi.lib (.const:.string:_ctypes_), .=align(SMALL_ALIGN);
+        --library=rts430x_lc_ld_eabi.lib (.const:mon_len), .=align(SMALL_ALIGN);
+        --library=rts430x_lc_ld_eabi.lib (.const:mon_day), .=align(SMALL_ALIGN);
+        --library=rts430x_lc_ld_eabi.lib (.const:.string)
+    } > LIBRARY (HIGH)
+
+    .md5_text : align(CODE_ALIGN) {
+        md5.obj (.text)
+    } > MD5
+
+    .uuid_text : align(CODE_ALIGN) {
+        uuid.obj (.text)
+    } > MD5 (HIGH)
+
+    .meter_text : align(CODE_ALIGN) {
+        meter.obj (.text)
     } > METER
 
-    app {
+    .meter_const : align(CODE_ALIGN) {
+        meter.obj (.const)
+    } > METER (HIGH)
+
+    .app_text : align(CODE_ALIGN) {
         app.obj (.text)
-        app.obj (.const)
     } > APP
 
-    nfcProtocol {
+    .app_const : align(CODE_ALIGN) {
+        app.obj (.const)
+    } > APP (HIGH)
+
+    nfcProtocol_text : align(CODE_ALIGN) {
         nfcProtocol.obj (.text)
-        nfcProtocol.obj (.const)
     } > NFC_PROTOCOL
 
-    rtcAlarm {
+    nfcProtocol_const : align(CODE_ALIGN) {
+        nfcProtocol.obj (.const)
+    } > NFC_PROTOCOL (HIGH)
+
+    rtcAlarm_text : align(CODE_ALIGN) {
         rtcAlarm.obj (.text)
-        rtcAlarm.obj (.const)
     } > RTC_ALARM
 
-    main_text {
+    rtcAlarm_const : align(CODE_ALIGN) {
+        rtcAlarm.obj (.const)
+    } > RTC_ALARM (HIGH)
+
+    main_text : align(CODE_ALIGN) {
         main.obj (.text)
-        /* main.obj (.const) */
     } > MAIN_TEXT
 
-    dataFlash_text {
+    dataFlash_text : align(CODE_ALIGN) {
         dataFlash.obj (.text)
-        dataFlash.obj (.const)
     } > DATA_FLASH
 
-    uart_text {
+    dataFlash_const : align(CODE_ALIGN) {
+        dataFlash.obj (.const)
+    } > DATA_FLASH (HIGH)
+
+    uart_text : align(CODE_ALIGN) {
         uart.obj (.text)
-        uart.obj (.const)
     } > UART
 
-    nfci2c_text {
+    uart_const : align(CODE_ALIGN) {
+        uart.obj (.const)
+    } > UART (HIGH)
+
+    nfci2c_text : align(CODE_ALIGN) {
         NFC_i2c.obj (.text)
-        NFC_i2c.obj (.const)
     } > NFC_I2C
 
-    flashDriver_text {
+    nfci2c_const : align(CODE_ALIGN) {
+        NFC_i2c.obj (.const)
+    } > NFC_I2C (HIGH)
+
+    flashDriver_text : align(CODE_ALIGN) {
         flashDriver.obj (.text)
-        flashDriver.obj (.const)
     } > FLASH_DRIVER
 
-    lcdDriver_text {
+    flashDriver_const : align(CODE_ALIGN) {
+        flashDriver.obj (.const)
+    } > FLASH_DRIVER (HIGH)
+
+    lcdDriver_text : align(CODE_ALIGN) {
         lcdDriver.obj (.text)
-        lcdDriver.obj (.const)
     } > LCD_DRIVER
 
-    flashUtil_text {
+    lcdDriver_const : align(CODE_ALIGN) {
+        lcdDriver.obj (.const)
+    } > LCD_DRIVER (HIGH)
+
+    flashUtil_text : align(CODE_ALIGN) {
         MSP430FlashUtil.obj (.text)
-        MSP430FlashUtil.obj (.const)
     } > FLASH_UTIL
 
-    battery_text {
+    flashUtil_const : align(CODE_ALIGN) {
+        MSP430FlashUtil.obj (.const)
+    } > FLASH_UTIL (HIGH)
+
+    battery_text : align(CODE_ALIGN) {
         battery.obj (.text)
     } > BATTERY
 
-    meterMisc_text {
+    meterMisc_text : align(CODE_ALIGN) {
         check_meter_misc.obj (.text)
     } > METER_MISC
 
-    osalTimer {
+    osalTimer_text : align(CODE_ALIGN) {
         osal_Timer.obj (.text)
-        osal.obj (.text)
-        osal_Timer.obj (.const)
     } > OSAL_TIMER
 
-    taskMgr_text {
+    osalTimer_const : align(CODE_ALIGN) {
+        osal.obj (.text)
+        osal_Timer.obj (.const)
+    } > OSAL_TIMER (HIGH)
+
+    taskMgr_text : align(CODE_ALIGN) {
         Task_Mgr.obj (.text)
-        Task_Mgr.obj (.const)
     } > TASK_MGR
 
-    nbiotProcess_text {
-        nbiotProcess.obj (.text)
-        nbiotProcess.obj (.const)
-    } > NB_PROCESS
+    taskMgr_const : {
+        Task_Mgr.obj (.const)
+    } > TASK_MGR (HIGH)
 
-    nbiotResponse_text {
-        nbiotResponse.obj (.text)
-        nbiotResponse.obj (.const)
-    } > NB_RESPONSE
-
-    message_text {
-        message.obj (.text)
-        message.obj (.const)
-    } > MESSAGE
-
-    modem_text {
+    modem_text : align(CODE_ALIGN) {
         modem.obj (.text)
-        modem.obj (.const)
     } > MODEM
 
-    library_section : > FLASHB
-    {
-         --library=rts430x_lc_ld_eabi.lib(.text)
-         --library=rts430x_lc_ld_eabi.lib(.const)
-    }
+    modem_const : align(CODE_ALIGN) {
+        modem.obj (.const)
+    } > MODEM (HIGH)
+
+    nbiotResponse_text : align(CODE_ALIGN) {
+        nbiotResponse.obj (.text)
+    } > NB_RESPONSE
+
+    nbiotResponse_const : align(CODE_ALIGN) {
+        nbiotResponse.obj (.const)
+    } > NB_RESPONSE (HIGH)
+
+    message_text : align(CODE_ALIGN) {
+        message.obj (.text)
+    } > MESSAGE
+
+    message_const : align(CODE_ALIGN) {
+        message.obj (.const)
+    } > MESSAGE (HIGH)
+
+    nbiotProcess_text : align(CODE_ALIGN) {
+        nbiotProcess.obj (.text)
+    } > NB_PROCESS
+
+    nbiotProcess_const : align(CODE_ALIGN) {
+        nbiotProcess.obj (.const)
+    } > NB_PROCESS (HIGH)
 
     int00_section : > FLASHB(HIGH)
     {
@@ -344,26 +574,26 @@ SECTIONS
     } load=FOTA_FLASH, run=FOTA_RAM
 
 #ifndef __LARGE_CODE_MODEL__
-    .text       : {} > FLASHB       /* Code                              */
+    .text       : align(CODE_ALIGN) {} >> FLASHB | FLASHD      /* Code                              */
 #else
-    .text       : {} > FLASHB       /* Code                              */
+    .text       : align(CODE_ALIGN) {} > FLASHB       /* Code                              */
 #endif
 /* Errata Flash Read Error and Susceptibility for MSP430F54xxA 
 Manual placement of interrupt service routines into memory locations above 0x008000
 can eliminate the effect on interrupt vector address fetches. */
-    .cinit      : {} > FLASHB                /* Initialization tables             */
+    .cinit      : align(CODE_ALIGN) {} > FLASHB                /* Initialization tables             */
 #ifndef __LARGE_DATA_MODEL__
-    .const      : {} > FLASHB                /* Constant data                     */
+    .const      : align(CODE_ALIGN) {} >> FLASHB | FLASHD                /* Constant data                     */
 #else
-    .const      : {} > FLASHB      /* Constant data                     */
+    .const      : align(CODE_ALIGN) {} > FLASHB      /* Constant data                     */
 #endif
-    .cio        : {} > RAM                  /* C I/O Buffer                      */
+    .cio        : align(CODE_ALIGN) {} > RAM                  /* C I/O Buffer                      */
 
-    .pinit      : {} > FLASHB                /* C++ Constructor tables            */
-    .binit      : {} > FLASHB                /* Boot-time Initialization tables   */
-    .init_array : {} > FLASHB                /* C++ Constructor tables            */
-    .mspabi.exidx : {} > FLASHB              /* C++ Constructor tables            */
-    .mspabi.extab : {} > FLASHB              /* C++ Constructor tables            */
+    .pinit      : align(CODE_ALIGN) {} > FLASHB                /* C++ Constructor tables            */
+    .binit      : align(CODE_ALIGN) {} > FLASHB                /* Boot-time Initialization tables   */
+    .init_array : align(CODE_ALIGN) {} > FLASHB                /* C++ Constructor tables            */
+    .mspabi.exidx : align(CODE_ALIGN) {} > FLASHB              /* C++ Constructor tables            */
+    .mspabi.extab : align(CODE_ALIGN) {} > FLASHB              /* C++ Constructor tables            */
 
     .infoA     : {} > INFOA              /* MSP430 INFO FLASH Memory segments */
     .infoB     : {} > INFOB

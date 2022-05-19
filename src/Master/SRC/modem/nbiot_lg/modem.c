@@ -24,7 +24,9 @@
 #include "test.h"
 #endif
 
-Modem_t modem;
+Modem_t modem = { 0 };
+ModemComm_t modemComm = { 0 };
+ModemContext_t modemCtx = { 0 };
 
 #ifndef TDD_TEST
 extern Config_t conf;

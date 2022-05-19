@@ -32,13 +32,13 @@
 #define FOTA_10SEC 500
 #define FOTA_60SEC 3000
 
-FotaStatus_t Fota;
+FotaStatus_t Fota = { 0 };
 static char socket[3];
 static char fotaPort[6];
 static char initialMsgSize[4];
 
-char *rxBuf;
-int rxLen;
+char *rxBuf = NULL;
+int rxLen = 0;
 
 static int checkFlashBusy()
 {
@@ -82,6 +82,10 @@ static void writeCode(unsigned long addr, volatile unsigned char data[], int siz
 		FCTL1 = FWKEY + WRT; // Set Write bit
 
 		for (int i = 0; i < size; i++) {
+			if (data[i] == 0xFF) {
+				continue;
+			}
+
 			if (checkFlashBusy()) {
 				__data20_write_char(addr + i, data[i]);
 			}

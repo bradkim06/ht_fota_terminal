@@ -43,10 +43,10 @@
 #endif
 
 // 리셋 직후 또는 자석을 댔을 때 읽어온 데이터 저장 영역
-MeterTempData_t TempMeterData;
+MeterTempData_t TempMeterData = { 0 };
 
 //주기 검침 데이터 저장 영역
-MeterStoredData_t StoredMeterData;
+static MeterStoredData_t StoredMeterData;
 
 inline void insertDateToData(Date_t *pDate, MeterUnitData_t *pData, BOOL isIgnoreSec)
 {

@@ -54,7 +54,7 @@
 #define ICON_NORMAL 0
 #define ICON_TEMP 1
 
-struct {
+static struct {
 	uint8 bLCD_exist;
 	uint8 *txMsg;
 	uint8 len;
@@ -63,7 +63,7 @@ struct {
 	uchar bitPos;
 	uchar txData;
 #endif
-} lcdCon;
+} lcdCon = { 0 };
 
 static struct {
 	uint8 value[4];

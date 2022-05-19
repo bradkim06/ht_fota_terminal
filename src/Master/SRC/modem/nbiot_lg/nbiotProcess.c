@@ -82,11 +82,8 @@
 extern Config_t conf;
 extern Modem_t modem;
 
-ModemComm_t modemComm;
-ModemContext_t modemCtx;
-
-uchar raw_data[LEN_MAX_NBIOT_DATA];
-char ul_data[LEN_MAX_AT_DATA + 1];
+static uchar raw_data[LEN_MAX_NBIOT_DATA];
+static char ul_data[LEN_MAX_AT_DATA + 1];
 static uint32 startEventTimeMsec = 0;
 
 typedef struct {

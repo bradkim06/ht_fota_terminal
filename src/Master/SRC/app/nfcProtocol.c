@@ -46,11 +46,7 @@ typedef struct {
 	};
 } NfcDateV2_t;
 
-// NFC 비동기 동작 시 사용되는 Command buffer
-struct {
-	int len;
-	uint8 cmd[64];
-} nfcAsyncRx;
+static nfcAsyncRx_t nfcAsyncRx = { 0 };
 
 #if 1 // sholee
 extern int internal_clock;

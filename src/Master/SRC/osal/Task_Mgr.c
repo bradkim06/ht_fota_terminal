@@ -24,9 +24,9 @@ const pTaskEventHandlerFn TasksArray[] = {
 };
 
 const uint8 TotalTasksCnt = sizeof(TasksArray) / sizeof(TasksArray[0]);
-event32_t *TasksEvents;
+event32_t *TasksEvents = 0;
 
-BOOL device_sleep_state;
+BOOL device_sleep_state = FALSE;
 
 void TASKMGR_init(void)
 {

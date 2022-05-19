@@ -27,7 +27,7 @@
 #define LEN_TEST_NBIOT_ICCID 19
 #endif
 
-struct {
+static struct {
 	// will be set '1' when reading success MODEM booting message
 	BOOL isAlive;
 	// will be set '1' when want to show MODEM response
@@ -48,7 +48,7 @@ struct {
 	char imsi[LEN_TEST_NBIOT_IMSI + 1]; // +1 will be set 0. '0' is for string print.
 	char iccid[LEN_TEST_NBIOT_ICCID + 1]; // +1 will be set 0. '0' is for string print.
 #endif
-} modemTestCtx;
+} modemTestCtx = { 0 };
 
 /*
  ***************************************************************
@@ -854,4 +854,3 @@ PNBCTX_FINISH:
 //     MISC_delayMs(100);
 //     send_to_modem("AT+CFM 1");
 // #endif
-

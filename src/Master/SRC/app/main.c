@@ -237,7 +237,7 @@ int main()
 {
 	WDTCTL = WDTPW | WDTHOLD;
 #define FOTA_RAM_ADDR 0x1C00
-#define FOTA_FLASH_ADDR 0x20000
+#define FOTA_FLASH_ADDR 0x20200
 #define FOTA_SIZE 0x1000
 	// isr copy ram (size & addr need to check lnk.cmd)
 	memcpy((void *)FOTA_RAM_ADDR, (void *)FOTA_FLASH_ADDR, FOTA_SIZE);
