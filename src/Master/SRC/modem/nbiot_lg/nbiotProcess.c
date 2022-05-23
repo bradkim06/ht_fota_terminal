@@ -33,6 +33,9 @@
 #define FOTA_TIMEOUT 60000
 #define FOTA_RETRY 0
 
+// QA report timeout
+#define AT_CMD_LGU_QA_TIMEOUT 1000
+
 // AT command default timeout/retry
 #define AT_CMD_DEFAULT_TIMEOUT 3000
 #define AT_CMD_DEFAULT_RETRY 6
@@ -744,49 +747,22 @@ static ModemStep_t updateQa()
 		int len;
 		char *data = getQaReportMessage(&len);
 
-		modemCtx.errCode = MODEM_ERROR_UDP_UL_FAIL;
-		sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, 0, &AtCmdSocketSendUL, "=%d,%s,%ld,%d,%s",
-			      modemCtx.socket, LG_QA_SERVER_IP, LG_QA_SERVER_PORT, len, data);
-
-		// 데이터 전송 후 다음 전송까지의 interval계산을 위해 현재 msec 저장.
-		startEventTimeMsec = TIMER_getMsec();
+		sendNoRespAtCommand(AT_CMD_LGU_QA_TIMEOUT, &AtCmdSocketSendUL, "=%d,%s,%ld,%d,%s",
+				    modemCtx.socket, LG_QA_SERVER_IP, LG_QA_SERVER_PORT, len, data);
 		StepFlowIndex.updateQa++;
 	} break;
 
 	case 2: {
-		if (TIMER_getMsecDiff(startEventTimeMsec) >= AT_CMD_DEFAULT_TIMEOUT) {
-			OSAL_setEvent(AppTaskId, APP_EVENT_MODEM_PROCESS);
-			StepFlowIndex.updateQa++;
-		} else {
-			OSAL_startEventTimer(AppTaskId, APP_EVENT_MODEM_PROCESS,
-					     MODEM_EVENT_INTERVAL);
-		}
-	} break;
-
-	case 3: {
 		int len;
 		char *data = getErrorReportMessage(&len);
 
-		modemCtx.errCode = MODEM_ERROR_UDP_UL_FAIL;
-		sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, 0, &AtCmdSocketSendUL, "=%d,%s,%ld,%d,%s",
-			      modemCtx.socket, LG_ERR_SERVER_IP, LG_ERR_SERVER_PORT, len, data);
-
-		// 데이터 전송 후 다음 전송까지의 interval계산을 위해 현재 msec 저장.
-		startEventTimeMsec = TIMER_getMsec();
+		sendNoRespAtCommand(AT_CMD_LGU_QA_TIMEOUT, &AtCmdSocketSendUL, "=%d,%s,%ld,%d,%s",
+				    modemCtx.socket, LG_ERR_SERVER_IP, LG_ERR_SERVER_PORT, len,
+				    data);
 		StepFlowIndex.updateQa++;
 	} break;
 
-	case 4: {
-		if (TIMER_getMsecDiff(startEventTimeMsec) >= AT_CMD_DEFAULT_TIMEOUT) {
-			OSAL_setEvent(AppTaskId, APP_EVENT_MODEM_PROCESS);
-			StepFlowIndex.updateQa++;
-		} else {
-			OSAL_startEventTimer(AppTaskId, APP_EVENT_MODEM_PROCESS,
-					     MODEM_EVENT_INTERVAL);
-		}
-	} break;
-
-	case 5: {
+	case 3: {
 		modemCtx.ulCnt = modemCtx.dlCnt = 0;
 		modemCtx.pfUlCnt = modemCtx.pfDlCnt = 0;
 		memset(modemCtx.errLog, 0, sizeof(modemCtx.errLog));
