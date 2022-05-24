@@ -697,26 +697,6 @@ void MODEM_response(char *pHead, int len)
 		}
 	} break;
 
-	case AT_CMD_IDX_RUN_REGISTER: {
-#define BOOTUP_REGISTER_PARAM "=0"
-#define DELETE_REGISTER_PARAM "=1"
-#define UPDATE_REGISTER_PARAM "=2"
-		if (strstr(modemComm.atData, BOOTUP_REGISTER_PARAM)) {
-			if (modemCtx.lwm2m.regFinish && modemCtx.lwm2m.obsObj10250) {
-				isRleaseBusy = TRUE;
-			}
-		} else if (strstr(modemComm.atData, DELETE_REGISTER_PARAM)) {
-			if (modemCtx.lwm2m.regDelete) {
-				isRleaseBusy = TRUE;
-			}
-		} else if (strstr(modemComm.atData, UPDATE_REGISTER_PARAM)) {
-			if (modemCtx.lwm2m.regUpdate) {
-				isRleaseBusy = TRUE;
-			}
-		} else { /* No Action */
-		}
-	} break;
-
 	case AT_CMD_IDX_SOCKET_SEND_UL: {
 		if (modemCtx.step == MODEM_STEP_UPDATE_QA) {
 			if (isAckOk) {

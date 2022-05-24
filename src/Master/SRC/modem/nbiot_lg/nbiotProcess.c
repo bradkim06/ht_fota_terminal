@@ -138,8 +138,6 @@ static const AtCmd_t AtCmdGetEPN = { AT_CMD_IDX_GET_EPN, "AT+QLWEPNS?" };
 static const AtCmd_t AtCmdSwtLWM2M = { AT_CMD_IDX_SWITCH_LWM2M, "AT+QREGSWT" };
 static const AtCmd_t AtCmdGetSwtLWM2M = { AT_CMD_IDX_GET_SWITCH_LWM2M, "AT+QREGSWT?" };
 static const AtCmd_t AtCmdSetFOTA = { AT_CMD_IDX_SET_FOTA, "AT+QLWFOTAIND" };
-static const AtCmd_t AtCmdRunRegister = { AT_CMD_IDX_RUN_REGISTER, "AT+QLWSREGIND" };
-/* static const AtCmd_t AtCmdRunNmStatus = { AT_CMD_IDX_GET_NM_STATUS, "AT+NMSTATUS?" }; */
 #if defined(NBIOT_LG_TYPE)
 static const AtCmd_t AtCmdULDATAEX = { AT_CMD_IDX_QLWULDATAEX, "AT+QLWULDATAEX" };
 #endif
@@ -1302,11 +1300,6 @@ void MODEM_detach()
      * 해당 동작은 UDP 기반이거나 예외처리 시 허용되는 동작이기 때문에 가능하다.
      */
 #define DETACH_DELAY_MS 5000
-
-	if (modemCtx.lwm2m.regFinish) {
-		// De-Register 전송.
-		sendNoRespAtCommand(DEREGISTER_DELAY, &AtCmdRunRegister, "=1");
-	}
 	// Detach 전송.
 	sendNoRespAtCommand(DETACH_DELAY_MS, &AtCmdDetachNw, "=0");
 }
