@@ -120,6 +120,12 @@ Note over t: 단말 Sleep
 
 ### NB-IoT P/F 개선
 
+#### Delta Fota (2022-05-24)
+
+무선 풀 업그레이드시 90Kb의 용량은 battery, nb-iot 제품에서는 실패 리스크, 배터리 부담, 긴 시간(3분 가량)때문에  
+Delta 업그레이드 기능 추가. Fota 서버는 binary 파일에서 512byte단위로 차이점만을 parsing하여 단말에 전달한다.
+단말은 code 변경시 binary파일 변경을 최소화 하기 위해 파일별(.text & .const), 변수별(.data & .bss)로 메모리를 고정 분할 시킴.
+
 #### Device Fota 개발 (인증용) (2022-04-20)
 
 - [ ] Fota 도중 실패시 복구 처리 추가 필요
