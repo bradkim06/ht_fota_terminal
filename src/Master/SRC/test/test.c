@@ -142,26 +142,24 @@ static BOOL saveTerminalConfig(const char *sn, const int ri, const int mi)
 
 void TEST_config()
 {
-	Config_t config;
-	FLASH_readConfigInfo(&config);
+	FLASH_readConfigInfo(&conf);
 
-	APP_showConfig(&config);
+	APP_showConfig(&conf);
 }
 
 void TEST_debugPrint(int flag)
 {
-	Config_t config;
-	FLASH_readConfigInfo(&config);
+	FLASH_readConfigInfo(&conf);
 
 	if (flag != 0xff) {
 		if (flag) {
-			config.debugPrint = 1;
+			conf.debugPrint = 1;
 		} else {
-			config.debugPrint = 0;
+			conf.debugPrint = 0;
 		}
-		FLASH_saveConfigInfo(&config);
+		FLASH_saveConfigInfo(&conf);
 	}
-	printf("debug printing %s\n", config.debugPrint ? "on" : "off");
+	printf("debug printing %s\n", conf.debugPrint ? "on" : "off");
 }
 
 void TEST_meteringParamer(int ri, int mi)
@@ -176,16 +174,15 @@ void TEST_meteringParamer(int ri, int mi)
 		return;
 	}
 
-	Config_t config;
-	FLASH_readConfigInfo(&config);
+	FLASH_readConfigInfo(&conf);
 
-	config.meterInterval = mi;
-	config.reportInterval = ri;
+	conf.meterInterval = mi;
+	conf.reportInterval = ri;
 
-	FLASH_saveConfigInfo(&config);
+	FLASH_saveConfigInfo(&conf);
 
-	printf("meteringInterval:%d, reportInterval:%d, intervalBaseTime:%d\n",
-	       config.meterInterval, config.reportInterval, conf.intervalBaseTime);
+	printf("meteringInterval:%d, reportInterval:%d, intervalBaseTime:%d\n", conf.meterInterval,
+	       conf.reportInterval, conf.intervalBaseTime);
 }
 
 void TEST_readRTC(int fromJig)
@@ -290,12 +287,11 @@ void TEST_readBattery()
 
 void TEST_readSerialNum()
 {
-	Config_t config;
-	FLASH_readConfigInfo(&config);
+	FLASH_readConfigInfo(&conf);
 
 	printf("trsn ");
 	for (int i = 0; i < SERIAL_NUM_LEN; i++) {
-		printf("%c", config.serialNum[i]);
+		printf("%c", conf.serialNum[i]);
 	}
 	printf(" %s\n", FIRMWARE_VER);
 }
@@ -307,14 +303,13 @@ void TEST_writeSerialNum(char *serialNum)
 		return;
 	}
 
-	Config_t config;
-	FLASH_readConfigInfo(&config);
+	FLASH_readConfigInfo(&conf);
 
 	for (int i = 0; i < SERIAL_NUM_LEN; i++) {
-		config.serialNum[i] = *serialNum++;
+		conf.serialNum[i] = *serialNum++;
 	}
 
-	FLASH_saveConfigInfo(&config);
+	FLASH_saveConfigInfo(&conf);
 
 	TEST_readSerialNum();
 }
@@ -519,14 +514,13 @@ void TEST_lpm3(int mode)
 {
 	printf("ACK\n");
 
-	Config_t config;
-	FLASH_readConfigInfo(&config);
+	FLASH_readConfigInfo(&conf);
 	if (mode == 1) {
-		config.sleepMode = 0;
+		conf.sleepMode = 0;
 	} else if (mode == 0) {
-		config.sleepMode = 1;
+		conf.sleepMode = 1;
 	}
-	FLASH_saveConfigInfo(&config);
+	FLASH_saveConfigInfo(&conf);
 
 	METER_disable();
 	MODEM_disable();
@@ -562,10 +556,9 @@ void TEST_lpm2()
 {
 	printf("ACK\n");
 
-	Config_t config;
-	FLASH_readConfigInfo(&config);
-	config.sleepMode = 1;
-	FLASH_saveConfigInfo(&config);
+	FLASH_readConfigInfo(&conf);
+	conf.sleepMode = 1;
+	FLASH_saveConfigInfo(&conf);
 
 	METER_disable();
 	MODEM_disable();
@@ -629,15 +622,14 @@ void TEST_meterLCD()
 
 void TEST_sleepMode(int flag)
 {
-	Config_t config;
-	FLASH_readConfigInfo(&config);
+	FLASH_readConfigInfo(&conf);
 
 	if (flag != 0xff) {
-		config.sleepMode = flag ? 1 : 0;
-		FLASH_saveConfigInfo(&config);
+		conf.sleepMode = flag ? 1 : 0;
+		FLASH_saveConfigInfo(&conf);
 	}
 
-	if (config.sleepMode) {
+	if (conf.sleepMode) {
 		printf("sleep mode\n");
 	} else {
 		printf("active mode\n");
@@ -646,37 +638,34 @@ void TEST_sleepMode(int flag)
 
 void TEST_riCtrlMode(int flag)
 {
-	Config_t config;
-	FLASH_readConfigInfo(&config);
+	FLASH_readConfigInfo(&conf);
 
 	if (flag != 0xff) {
-		config.riCtrlMode = flag ? 1 : 0;
-		config.riCtrlChgCount = 0;
-		config.riCtrlValue = config.reportInterval;
-		FLASH_saveConfigInfo(&config);
+		conf.riCtrlMode = flag ? 1 : 0;
+		conf.riCtrlChgCount = 0;
+		conf.riCtrlValue = conf.reportInterval;
+		FLASH_saveConfigInfo(&conf);
 	}
 
-	printf("report control %s\n", config.riCtrlMode ? "on" : "off");
+	printf("report control %s\n", conf.riCtrlMode ? "on" : "off");
 }
 
 void TEST_shortInterval(int flag)
 {
-	Config_t config;
-	FLASH_readConfigInfo(&config);
+	FLASH_readConfigInfo(&conf);
 
 	if (flag != 0xff) {
-		config.isShortInterval = flag ? 1 : 0;
-		FLASH_saveConfigInfo(&config);
+		conf.isShortInterval = flag ? 1 : 0;
+		FLASH_saveConfigInfo(&conf);
 	}
 
-	printf("short interval %s\n", config.isShortInterval ? "on" : "off");
+	printf("short interval %s\n", conf.isShortInterval ? "on" : "off");
 	return;
 }
 
 void TEST_setMeterType(int type)
 {
-	Config_t config;
-	FLASH_readConfigInfo(&config);
+	FLASH_readConfigInfo(&conf);
 
 	if (type == 0xff) {
 		printf("Usage : mt [TYPE]\n");
@@ -693,27 +682,27 @@ void TEST_setMeterType(int type)
 	}
 
 	if (type == 1) {
-		config.meterType = W_STANDARD_D;
+		conf.meterType = W_STANDARD_D;
 	} else if (type == 2) {
-		config.meterType = W_SHINHAN_D;
+		conf.meterType = W_SHINHAN_D;
 	} else if (type == 3) {
-		config.meterType = W_SHINHAN_D_BIG;
+		conf.meterType = W_SHINHAN_D_BIG;
 	} else if (type == 4) {
-		config.meterType = W_MNS_D;
+		conf.meterType = W_MNS_D;
 	} else if (type == 5) {
-		config.meterType = C_ONETL_D;
+		conf.meterType = C_ONETL_D;
 	} else if (type == 6) {
-		config.meterType = W_ONETL_D;
+		conf.meterType = W_ONETL_D;
 	} else if (type == 7) {
-		config.meterType = G_ONETL_D;
+		conf.meterType = G_ONETL_D;
 	} else if (type == 8) {
-		config.meterType = H_ONETL_D;
+		conf.meterType = H_ONETL_D;
 	} else {
 		printf("Unknown type : %02X\n", type);
 		return;
 	}
 
-	FLASH_saveConfigInfo(&config);
+	FLASH_saveConfigInfo(&conf);
 }
 
 void TEST_pwsn(char *sn, int ri, int mi)
@@ -728,16 +717,13 @@ void TEST_pwsn(char *sn, int ri, int mi)
 
 void TEST_prsn()
 {
-	Config_t config;
-
-	FLASH_readConfigInfo(&config);
+	FLASH_readConfigInfo(&conf);
 
 	char serial[SERIAL_NUM_LEN + 1] = "";
-	memcpy(serial, config.serialNum, SERIAL_NUM_LEN);
+	memcpy(serial, conf.serialNum, SERIAL_NUM_LEN);
 	serial[SERIAL_NUM_LEN] = '\0';
 
-	printf("trsn %s %s %d %d\n", serial, FIRMWARE_VER, config.reportInterval,
-	       config.meterInterval);
+	printf("trsn %s %s %d %d\n", serial, FIRMWARE_VER, conf.reportInterval, conf.meterInterval);
 }
 
 void TEST_pwmeter(int numMeter, int type1, int port1, int type2, int port2, int type3, int port3)
@@ -868,15 +854,14 @@ void TEST_pmrsn(BOOL isJigTest)
 				recv_q2 = result.q2[0] | result.q2[1] << 8;
 				recv_q1 = result.q1[0] | result.q1[1] << 8;
 				if (isJigTest) {
-					Config_t config;
-					FLASH_readConfigInfo(&config);
+					FLASH_readConfigInfo(&conf);
 
 					char serial[SERIAL_NUM_LEN + 1] = "";
-					memcpy(serial, config.serialNum, SERIAL_NUM_LEN);
+					memcpy(serial, conf.serialNum, SERIAL_NUM_LEN);
 					serial[SERIAL_NUM_LEN] = '\0';
 
 					printf("tmrsn %s %s %d %d ", serial, FIRMWARE_VER,
-					       config.reportInterval, config.meterInterval);
+					       conf.reportInterval, conf.meterInterval);
 					// 사실 40, 50mm은 소형/대형이 혼재하지만 따로 구분할 방법이 없어 50mm까진 소형으로 고려한다.
 					if (result.caliber > MT_50mm) {
 						printf("%d %d %d %d %d %d %d %d\n", result.caliber,

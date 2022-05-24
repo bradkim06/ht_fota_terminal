@@ -312,15 +312,14 @@ static uint32 getNwkId(char *pNwkid)
 
 void TEST_readIDs()
 {
-	Config_t config;
-	FLASH_readConfigInfo(&config);
+	FLASH_readConfigInfo(&conf);
 
-	printf(" PAN ID     : %04X\n", config.pan_id);
+	printf(" PAN ID     : %04X\n", conf.pan_id);
 
-	uint8 *p = (uint8 *)&config.nwk_addr;
+	uint8 *p = (uint8 *)&conf.nwk_addr;
 	printf(" NWK        : %d.%d.%d.%d\n", *(p + 3), *(p + 2), *(p + 1), *(p + 0));
 
-	p = (uint8 *)&config.slaveNwk;
+	p = (uint8 *)&conf.slaveNwk;
 	printf(" Slave NWK  : %d.%d.%d.%d\n", *(p + 3), *(p + 2), *(p + 1), *(p + 0));
 }
 
@@ -357,22 +356,21 @@ void TEST_writeIDs(char *pPanid, char *pNwkid, int slaveID)
 		return;
 	}
 
-	Config_t config;
-	FLASH_readConfigInfo(&config);
+	FLASH_readConfigInfo(&conf);
 
 	uint16 panid = getPanId(pPanid);
-	memcpy(&config.pan_id, &panid, 2);
+	memcpy(&conf.pan_id, &panid, 2);
 
 	uint32 nwkid = getNwkId(pNwkid);
-	memcpy(&config.nwk_addr, &nwkid, 4);
+	memcpy(&conf.nwk_addr, &nwkid, 4);
 
 	int zeroPos = getFirstZeroPosition(config.nwk_addr);
 	uint8 addr[4];
-	memcpy(addr, &config.nwk_addr, 4);
+	memcpy(addr, &conf.nwk_addr, 4);
 	addr[zeroPos] = slaveID;
-	memcpy(&config.slaveNwk, addr, 4);
+	memcpy(&conf.slaveNwk, addr, 4);
 
-	FLASH_saveConfigInfo(&config);
+	FLASH_saveConfigInfo(&conf);
 	TEST_readIDs();
 }
 

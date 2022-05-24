@@ -50,6 +50,8 @@ static struct {
 #endif
 } modemTestCtx = { 0 };
 
+extern Config_t conf;
+
 /*
  ***************************************************************
     Modem common test functions
@@ -501,14 +503,13 @@ void TEST_prdeui()
 	}
 
 	// save devEui in flash
-	Config_t config;
-	FLASH_readConfigInfo(&config);
+	FLASH_readConfigInfo(&conf);
 
 	for (int i = 0; i < 8; i++) {
 		config.devEui[i] =
 			ascii2BCD(modemTestCtx.devEUI[2 * i + 0], modemTestCtx.devEUI[2 * i + 1]);
 	}
-	FLASH_saveConfigInfo(&config);
+	FLASH_saveConfigInfo(&conf);
 }
 
 void TEST_pwdeui(char *deui)
@@ -612,54 +613,50 @@ BOOL TEST_writeAppKeyUsingDEUI()
 
 void TEST_pwserver(char *ip, int port, char *serviceCode)
 {
-	Config_t config;
-	FLASH_readConfigInfo(&config);
+	FLASH_readConfigInfo(&conf);
 
-	strcpy(config.serverIp, ip);
-	config.serverPort = port;
+	strcpy(conf.serverIp, ip);
+	conf.serverPort = port;
 
 #if (defined(NBIOT_LG_TYPE) || defined(NBIOT_BASE_TYPE))
-	int sc_len = sizeof(config.serviceCode);
-	strncpy(config.serviceCode, serviceCode, sc_len);
+	int sc_len = sizeof(conf.serviceCode);
+	strncpy(conf.serviceCode, serviceCode, sc_len);
 	// 배열 마지막은 string처리를 위해 '0'으로 설정.
-	config.serviceCode[sc_len - 1] = 0;
+	conf.serviceCode[sc_len - 1] = 0;
 #endif
 
-	FLASH_saveConfigInfo(&config);
+	FLASH_saveConfigInfo(&conf);
 
 	TEST_prserver();
 }
 
 void TEST_prserver()
 {
-	Config_t config;
-	FLASH_readConfigInfo(&config);
+	FLASH_readConfigInfo(&conf);
 #if (defined(NBIOT_LG_TYPE) || defined(NBIOT_BASE_TYPE))
-	printf("trserver %s %d %s\n", config.serverIp, config.serverPort, config.serviceCode);
+	printf("trserver %s %d %s\n", conf.serverIp, conf.serverPort, conf.serviceCode);
 #else
-	printf("trserver %s %d NOTUSE\n", config.serverIp, config.serverPort);
+	printf("trserver %s %d NOTUSE\n", conf.serverIp, conf.serverPort);
 #endif
 }
 
 void TEST_pwfota(char *ip, int port, int interval)
 {
-	Config_t config;
-	FLASH_readConfigInfo(&config);
+	FLASH_readConfigInfo(&conf);
 
-	strcpy(config.fotaIp, ip);
-	config.fotaPort = port;
-	config.fotaInterval = interval;
+	strcpy(conf.fotaIp, ip);
+	conf.fotaPort = port;
+	conf.fotaInterval = interval;
 
-	FLASH_saveConfigInfo(&config);
+	FLASH_saveConfigInfo(&conf);
 
 	TEST_prfota();
 }
 
 void TEST_prfota()
 {
-	Config_t config;
-	FLASH_readConfigInfo(&config);
-	printf("trfota %s %d %d\n", config.fotaIp, config.fotaPort, config.fotaInterval);
+	FLASH_readConfigInfo(&conf);
+	printf("trfota %s %d %d\n", conf.fotaIp, conf.fotaPort, conf.fotaInterval);
 }
 
 void TEST_prnbid()
@@ -687,8 +684,7 @@ void TEST_prnbid()
 		isIccidOk = waitModemAck(2);
 	}
 
-	Config_t config;
-	FLASH_readConfigInfo(&config);
+	FLASH_readConfigInfo(&conf);
 
 	if (isImeiOk && isImsiOk && isIccidOk) {
 #if (defined(NBIOT_LG_TYPE) || defined(NBIOT_BASE_TYPE))
@@ -696,7 +692,7 @@ void TEST_prnbid()
 		snprintf(ctnStr, sizeof(ctnStr), "0%s", &modemTestCtx.imsi[5]);
 
 		char cseid[LEN_MODEM_EP_NAME + 1];
-		if (MODEM_generateCseID(config.serviceCode, ctnStr, modemTestCtx.iccid, cseid,
+		if (MODEM_generateCseID(conf.serviceCode, ctnStr, modemTestCtx.iccid, cseid,
 					sizeof(cseid))) {
 			printf("trnbid %s %s %s %s\n", modemTestCtx.imei, modemTestCtx.imsi, cseid,
 			       modemTestCtx.iccid);
@@ -716,11 +712,11 @@ void TEST_prnbid()
 
 	if (isImeiOk) { // IMEI 읽기 성공 시 Flash에 저장.
 		for (int i = 0; i < 8; i++) {
-			config.imei[i] = ascii2BCD(modemTestCtx.imei[2 * i + 0],
-						   modemTestCtx.imei[2 * i + 1]);
+			conf.imei[i] = ascii2BCD(modemTestCtx.imei[2 * i + 0],
+						 modemTestCtx.imei[2 * i + 1]);
 		}
-		config.imei[7] &= 0xf0;
-		FLASH_saveConfigInfo(&config);
+		conf.imei[7] &= 0xf0;
+		FLASH_saveConfigInfo(&conf);
 	}
 
 	sendToModem("AT+CFUN=0");
