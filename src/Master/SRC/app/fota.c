@@ -208,8 +208,6 @@ static int recvModem(char *sendMsg, char *recvMsg, int t)
 
 static void fotaRecv()
 {
-#define AT_MODEM_RX "+NSONMI:"
-
 	while (1) {
 		volatile int len = 0;
 		volatile int count = 0;
@@ -222,6 +220,7 @@ static void fotaRecv()
 		if (len > 1) {
 			char *p = NULL;
 
+#define AT_MODEM_RX "+NSONMI:"
 			if ((p = strstr(rxBuf, AT_MODEM_RX))) {
 				fotaModemPrint(rxBuf, rxLen);
 				fotaSend("AT+NSORF=1,1024\n\r");
@@ -276,17 +275,23 @@ static void fotaRecv()
 			} else if ((p = strstr(rxBuf, "+NSOCLI:"))) {
 				fotaModemPrint(rxBuf, rxLen);
 				recvModem("at+cgatt=0\n\r", "+NPSMR:1", FOTA_10SEC);
-				fotaPrint("socket closed sleep\n\r");
+				fotaPrint("socket closed");
 				break;
 			} else {
 				modemRxClear();
 			}
 		} else {
 			recvModem("at+cgatt=0\n\r", "+NPSMR:1", FOTA_10SEC);
-			fotaPrint("server no resp sleep\n\r");
+			fotaPrint("server no response");
+			fotaSend("at+nsocl=");
+			fotaSend(socket);
+			fotaSend("\n\r");
+			fotaPrint("socket closed");
 			break;
 		}
 	}
+
+	fotaPrint("sleep\n\r");
 }
 
 static void reboot()
@@ -320,7 +325,7 @@ void startFota()
 		fotaPrint("malloc(Fota rxBuf) failed\n\r");
 		reboot();
 	}
-	snprintf(socket, sizeof(socket), "%1d,", modemCtx.socket);
+	snprintf(socket, sizeof(socket), "%1d", modemCtx.socket);
 	snprintf(fotaPort, sizeof(fotaPort), "%d", Fota.Info.port);
 	snprintf(initialMsgSize, sizeof(initialMsgSize), "%d,", FOTA_REQMSG_SIZE);
 
@@ -330,6 +335,7 @@ void startFota()
 	}
 
 	MODEM_changeBaudrate(UART_BAUDRATE_57600);
+	MISC_delayMs(100);
 
 	if (send(SEND_READY) == -1) {
 		reboot();
@@ -355,6 +361,7 @@ static int txData(char *msg)
 {
 	fotaSend("AT+NSOSD=");
 	fotaSend(socket);
+	fotaSend(",");
 	return recvModem(msg, "OK", FOTA_10SEC);
 }
 
@@ -362,12 +369,12 @@ static int repeatCmd(char *sendMsg, char *recvMsg, int t, int retry)
 {
 	for (int i = 0; i < retry; i++) {
 		if (recvModem(sendMsg, recvMsg, t) == 0) {
-			recvModem("at+cgatt=0\n\r", "+NPSMR:1", FOTA_10SEC);
-			fotaPrint("ready fail sleep\n\r");
 			return 0;
 		}
 	}
 
+	recvModem("at+cgatt=0\n\r", "+NPSMR:1", FOTA_10SEC);
+	fotaPrint("ready fail sleep\n\r");
 	return -1;
 }
 
@@ -382,7 +389,8 @@ RETRY:
 	P2OUT &= ~0x20;
 	for (int i = 0; i < 5; i++) {
 		// minute
-		MISC_delayMs(60000);
+		// MISC_delayMs(60000);
+		MISC_delayMs(1000);
 	}
 
 	modemWakeup();
@@ -400,7 +408,7 @@ RETRY:
 	if (repeatCmd("at+cereg=5\n\r", "OK", FOTA_5SEC, 3)) {
 		goto RETRY;
 	}
-	if (repeatCmd("at+cereg?\n\r", "+CEREG:5,1", FOTA_60SEC, 3)) {
+	if (repeatCmd("at+cereg?\n\r", "+CEREG:5,1", FOTA_10SEC, 18)) {
 		goto RETRY;
 	}
 
@@ -410,6 +418,7 @@ RETRY:
 	// connect fota server
 	fotaSend("AT+NSOCO=");
 	fotaSend(socket);
+	fotaSend(",");
 	fotaSend(Fota.Info.ip);
 	fotaSend(",");
 	fotaSend(fotaPort);
@@ -419,6 +428,7 @@ RETRY:
 
 	fotaSend("AT+NSORF=");
 	fotaSend(socket);
+	fotaSend(",");
 	if (recvModem("4\n\r", "OK", FOTA_10SEC)) {
 		goto RETRY;
 	}
@@ -426,6 +436,7 @@ RETRY:
 	// fota initial msg send
 	fotaSend("AT+NSOSD=");
 	fotaSend(socket);
+	fotaSend(",");
 	fotaSend(initialMsgSize);
 	fotaSend(Fota.reqMsg);
 	if (recvModem("\n\r", "+NSONMI", FOTA_60SEC)) {
@@ -434,6 +445,7 @@ RETRY:
 
 	fotaSend("AT+NSORF=");
 	fotaSend(socket);
+	fotaSend(",");
 	if (recvModem("5\n\r", "OK", FOTA_10SEC)) {
 		goto RETRY;
 	}
