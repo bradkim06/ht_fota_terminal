@@ -85,8 +85,8 @@
 extern Config_t conf;
 extern Modem_t modem;
 
-static uchar raw_data[LEN_MAX_NBIOT_DATA];
-static char ul_data[LEN_MAX_AT_DATA + 1];
+static uchar raw_data[LEN_MAX_NBIOT_DATA] = { 0 };
+static char ul_data[LEN_MAX_AT_DATA + 1] = { 0 };
 static uint32 startEventTimeMsec = 0;
 
 typedef struct {
@@ -102,7 +102,7 @@ typedef struct {
 	uint8 detach;
 	uint8 retry;
 } StepFlowIndex_t;
-static StepFlowIndex_t StepFlowIndex;
+static StepFlowIndex_t StepFlowIndex = { 0 };
 
 // NB-IoT Modem AT command list
 static const AtCmd_t AtCmdSwReset = { AT_CMD_IDX_SW_RESET, "AT+NRB" };

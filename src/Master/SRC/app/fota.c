@@ -33,9 +33,9 @@
 #define FOTA_60SEC 3000
 
 FotaStatus_t Fota = { 0 };
-static char socket[3];
-static char fotaPort[6];
-static char initialMsgSize[4];
+static char socket[3] = { 0 };
+static char fotaPort[6] = { 0 };
+static char initialMsgSize[4] = { 0 };
 
 char *rxBuf = NULL;
 int rxLen = 0;

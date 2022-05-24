@@ -18,16 +18,16 @@
 #define MAX_I2C_RX_BUFF_SIZE 16 + 2
 #define MAX_I2C_TX_BUFF_SIZE 16 + 2
 
-static uint8 I2cRxPos;
-static uint8 I2cRxByteLen;
+static uint8 I2cRxPos = 0;
+static uint8 I2cRxByteLen = 0;
 
-static uint8 *I2cTxData; // Pointer to TX data
-static uint8 I2cTxByteCtr;
+static uint8 *I2cTxData = NULL; // Pointer to TX data
+static uint8 I2cTxByteCtr = 0;
 
-static BOOL IsI2cComplete;
+static BOOL IsI2cComplete = FALSE;
 
-static uint8 RxBuffer[MAX_I2C_RX_BUFF_SIZE]; // Allocate 16 byte of RAM
-static uint8 TxBuffer[MAX_I2C_TX_BUFF_SIZE]; // Allocate 16 byte of RAM
+static uint8 RxBuffer[MAX_I2C_RX_BUFF_SIZE] = { 0 }; // Allocate 16 byte of RAM
+static uint8 TxBuffer[MAX_I2C_TX_BUFF_SIZE] = { 0 }; // Allocate 16 byte of RAM
 
 /* yikim 추후 예정
 static const uint8 Default_NDEF_Message[] = {

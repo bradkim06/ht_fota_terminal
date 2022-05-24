@@ -17,7 +17,7 @@
 #define BATTERY_MAX_ADC 4096
 #define BATTERY_MIN_ADC 0
 
-static uint16 BattAdcBuffer[BATTERY_AVR_NUM];
+static uint16 BattAdcBuffer[BATTERY_AVR_NUM] = { 0 };
 static uint8 LastBattVolt = 0;
 
 static uint16 readBatteryADC(void)

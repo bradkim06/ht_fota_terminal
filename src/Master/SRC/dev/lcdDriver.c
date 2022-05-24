@@ -70,7 +70,7 @@ static struct {
 	int decimalPoint;
 	LcdIcon_t iconNormal;
 	LcdIcon_t iconTemp;
-} currentLCD;
+} currentLCD = { 0 };
 
 BOOL LCD_Exist()
 {

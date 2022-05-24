@@ -37,9 +37,9 @@
 					       "unknown")
 
 static int TimeSyncFlag = 0;
-static Date_t TimeSyncDate;
+static Date_t TimeSyncDate = { 0 };
 
-static RtcAlarm_t AlarmList[RTC_ALARM_COUNT];
+static RtcAlarm_t AlarmList[RTC_ALARM_COUNT] = { 0 };
 static RtcAlarm_t *NextAlarm = NULL;
 
 static void setDefaultRTC(Date_t *date)

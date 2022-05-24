@@ -55,35 +55,30 @@
 /* FLASH */
 #define USER_TEST_ORIGIN 0x6000
 
-#define TEST_LEN 0x2400
-#define MTEST_LEN 0x1400
+#define TEST_LEN 0x2000
+#define MTEST_LEN 0x1200
 #define SHELL_LEN 0x2400
 
 #define LIBRARY_LEN 0x2600
-#define NFC_PROTOCOL_LEN 0x1600
 
 #define USER_FLASH_ORIGIN 0x10200
 
-#define METER_LEN 0x2200
+#define METER_LEN 0x1C00
+#define DATA_FLASH_LEN 0x1A00
 #define APP_LEN 0x1000
-#define RTC_ALARM_LEN 0xE00
+#define NFC_PROTOCOL_LEN 0x1400
+#define NFC_I2C_LEN 0xC00
+#define RTC_ALARM_LEN 0xC00
 #define MAIN_LEN 0x200
-#define DATA_FLASH_LEN 0x1E00
 #define UART_LEN 0xE00
-#define FLASH_DRIVER_LEN 0xE00
-#define LCD_DRIVER_LEN 0x800
-#define FLASH_UTIL_LEN 0x400
-#define BATTERY_LEN 0x400
-#define METER_MISC_LEN 0x200
-#define OSAL_TIMER_LEN 0x600
-#define TASK_MGR_LEN 0x400
-#define NB_PROCESS_LEN 0x2000
-#define NB_RESPONSE_LEN 0x1A00
+#define FLASH_DRIVER_LEN 0xC00
+#define UTIL_LEN 0x1000
+#define MODEM_LEN 0x1200
+#define NB_RESPONSE_LEN 0x1800
 #define MESSAGE_LEN 0x1800
-#define MODEM_LEN 0x1600
+#define NB_PROCESS_LEN 0x2000
 
 #define USER_FLASH_ORIGIN2 0x20200
-#define NFC_I2C_LEN 0xE00
 
 
 /* RAM */
@@ -91,12 +86,13 @@
 
 #define FOTA_LEN 0x1000
 #define NOINIT_LEN 0x80
-#define PROC_BSS_LEN 0x300
-#define STATIC_BSS_LEN 0xB0
-#define FOTA_DATA_LEN 0xF0
-#define METER_BSS_LEN 0x260
+#define PROC_DATA_LEN 0x2E0
+#define STATIC_DATA_LEN 0x60
+#define FOTA_DATA_LEN 0x90
+#define METER_DATA_LEN 0x250
 #define MODEM_DATA_LEN 0x3A0
-#define DATA_RAM_LEN 0x1A0
+#define LIBRARY_DATA_LEN 0x20
+#define DATA_RAM_LEN 0x160
 
 MEMORY
 {
@@ -105,12 +101,13 @@ MEMORY
     PERIPHERALS_16BIT       : origin = 0x0100, length = 0x0100
     FOTA_RAM                : origin = RAM_ORIGIN, length = FOTA_LEN
     NOINIT_RAM              : origin = end(FOTA_RAM), length = NOINIT_LEN
-    NB_PROC_BSS             : origin = end(NOINIT_RAM), length = PROC_BSS_LEN
-    OTHER_BSS               : origin = end(NB_PROC_BSS), length = STATIC_BSS_LEN
-    FOTA_DATA               : origin = end(OTHER_BSS), length = FOTA_DATA_LEN
-    METER_BSS               : origin = end(FOTA_DATA), length = METER_BSS_LEN
-    MODEM_BSS               : origin = end(METER_BSS), length = MODEM_DATA_LEN
-    DATA_RAM                : origin = end(MODEM_BSS), length = DATA_RAM_LEN
+    NB_PROC_DATA            : origin = end(NOINIT_RAM), length = PROC_DATA_LEN
+    STATIC_DATA             : origin = end(NB_PROC_DATA), length = STATIC_DATA_LEN
+    FOTA_DATA               : origin = end(STATIC_DATA), length = FOTA_DATA_LEN
+    METER_DATA              : origin = end(FOTA_DATA), length = METER_DATA_LEN
+    MODEM_DATA              : origin = end(METER_DATA), length = MODEM_DATA_LEN
+    LIBRARY_DATA            : origin = end(MODEM_DATA), length = LIBRARY_DATA_LEN
+    DATA_RAM                : origin = end(LIBRARY_DATA), length = DATA_RAM_LEN
     RAM                     : origin = end(DATA_RAM), length = 0x3CC0 - end(DATA_RAM)
     HEAP                    : origin = 0x3CC0, length = 0xFA0
     STACK                   : origin = 0x4C60, length = 0xFA0
@@ -123,28 +120,23 @@ MEMORY
     MTEST                   : origin = end(TEST), length = MTEST_LEN
     SHELL                   : origin = end(MTEST), length = SHELL_LEN
     LIBRARY                 : origin = end(SHELL), length = LIBRARY_LEN
-    BATTERY                 : origin = end(LIBRARY), length = BATTERY_LEN
-    NFC_PROTOCOL            : origin = end(BATTERY), length = NFC_PROTOCOL_LEN
-    FLASHB                  : origin = end(NFC_PROTOCOL), length = 0xFFD2 - end(NFC_PROTOCOL)
+    FLASHB                  : origin = end(LIBRARY), length = 0xFFD2 - end(LIBRARY)
     METER                   : origin = USER_FLASH_ORIGIN, length = METER_LEN
     DATA_FLASH              : origin = end(METER), length = DATA_FLASH_LEN
     APP                     : origin = end(DATA_FLASH), length = APP_LEN
-    RTC_ALARM               : origin = end(APP), length = RTC_ALARM_LEN
+    NFC_PROTOCOL            : origin = end(APP), length = NFC_PROTOCOL_LEN
+    NFC_I2C                 : origin = end(NFC_PROTOCOL), length = NFC_I2C_LEN
+    RTC_ALARM               : origin = end(NFC_I2C), length = RTC_ALARM_LEN
     UART                    : origin = end(RTC_ALARM), length = UART_LEN
     FLASH_DRIVER            : origin = end(UART), length = FLASH_DRIVER_LEN
-    LCD_DRIVER              : origin = end(FLASH_DRIVER), length = LCD_DRIVER_LEN
-    FLASH_UTIL              : origin = end(LCD_DRIVER), length = FLASH_UTIL_LEN
-    METER_MISC              : origin = end(FLASH_UTIL), length = METER_MISC_LEN
-    OSAL_TIMER              : origin = end(METER_MISC), length = OSAL_TIMER_LEN
-    TASK_MGR                : origin = end(OSAL_TIMER), length = TASK_MGR_LEN
-    MODEM                   : origin = end(TASK_MGR), length = MODEM_LEN
+    UTIL                    : origin = end(FLASH_DRIVER), length = UTIL_LEN
+    MODEM                   : origin = end(UTIL), length = MODEM_LEN
     NB_RESPONSE             : origin = end(MODEM), length = NB_RESPONSE_LEN
     MESSAGE                 : origin = end(NB_RESPONSE), length = MESSAGE_LEN
     NB_PROCESS              : origin = end(MESSAGE), length = 0x20000 - end(MESSAGE)
     FOTA_FLASH              : origin = USER_FLASH_ORIGIN2, length = FOTA_LEN
     MD5                     : origin = end(FOTA_FLASH), length = 0x1000
-    NFC_I2C                 : origin = end(MD5), length = NFC_I2C_LEN
-    FLASHD                  : origin = end(NFC_I2C),length = 0x23400 - end(NFC_I2C)
+    FLASHD                  : origin = end(MD5),length = 0x23400 - end(MD5)
     INT41                   : origin = 0xFFD2, length = 0x0002
     INT42                   : origin = 0xFFD4, length = 0x0002
     INT43                   : origin = 0xFFD6, length = 0x0002
@@ -178,70 +170,76 @@ MEMORY
 SECTIONS
 {
 #define RAM_ALIGN 32
-#define SMALL_ALIGN 64
 #define CODE_ALIGN 512
 
-    .nbiotProcess_bss : {
-        nbiotProcess.obj (.bss:ul_data), . = align(RAM_ALIGN);
-        nbiotProcess.obj (.bss:raw_data), . = align(RAM_ALIGN);
-        nbiotProcess.obj (.bss:StepFlowIndex)
-    } > NB_PROC_BSS
+    .nbiotProcess_data : {
+        nbiotProcess.obj (.data:ul_data)
+        nbiotProcess.obj (.data:raw_data)
+        nbiotProcess.obj (.data:StepFlowIndex)
+    } > NB_PROC_DATA
 
-    .static_bss : {
-        NFC_i2c.obj (.bss:RxBuffer), . = align(RAM_ALIGN);
-        NFC_i2c.obj (.bss:TxBuffer), . = align(RAM_ALIGN);
-        rtcAlarm.obj (.bss:AlarmList), . = align(RAM_ALIGN);
-        rtcAlarm.obj (.bss:TimeSyncDate), . = align(RAM_ALIGN);
-        battery.obj (.bss:BattAdcBuffer), . = align(RAM_ALIGN);
-        lcdDriver.obj (.bss:currentLCD)
-    } > OTHER_BSS
+    .static_data : {
+        NFC_i2c.obj (.data:RxBuffer)
+        NFC_i2c.obj (.data:TxBuffer)
+        rtcAlarm.obj (.data:AlarmList)
+        rtcAlarm.obj (.data:TimeSyncDate)
+        battery.obj (.data:BattAdcBuffer)
+        lcdDriver.obj (.data:currentLCD)
+    } > STATIC_DATA
 
     .fota_data : {
-        fota.obj (.bss:fotaPort), . = align(RAM_ALIGN);
-        fota.obj (.bss:initialMsgSize), . = align(RAM_ALIGN);
-        fota.obj (.bss:socket), . = align(RAM_ALIGN);
+        fota.obj (.data:fotaPort)
+        fota.obj (.data:initialMsgSize)
+        fota.obj (.data:socket)
         fota.obj (.data:Fota)
     } > FOTA_DATA
 
-    .meter_bss : {
-        meter.obj (.bss:StoredMeterData)
-    } > METER_BSS
+    .meter_data : {
+        meter.obj (.data:StoredMeterData)
+    } > METER_DATA
 
     .modem_data : {
-        modem.obj (.data:modem), . = align(RAM_ALIGN);
+        modem.obj (.data:modem)
         modem.obj (.data:modemComm)
-    } > MODEM_BSS
+    } > MODEM_DATA
 
-    .data_ram : {
+    .library_data : {
         --library=rts430x_lc_ld_eabi.lib (.data:_tz)
         --library=rts430x_lc_ld_eabi.lib (.data:_lock)
         --library=rts430x_lc_ld_eabi.lib (.data:_unlock)
-        nfcProtocol.obj (.data:nfcAsyncRx), . = align(RAM_ALIGN);
-        md5.obj (.data:PADDING), . = align(RAM_ALIGN);
-        mTest.obj (.data:modemTestCtx), . = align(RAM_ALIGN);
-        modem.obj (.data:modemCtx), . = align(RAM_ALIGN);
-        meter.obj (.data:TempMeterData), . = align(RAM_ALIGN);
-        flashDriver.obj (.data:FlashAddr), . = align(RAM_ALIGN);
+        --library=rts430x_lc_ld_eabi.lib<strtok.c.obj> (.data)
+        --library=rts430x_lc_ld_eabi.lib<errno.c.obj> (.data)
+        --library=rts430x_lc_ld_eabi.lib<memory.c.obj> (.data)
+    } > LIBRARY_DATA
+
+    .data_ram : {
+        nfcProtocol.obj (.data:nfcAsyncRx)
+        md5.obj (.data:PADDING)
+        mTest.obj (.data:modemTestCtx)
+        modem.obj (.data:modemCtx)
+        meter.obj (.data:TempMeterData)
+        flashDriver.obj (.data:FlashAddr)
+        lcdDriver.obj (.data:lcdCon)
         app.obj (.data:Metering)
     } > DATA_RAM
 
     .data : {
-        rts430x_lc_ld_eabi.lib (.data), . = align(RAM_ALIGN);
-        osal_Timer.obj (.data), . = align(RAM_ALIGN);
-        rtcAlarm.obj (.data), . = align(RAM_ALIGN);
-        Task_Mgr.obj (.data), . = align(RAM_ALIGN);
-        battery.obj (.data), . = align(RAM_ALIGN);
-        lcdDriver.obj (.data:lcdCon), . = align(RAM_ALIGN);
-        main.obj (.data), . = align(RAM_ALIGN);
-        test.obj (.data), . = align(RAM_ALIGN);
-        fota.obj (.data), . = align(RAM_ALIGN);
-        shell.obj (.data), . = align(RAM_ALIGN);
-        uart.obj (.data), . = align(RAM_ALIGN);
-        modem.obj (.data), . = align(RAM_ALIGN);
-        app.obj (.data), . = align(RAM_ALIGN);
-        nbiotResponse.obj (.data), . = align(RAM_ALIGN);
-        nfcProtocol.obj (.data), . = align(RAM_ALIGN);
-        nbiotProcess.obj (.data), . = align(RAM_ALIGN);
+        rts430x_lc_ld_eabi.lib (.data)
+        osal_Timer.obj (.data)
+        rtcAlarm.obj (.data)
+        Task_Mgr.obj (.data)
+        battery.obj (.data)
+        lcdDriver.obj (.data:lcdCon)
+        main.obj (.data)
+        test.obj (.data)
+        fota.obj (.data)
+        shell.obj (.data)
+        uart.obj (.data)
+        modem.obj (.data)
+        app.obj (.data)
+        nbiotResponse.obj (.data)
+        nfcProtocol.obj (.data)
+        nbiotProcess.obj (.data)
         *(.data)
     } > RAM              /* Global vars              */
     .bss        : align(CODE_ALIGN) {} > RAM (HIGH)             /* Global & static vars              */
@@ -249,94 +247,94 @@ SECTIONS
     .sysmem     : {} > HEAP                 /* Dynamic memory allocation area    */
     .stack      : {} > STACK                /* Software system stack             */
     MAIN		: align(CODE_ALIGN) {} > MAIN_CODE
-    main_text : align(512) {
+    main_text : align(CODE_ALIGN) {
         main.obj (.text)
-    } > MAIN_CODE
+    } > MAIN_CODE (HIGH)
 
-    .test_text : align(CODE_ALIGN) fill=0xFF {
-        test.obj (.text:TEST_pmrsn), .=align(SMALL_ALIGN);
-        test.obj (.text:TEST_readMeter), .=align(SMALL_ALIGN);
-        test.obj (.text:TEST_pmwsn), .=align(SMALL_ALIGN);
-        test.obj (.text:TEST_writeMeter), .=align(SMALL_ALIGN);
-        test.obj (.text:TEST_setMeterType), .=align(SMALL_ALIGN);
-        test.obj (.text:saveTerminalConfig), .=align(SMALL_ALIGN);
-        test.obj (.text:TEST_run), .=align(SMALL_ALIGN);
-        test.obj (.text:TEST_readFlash), .=align(SMALL_ALIGN);
-        test.obj (.text:TEST_pmeter), .=align(SMALL_ALIGN);
-        test.obj (.text:TEST_lpm3), .=align(SMALL_ALIGN);
-        test.obj (.text:TEST_runTasks), .=align(SMALL_ALIGN);
-        test.obj (.text:TEST_meteringParamer), .=align(SMALL_ALIGN);
-        test.obj (.text:TEST_readBattery), .=align(SMALL_ALIGN);
-        test.obj (.text:TEST_prsn), .=align(SMALL_ALIGN);
-        test.obj (.text:TEST_resetNFC), .=align(SMALL_ALIGN);
-        test.obj (.text:TEST_lpm2), .=align(SMALL_ALIGN);
-        test.obj (.text:TEST_pwmeter), .=align(SMALL_ALIGN);
-        test.obj (.text:TEST_readRTC), .=align(SMALL_ALIGN);
-        test.obj (.text:TEST_setRTC), .=align(SMALL_ALIGN);
-        test.obj (.text:TEST_riCtrlMode), .=align(SMALL_ALIGN);
-        test.obj (.text:TEST_writeSerialNum), .=align(SMALL_ALIGN);
-        test.obj (.text:TEST_readSerialNum), .=align(SMALL_ALIGN);
-        test.obj (.text:TEST_debugPrint), .=align(SMALL_ALIGN);
-        test.obj (.text:TEST_shortInterval), .=align(SMALL_ALIGN);
-        test.obj (.text:TEST_sleepMode), .=align(SMALL_ALIGN);
-        test.obj (.text:TEST_eraseFlash), .=align(SMALL_ALIGN);
-        test.obj (.text:TEST_lcd), .=align(SMALL_ALIGN);
-        test.obj (.text:interruptTask), .=align(SMALL_ALIGN);
-        test.obj (.text:TEST_reedSensor), .=align(SMALL_ALIGN);
-        test.obj (.text:TEST_checkNFC), .=align(SMALL_ALIGN);
-        test.obj (.text:TEST_checkTestMode), .=align(SMALL_ALIGN);
-        test.obj (.text:TEST_pwsn), .=align(SMALL_ALIGN);
-        test.obj (.text:TEST_meterLCD), .=align(SMALL_ALIGN);
-        test.obj (.text:TEST_readFwVersion), .=align(SMALL_ALIGN);
-        test.obj (.text:TEST_stop), .=align(SMALL_ALIGN);
-        test.obj (.text:reedResponse), .=align(SMALL_ALIGN);
+    .test_text : align(CODE_ALIGN) {
+        test.obj (.text:TEST_pmrsn)
+        test.obj (.text:TEST_readMeter)
+        test.obj (.text:TEST_pmwsn)
+        test.obj (.text:TEST_writeMeter)
+        test.obj (.text:TEST_setMeterType)
+        test.obj (.text:saveTerminalConfig)
+        test.obj (.text:TEST_run)
+        test.obj (.text:TEST_readFlash)
+        test.obj (.text:TEST_pmeter)
+        test.obj (.text:TEST_lpm3)
+        test.obj (.text:TEST_runTasks)
+        test.obj (.text:TEST_meteringParamer)
+        test.obj (.text:TEST_readBattery)
+        test.obj (.text:TEST_prsn)
+        test.obj (.text:TEST_resetNFC)
+        test.obj (.text:TEST_lpm2)
+        test.obj (.text:TEST_pwmeter)
+        test.obj (.text:TEST_readRTC)
+        test.obj (.text:TEST_setRTC)
+        test.obj (.text:TEST_riCtrlMode)
+        test.obj (.text:TEST_writeSerialNum)
+        test.obj (.text:TEST_readSerialNum)
+        test.obj (.text:TEST_debugPrint)
+        test.obj (.text:TEST_shortInterval)
+        test.obj (.text:TEST_sleepMode)
+        test.obj (.text:TEST_eraseFlash)
+        test.obj (.text:TEST_lcd)
+        test.obj (.text:interruptTask)
+        test.obj (.text:TEST_reedSensor)
+        test.obj (.text:TEST_checkNFC)
+        test.obj (.text:TEST_checkTestMode)
+        test.obj (.text:TEST_pwsn)
+        test.obj (.text:TEST_meterLCD)
+        test.obj (.text:TEST_readFwVersion)
+        test.obj (.text:TEST_stop)
+        test.obj (.text:reedResponse)
         test.obj (.text:TEST_config)
     } > TEST
 
-    .test_const : align(CODE_ALIGN) fill=0xff {
-        test.obj (.const:TestTasksArray), .=align(SMALL_ALIGN);
+    .test_const : align(CODE_ALIGN) {
+        test.obj (.const:TestTasksArray)
         test.obj (.const:.string)
     } > TEST (HIGH)
 
-    .mtest_text : align(CODE_ALIGN) fill=0xff {
-        mTest.obj (.text:TEST_prnbid), .=align(SMALL_ALIGN);
-        mTest.obj (.text:parseNbiotModemResp), .=align(SMALL_ALIGN);
-        mTest.obj (.text:printAtCmdList), .=align(SMALL_ALIGN);
-        mTest.obj (.text:TEST_modemResponse), .=align(SMALL_ALIGN);
-        mTest.obj (.text:TEST_modem), .=align(SMALL_ALIGN);
-        mTest.obj (.text:TEST_pnbctx), .=align(SMALL_ALIGN);
-        mTest.obj (.text:waitModemBipOk), .=align(SMALL_ALIGN);
-        mTest.obj (.text:waitModemReady), .=align(SMALL_ALIGN);
-        mTest.obj (.text:waitModemAck), .=align(SMALL_ALIGN);
-        mTest.obj (.text:TEST_pwserver), .=align(SMALL_ALIGN);
-        mTest.obj (.text:TEST_prserver), .=align(SMALL_ALIGN);
-        mTest.obj (.text:TEST_prfota), .=align(SMALL_ALIGN);
-        mTest.obj (.text:TEST_pwfota), .=align(SMALL_ALIGN);
-        mTest.obj (.text:sendToModem), .=align(SMALL_ALIGN);
-        mTest.obj (.text:TEST_pmodem), .=align(SMALL_ALIGN);
-        mTest.obj (.text:waitModem), .=align(SMALL_ALIGN);
-        mTest.obj (.text:TEST_initModem), .=align(SMALL_ALIGN);
+    .mtest_text : align(CODE_ALIGN) {
+        mTest.obj (.text:TEST_prnbid)
+        mTest.obj (.text:parseNbiotModemResp)
+        mTest.obj (.text:printAtCmdList)
+        mTest.obj (.text:TEST_modemResponse)
+        mTest.obj (.text:TEST_modem)
+        mTest.obj (.text:TEST_pnbctx)
+        mTest.obj (.text:waitModemBipOk)
+        mTest.obj (.text:waitModemReady)
+        mTest.obj (.text:waitModemAck)
+        mTest.obj (.text:TEST_pwserver)
+        mTest.obj (.text:TEST_prserver)
+        mTest.obj (.text:TEST_prfota)
+        mTest.obj (.text:TEST_pwfota)
+        mTest.obj (.text:sendToModem)
+        mTest.obj (.text:TEST_pmodem)
+        mTest.obj (.text:waitModem)
+        mTest.obj (.text:TEST_initModem)
         mTest.obj (.text:resetModem)
     } > MTEST
 
-    .mtest_const : align(CODE_ALIGN) fill=0xff {
+    .mtest_const : align(CODE_ALIGN) {
         mTest.obj (.const:.string)
     } > MTEST (HIGH)
 
-    .shell_text : align(CODE_ALIGN) fill=0xff {
-        shell.obj (.text:SHELL_run), .=align(SMALL_ALIGN);
-        shell.obj (.text:SHELL_gets), .=align(SMALL_ALIGN);
-        shell.obj (.text:SHELL_getChar), .=align(SMALL_ALIGN);
-        shell.obj (.text:help), .=align(SMALL_ALIGN);
-        shell.obj (.text:getArguments), .=align(SMALL_ALIGN);
-        shell.obj (.text:whatCommand), .=align(SMALL_ALIGN);
-        shell.obj (.text:SHELL_decimal), .=align(SMALL_ALIGN);
-        shell.obj (.text:SHELL_init), .=align(SMALL_ALIGN);
+    .shell_text : align(CODE_ALIGN) {
+        shell.obj (.text:SHELL_run)
+        shell.obj (.text:SHELL_gets)
+        shell.obj (.text:SHELL_getChar)
+        shell.obj (.text:help)
+        shell.obj (.text:getArguments)
+        shell.obj (.text:whatCommand)
+        shell.obj (.text:SHELL_decimal)
+        shell.obj (.text:SHELL_init)
         shell.obj (.text:SHELL_string)
     } > SHELL (HIGH)
 
     .shell_const : align(CODE_ALIGN) {
-        shell.obj (.const:CmdSet), .=align(SMALL_ALIGN);
+        shell.obj (.const:CmdSet)
         shell.obj (.const:.string)
     } > SHELL
 
@@ -416,36 +414,36 @@ SECTIONS
     } > LIBRARY (HIGH)
 
     nfcProtocol_text : align(CODE_ALIGN) {
-        nfcProtocol.obj (.text:recvNodeConfSetV3), . = align(SMALL_ALIGN);
-        nfcProtocol.obj (.text:recvBdControlReq), . = align(SMALL_ALIGN);
-        nfcProtocol.obj (.text:sendMeterReport), . = align(SMALL_ALIGN);
-        nfcProtocol.obj (.text:sendNodeConfReportV3), . = align(SMALL_ALIGN);
-        nfcProtocol.obj (.text:sendBdControlAck), . = align(SMALL_ALIGN);
-        nfcProtocol.obj (.text:NFCAPP_meterAdjustResp), . = align(SMALL_ALIGN);
-        nfcProtocol.obj (.text:NFCAPP_meterAdjustReq), . = align(SMALL_ALIGN);
-        nfcProtocol.obj (.text:sendServerConnectReport), . = align(SMALL_ALIGN);
-        nfcProtocol.obj (.text:NFCAPP_runMessage), . = align(SMALL_ALIGN);
-        nfcProtocol.obj (.text:recvNbiotIdSet), . = align(SMALL_ALIGN);
-        nfcProtocol.obj (.text:recvFwUpdateReq), . = align(SMALL_ALIGN);
-        nfcProtocol.obj (.text:recvFlashDataReq), . = align(SMALL_ALIGN);
-        nfcProtocol.obj (.text:setRtcV1), . = align(SMALL_ALIGN);
-        nfcProtocol.obj (.text:recvFlashDateListReq), . = align(SMALL_ALIGN);
-        nfcProtocol.obj (.text:sendFwUpdateResp), . = align(SMALL_ALIGN);
-        nfcProtocol.obj (.text:sendDeviceInfo), . = align(SMALL_ALIGN);
-        nfcProtocol.obj (.text:send), . = align(SMALL_ALIGN);
-        nfcProtocol.obj (.text:sendNbiotIdReport), . = align(SMALL_ALIGN);
-        nfcProtocol.obj (.text:sendMeterAdjustError), . = align(SMALL_ALIGN);
-        nfcProtocol.obj (.text:copyToAsyncCmd), . = align(SMALL_ALIGN);
-        nfcProtocol.obj (.text:jumpToBSL), . = align(SMALL_ALIGN);
-        nfcProtocol.obj (.text:readRtcV1), . = align(SMALL_ALIGN);
-        nfcProtocol.obj (.text:sendFwVerReport), . = align(SMALL_ALIGN);
-        nfcProtocol.obj (.text:NFCAPP_continueSend), . = align(SMALL_ALIGN);
-        nfcProtocol.obj (.text:dev_clock_internal), . = align(SMALL_ALIGN);
-        nfcProtocol.obj (.text:recvMeterAdjustRequest), . = align(SMALL_ALIGN);
-        nfcProtocol.obj (.text:NFCAPP_clearAsyncCmd), . = align(SMALL_ALIGN);
-        nfcProtocol.obj (.text:recvMeterReq), . = align(SMALL_ALIGN);
-        nfcProtocol.obj (.text:recvServerConnectReq), . = align(SMALL_ALIGN);
-        nfcProtocol.obj (.text:disable_OFIE), . = align(SMALL_ALIGN);
+        nfcProtocol.obj (.text:recvNodeConfSetV3)
+        nfcProtocol.obj (.text:recvBdControlReq)
+        nfcProtocol.obj (.text:sendMeterReport)
+        nfcProtocol.obj (.text:sendNodeConfReportV3)
+        nfcProtocol.obj (.text:sendBdControlAck)
+        nfcProtocol.obj (.text:NFCAPP_meterAdjustResp)
+        nfcProtocol.obj (.text:NFCAPP_meterAdjustReq)
+        nfcProtocol.obj (.text:sendServerConnectReport)
+        nfcProtocol.obj (.text:NFCAPP_runMessage)
+        nfcProtocol.obj (.text:recvNbiotIdSet)
+        nfcProtocol.obj (.text:recvFwUpdateReq)
+        nfcProtocol.obj (.text:recvFlashDataReq)
+        nfcProtocol.obj (.text:setRtcV1)
+        nfcProtocol.obj (.text:recvFlashDateListReq)
+        nfcProtocol.obj (.text:sendFwUpdateResp)
+        nfcProtocol.obj (.text:sendDeviceInfo)
+        nfcProtocol.obj (.text:send)
+        nfcProtocol.obj (.text:sendNbiotIdReport)
+        nfcProtocol.obj (.text:sendMeterAdjustError)
+        nfcProtocol.obj (.text:copyToAsyncCmd)
+        nfcProtocol.obj (.text:jumpToBSL)
+        nfcProtocol.obj (.text:readRtcV1)
+        nfcProtocol.obj (.text:sendFwVerReport)
+        nfcProtocol.obj (.text:NFCAPP_continueSend)
+        nfcProtocol.obj (.text:dev_clock_internal)
+        nfcProtocol.obj (.text:recvMeterAdjustRequest)
+        nfcProtocol.obj (.text:NFCAPP_clearAsyncCmd)
+        nfcProtocol.obj (.text:recvMeterReq)
+        nfcProtocol.obj (.text:recvServerConnectReq)
+        nfcProtocol.obj (.text:disable_OFIE)
         nfcProtocol.obj (.text:getMyDeviceCode)
     } > NFC_PROTOCOL
 
@@ -454,87 +452,87 @@ SECTIONS
     } > NFC_PROTOCOL (HIGH)
 
     .meter_text : align(CODE_ALIGN) {
-        meter.obj (.text:read_onetl_meter), . = align(SMALL_ALIGN);
-        meter.obj (.text:read_shinhan_d_meter), . = align(SMALL_ALIGN);
-        meter.obj (.text:METER_collectStoredData), . = align(SMALL_ALIGN);
-        meter.obj (.text:read_mns_d_meter), . = align(SMALL_ALIGN);
-        meter.obj (.text:METER_addStoredData), . = align(SMALL_ALIGN);
-        meter.obj (.text:METER_displayStoredData), . = align(SMALL_ALIGN);
-        meter.obj (.text:read_std_d_meter), . = align(SMALL_ALIGN);
-        meter.obj (.text:METER_enable), . = align(SMALL_ALIGN);
-        meter.obj (.text:METER_displayTempData), . = align(SMALL_ALIGN);
-        meter.obj (.text:METER_std_adjustReq), . = align(SMALL_ALIGN);
-        meter.obj (.text:METER_ontel_sendRequest), . = align(SMALL_ALIGN);
-        meter.obj (.text:METER_std_adjustResp), . = align(SMALL_ALIGN);
-        meter.obj (.text:METER_recvResponse), . = align(SMALL_ALIGN);
-        meter.obj (.text:checkInterval), . = align(SMALL_ALIGN);
-        meter.obj (.text:METER_getMeterName), . = align(SMALL_ALIGN);
-        meter.obj (.text:METER_bypassReq), . = align(SMALL_ALIGN);
-        meter.obj (.text:METER_addTempData), . = align(SMALL_ALIGN);
-        meter.obj (.text:METER_clearIntervalData), . = align(SMALL_ALIGN);
-        meter.obj (.text:METER_needNewMetering), . = align(SMALL_ALIGN);
-        meter.obj (.text:METER_std_lcdMarkReq), . = align(SMALL_ALIGN);
-        meter.obj (.text:METER_bypassResp), . = align(SMALL_ALIGN);
-        meter.obj (.text:METER_std_lcdTestReq), . = align(SMALL_ALIGN);
-        meter.obj (.text:METER_std_configRequest), . = align(SMALL_ALIGN);
-        meter.obj (.text:METER_std_sendRequest), . = align(SMALL_ALIGN);
-        meter.obj (.text:METER_saveInFlash), . = align(SMALL_ALIGN);
-        meter.obj (.text:METER_sendRequest), . = align(SMALL_ALIGN);
-        meter.obj (.text:METER_shinhan_sendRequest), . = align(SMALL_ALIGN);
-        meter.obj (.text:METER_saveMeterInfo), . = align(SMALL_ALIGN);
-        meter.obj (.text:METER_mns_sendRequest), . = align(SMALL_ALIGN);
-        meter.obj (.text:METER_clearStoredData), . = align(SMALL_ALIGN);
-        meter.obj (.text:METER_getFirstValidPos), . = align(SMALL_ALIGN);
-        meter.obj (.text:hex2int), . = align(SMALL_ALIGN);
-        meter.obj (.text:METER_disable), . = align(SMALL_ALIGN);
-        meter.obj (.text:METER_getMeterData), . = align(SMALL_ALIGN);
-        meter.obj (.text:METER_getMeterStatus), . = align(SMALL_ALIGN);
-        meter.obj (.text:METER_deleteStoredData), . = align(SMALL_ALIGN);
-        meter.obj (.text:METER_isAllFF), . = align(SMALL_ALIGN);
-        meter.obj (.text:METER_deleteTempData), . = align(SMALL_ALIGN);
-        meter.obj (.text:METER_deleteAllData), . = align(SMALL_ALIGN);
-        meter.obj (.text:METER_getLastData), . = align(SMALL_ALIGN);
-        meter.obj (.text:METER_getMeterCaliber_dp), . = align(SMALL_ALIGN);
-        meter.obj (.text:METER_getNumberOfStoredData), . = align(SMALL_ALIGN);
-        meter.obj (.text:METER_getSaveInterval), . = align(SMALL_ALIGN);
-        meter.obj (.text:METER_getSerialNum), . = align(SMALL_ALIGN);
+        meter.obj (.text:read_onetl_meter)
+        meter.obj (.text:read_shinhan_d_meter)
+        meter.obj (.text:METER_collectStoredData)
+        meter.obj (.text:read_mns_d_meter)
+        meter.obj (.text:METER_addStoredData)
+        meter.obj (.text:METER_displayStoredData)
+        meter.obj (.text:read_std_d_meter)
+        meter.obj (.text:METER_enable)
+        meter.obj (.text:METER_displayTempData)
+        meter.obj (.text:METER_std_adjustReq)
+        meter.obj (.text:METER_ontel_sendRequest)
+        meter.obj (.text:METER_std_adjustResp)
+        meter.obj (.text:METER_recvResponse)
+        meter.obj (.text:checkInterval)
+        meter.obj (.text:METER_getMeterName)
+        meter.obj (.text:METER_bypassReq)
+        meter.obj (.text:METER_addTempData)
+        meter.obj (.text:METER_clearIntervalData)
+        meter.obj (.text:METER_needNewMetering)
+        meter.obj (.text:METER_std_lcdMarkReq)
+        meter.obj (.text:METER_bypassResp)
+        meter.obj (.text:METER_std_lcdTestReq)
+        meter.obj (.text:METER_std_configRequest)
+        meter.obj (.text:METER_std_sendRequest)
+        meter.obj (.text:METER_saveInFlash)
+        meter.obj (.text:METER_sendRequest)
+        meter.obj (.text:METER_shinhan_sendRequest)
+        meter.obj (.text:METER_saveMeterInfo)
+        meter.obj (.text:METER_mns_sendRequest)
+        meter.obj (.text:METER_clearStoredData)
+        meter.obj (.text:METER_getFirstValidPos)
+        meter.obj (.text:hex2int)
+        meter.obj (.text:METER_disable)
+        meter.obj (.text:METER_getMeterData)
+        meter.obj (.text:METER_getMeterStatus)
+        meter.obj (.text:METER_deleteStoredData)
+        meter.obj (.text:METER_isAllFF)
+        meter.obj (.text:METER_deleteTempData)
+        meter.obj (.text:METER_deleteAllData)
+        meter.obj (.text:METER_getLastData)
+        meter.obj (.text:METER_getMeterCaliber_dp)
+        meter.obj (.text:METER_getNumberOfStoredData)
+        meter.obj (.text:METER_getSaveInterval)
+        meter.obj (.text:METER_getSerialNum)
         meter.obj (.text:METER_getTempData)
     } > METER
 
     .meter_const : align(CODE_ALIGN) {
-        meter.obj (.const:$P$T0$1), . = align(SMALL_ALIGN);
+        meter.obj (.const:$P$T0$1)
         meter.obj (.const:.string)
     } > METER (HIGH)
 
     dataFlash_text : align(CODE_ALIGN) {
-        dataFlash.obj (.text:get_dataSavePos), . = align(SMALL_ALIGN);
-        dataFlash.obj (.text:dataFlash_sendData), . = align(SMALL_ALIGN);
-        dataFlash.obj (.text:make_dateList), . = align(SMALL_ALIGN);
-        dataFlash.obj (.text:saveData), . = align(SMALL_ALIGN);
-        dataFlash.obj (.text:read_dataSector), . = align(SMALL_ALIGN);
-        dataFlash.obj (.text:fix_mapSector), . = align(SMALL_ALIGN);
-        dataFlash.obj (.text:print_dataReport), . = align(SMALL_ALIGN);
-        dataFlash.obj (.text:dataFlash_displayDataSector), . = align(SMALL_ALIGN);
-        dataFlash.obj (.text:dataFlash_displayMapSector), . = align(SMALL_ALIGN);
-        dataFlash.obj (.text:make_nfcDataReport), . = align(SMALL_ALIGN);
-        dataFlash.obj (.text:readAndSort_map), . = align(SMALL_ALIGN);
-        dataFlash.obj (.text:verifySectors), . = align(SMALL_ALIGN);
-        dataFlash.obj (.text:dataFlash_save), . = align(SMALL_ALIGN);
-        dataFlash.obj (.text:read_mapSector), . = align(SMALL_ALIGN);
-        dataFlash.obj (.text:writeSector), . = align(SMALL_ALIGN);
-        dataFlash.obj (.text:dataFlash_readData), . = align(SMALL_ALIGN);
-        dataFlash.obj (.text:dataFlash_getList), . = align(SMALL_ALIGN);
-        dataFlash.obj (.text:read_dataUnit), . = align(SMALL_ALIGN);
-        dataFlash.obj (.text:eraseSector), . = align(SMALL_ALIGN);
-        dataFlash.obj (.text:readSector), . = align(SMALL_ALIGN);
-        dataFlash.obj (.text:dataFlash_eraseSector), . = align(SMALL_ALIGN);
-        dataFlash.obj (.text:hex2binary), . = align(SMALL_ALIGN);
-        dataFlash.obj (.text:isValidMeterValue), . = align(SMALL_ALIGN);
-        dataFlash.obj (.text:get_flashAddress), . = align(SMALL_ALIGN);
-        dataFlash.obj (.text:isValidDate), . = align(SMALL_ALIGN);
-        dataFlash.obj (.text:cal_checksum), . = align(SMALL_ALIGN);
-        dataFlash.obj (.text:waitIdle), . = align(SMALL_ALIGN);
-        dataFlash.obj (.text:dataFlash_init), . = align(SMALL_ALIGN);
+        dataFlash.obj (.text:get_dataSavePos)
+        dataFlash.obj (.text:dataFlash_sendData)
+        dataFlash.obj (.text:make_dateList)
+        dataFlash.obj (.text:saveData)
+        dataFlash.obj (.text:read_dataSector)
+        dataFlash.obj (.text:fix_mapSector)
+        dataFlash.obj (.text:print_dataReport)
+        dataFlash.obj (.text:dataFlash_displayDataSector)
+        dataFlash.obj (.text:dataFlash_displayMapSector)
+        dataFlash.obj (.text:make_nfcDataReport)
+        dataFlash.obj (.text:readAndSort_map)
+        dataFlash.obj (.text:verifySectors)
+        dataFlash.obj (.text:dataFlash_save)
+        dataFlash.obj (.text:read_mapSector)
+        dataFlash.obj (.text:writeSector)
+        dataFlash.obj (.text:dataFlash_readData)
+        dataFlash.obj (.text:dataFlash_getList)
+        dataFlash.obj (.text:read_dataUnit)
+        dataFlash.obj (.text:eraseSector)
+        dataFlash.obj (.text:readSector)
+        dataFlash.obj (.text:dataFlash_eraseSector)
+        dataFlash.obj (.text:hex2binary)
+        dataFlash.obj (.text:isValidMeterValue)
+        dataFlash.obj (.text:get_flashAddress)
+        dataFlash.obj (.text:isValidDate)
+        dataFlash.obj (.text:cal_checksum)
+        dataFlash.obj (.text:waitIdle)
+        dataFlash.obj (.text:dataFlash_init)
         dataFlash.obj (.text:dataFlash_genData)
     } > DATA_FLASH
 
@@ -543,19 +541,19 @@ SECTIONS
     } > DATA_FLASH (HIGH)
 
     .app_text : align(CODE_ALIGN) {
-        app.obj (.text:APP_showConfig), . = align(SMALL_ALIGN);
-        app.obj (.text:APP_tasks), . = align(SMALL_ALIGN);
-        app.obj (.text:APP_init), . = align(SMALL_ALIGN);
-        app.obj (.text:meteringRetry), . = align(SMALL_ALIGN);
-        app.obj (.text:meteringUpdateData), . = align(SMALL_ALIGN);
-        app.obj (.text:ctrlReportInterval), . = align(SMALL_ALIGN);
-        app.obj (.text:APP_runMetering), . = align(SMALL_ALIGN);
-        app.obj (.text:meteringCompleted), . = align(SMALL_ALIGN);
-        app.obj (.text:meteringRecvResp), . = align(SMALL_ALIGN);
-        app.obj (.text:APP_prepareToSleep), . = align(SMALL_ALIGN);
-        app.obj (.text:REBOOT_SYSTEM), . = align(SMALL_ALIGN);
-        app.obj (.text:APP_checkTimeInterval), . = align(SMALL_ALIGN);
-        app.obj (.text:APP_runPeriodicReport), . = align(SMALL_ALIGN);
+        app.obj (.text:APP_showConfig)
+        app.obj (.text:APP_tasks)
+        app.obj (.text:APP_init)
+        app.obj (.text:meteringRetry)
+        app.obj (.text:meteringUpdateData)
+        app.obj (.text:ctrlReportInterval)
+        app.obj (.text:APP_runMetering)
+        app.obj (.text:meteringCompleted)
+        app.obj (.text:meteringRecvResp)
+        app.obj (.text:APP_prepareToSleep)
+        app.obj (.text:REBOOT_SYSTEM)
+        app.obj (.text:APP_checkTimeInterval)
+        app.obj (.text:APP_runPeriodicReport)
         app.obj (.text:meteringTimeout)
     } > APP
 
@@ -564,72 +562,72 @@ SECTIONS
     } > APP (HIGH)
 
     rtcAlarm_text : align(CODE_ALIGN) {
-        rtcAlarm.obj (.text:RTC_Alarm_Scheduler_normal), . = align(SMALL_ALIGN);
-        rtcAlarm.obj (.text:RTC_runAlarm), . = align(SMALL_ALIGN);
-        rtcAlarm.obj (.text:RTC_calcSecDiff), . = align(SMALL_ALIGN);
-        rtcAlarm.obj (.text:RTC_Alarm_Scheduler_short), . = align(SMALL_ALIGN);
-        rtcAlarm.obj (.text:RTC_init), . = align(SMALL_ALIGN);
-        rtcAlarm.obj (.text:RTC_incDateHour), . = align(SMALL_ALIGN);
-        rtcAlarm.obj (.text:RTC_set), . = align(SMALL_ALIGN);
-        rtcAlarm.obj (.text:rtcAlarmSet), . = align(SMALL_ALIGN);
-        rtcAlarm.obj (.text:RTC_calcHourDiff), . = align(SMALL_ALIGN);
-        rtcAlarm.obj (.text:RTC_isValidDate), . = align(SMALL_ALIGN);
-        rtcAlarm.obj (.text:RTC_writeTime), . = align(SMALL_ALIGN);
-        rtcAlarm.obj (.text:RTC_read), . = align(SMALL_ALIGN);
-        rtcAlarm.obj (.text:RTC_needTimeSync), . = align(SMALL_ALIGN);
-        rtcAlarm.obj (.text:setDefaultRTC), . = align(SMALL_ALIGN);
-        rtcAlarm.obj (.text:RTC_alarmSchedule), . = align(SMALL_ALIGN);
-        rtcAlarm.obj (.text:RTC_calcMinDiff), . = align(SMALL_ALIGN);
+        rtcAlarm.obj (.text:RTC_Alarm_Scheduler_normal)
+        rtcAlarm.obj (.text:RTC_runAlarm)
+        rtcAlarm.obj (.text:RTC_calcSecDiff)
+        rtcAlarm.obj (.text:RTC_Alarm_Scheduler_short)
+        rtcAlarm.obj (.text:RTC_init)
+        rtcAlarm.obj (.text:RTC_incDateHour)
+        rtcAlarm.obj (.text:RTC_set)
+        rtcAlarm.obj (.text:rtcAlarmSet)
+        rtcAlarm.obj (.text:RTC_calcHourDiff)
+        rtcAlarm.obj (.text:RTC_isValidDate)
+        rtcAlarm.obj (.text:RTC_writeTime)
+        rtcAlarm.obj (.text:RTC_read)
+        rtcAlarm.obj (.text:RTC_needTimeSync)
+        rtcAlarm.obj (.text:setDefaultRTC)
+        rtcAlarm.obj (.text:RTC_alarmSchedule)
+        rtcAlarm.obj (.text:RTC_calcMinDiff)
         rtcAlarm.obj (.text:RTC_isTimeSync)
     } > RTC_ALARM
 
     rtcAlarm_const : align(CODE_ALIGN) {
-        rtcAlarm.obj (.const:$P$T0$1), . = align(SMALL_ALIGN);
-        rtcAlarm.obj (.const:$P$T1$2), . = align(SMALL_ALIGN);
-        rtcAlarm.obj (.const:.string:MaxDays), . = align(SMALL_ALIGN);
+        rtcAlarm.obj (.const:$P$T0$1)
+        rtcAlarm.obj (.const:$P$T1$2)
+        rtcAlarm.obj (.const:.string:MaxDays)
         rtcAlarm.obj (.const:.string)
     } > RTC_ALARM (HIGH)
 
     uart_text : align(CODE_ALIGN) {
-        uart.obj (.text:UART_open), . = align(SMALL_ALIGN);
-        uart.obj (.text:mallocUartBuf), . = align(SMALL_ALIGN);
-        uart.obj (.text:UART_close), . = align(SMALL_ALIGN);
-        uart.obj (.text:UART_send), . = align(SMALL_ALIGN);
-        uart.obj (.text:printf_ts), . = align(SMALL_ALIGN);
-        uart.obj (.text:UART_receive), . = align(SMALL_ALIGN);
-        uart.obj (.text:printf), . = align(SMALL_ALIGN);
-        uart.obj (.text:PRINT_string), . = align(SMALL_ALIGN);
-        uart.obj (.text:UART_getChar), . = align(SMALL_ALIGN);
-        uart.obj (.text:UART_debugMode), . = align(SMALL_ALIGN);
-        uart.obj (.text:set_meterPortForBSL), . = align(SMALL_ALIGN);
-        uart.obj (.text:UART_init), . = align(SMALL_ALIGN);
-        uart.obj (.text:mallocBuf), . = align(SMALL_ALIGN);
-        uart.obj (.text:fota_uart), . = align(SMALL_ALIGN);
-        uart.obj (.text:PRINT_enable), . = align(SMALL_ALIGN);
-        uart.obj (.text:PRINT_resume), . = align(SMALL_ALIGN);
-        uart.obj (.text:PRINT_disable), . = align(SMALL_ALIGN);
+        uart.obj (.text:UART_open)
+        uart.obj (.text:mallocUartBuf)
+        uart.obj (.text:UART_close)
+        uart.obj (.text:UART_send)
+        uart.obj (.text:printf_ts)
+        uart.obj (.text:UART_receive)
+        uart.obj (.text:printf)
+        uart.obj (.text:PRINT_string)
+        uart.obj (.text:UART_getChar)
+        uart.obj (.text:UART_debugMode)
+        uart.obj (.text:set_meterPortForBSL)
+        uart.obj (.text:UART_init)
+        uart.obj (.text:mallocBuf)
+        uart.obj (.text:fota_uart)
+        uart.obj (.text:PRINT_enable)
+        uart.obj (.text:PRINT_resume)
+        uart.obj (.text:PRINT_disable)
         uart.obj (.text:PRINT_stop)
     } > UART
 
     uart_const : align(CODE_ALIGN) {
-        uart.obj (.const:$P$T0$1), . = align(SMALL_ALIGN);
-        uart.obj (.const:$P$T1$4), . = align(SMALL_ALIGN);
+        uart.obj (.const:$P$T0$1)
+        uart.obj (.const:$P$T1$4)
         uart.obj (.const:.string)
     } > UART (HIGH)
 
     flashDriver_text : align(CODE_ALIGN) {
-        flashDriver.obj (.text:FLASH_readConfigInfo), . = align(SMALL_ALIGN);
-        flashDriver.obj (.text:readConfig), . = align(SMALL_ALIGN);
-        flashDriver.obj (.text:FLASH_saveConfigInfo), . = align(SMALL_ALIGN);
-        flashDriver.obj (.text:readID), . = align(SMALL_ALIGN);
-        flashDriver.obj (.text:saveConfig), . = align(SMALL_ALIGN);
-        flashDriver.obj (.text:saveID), . = align(SMALL_ALIGN);
-        flashDriver.obj (.text:distributingReportTime), . = align(SMALL_ALIGN);
-        flashDriver.obj (.text:int2bcd), . = align(SMALL_ALIGN);
-        flashDriver.obj (.text:bcd2int), . = align(SMALL_ALIGN);
-        flashDriver.obj (.text:ip2hexArray), . = align(SMALL_ALIGN);
-        flashDriver.obj (.text:FLASH_updateResetCount), . = align(SMALL_ALIGN);
-        flashDriver.obj (.text:saveConfChecksum), . = align(SMALL_ALIGN);
+        flashDriver.obj (.text:FLASH_readConfigInfo)
+        flashDriver.obj (.text:readConfig)
+        flashDriver.obj (.text:FLASH_saveConfigInfo)
+        flashDriver.obj (.text:readID)
+        flashDriver.obj (.text:saveConfig)
+        flashDriver.obj (.text:saveID)
+        flashDriver.obj (.text:distributingReportTime)
+        flashDriver.obj (.text:int2bcd)
+        flashDriver.obj (.text:bcd2int)
+        flashDriver.obj (.text:ip2hexArray)
+        flashDriver.obj (.text:FLASH_updateResetCount)
+        flashDriver.obj (.text:saveConfChecksum)
         flashDriver.obj (.text:calChecksum)
     } > FLASH_DRIVER
 
@@ -638,140 +636,116 @@ SECTIONS
     } > FLASH_DRIVER (HIGH)
 
     lcdDriver_text : align(CODE_ALIGN) {
-        lcdDriver.obj (.text:LCD_displayValue), . = align(SMALL_ALIGN);
-        lcdDriver.obj (.text:sendMsgToLCD), . = align(SMALL_ALIGN);
-        lcdDriver.obj (.text:LCD_updateMeterValue), . = align(SMALL_ALIGN);
-        lcdDriver.obj (.text:LCD_displayString), . = align(SMALL_ALIGN);
-        lcdDriver.obj (.text:LCD_init), . = align(SMALL_ALIGN);
-        lcdDriver.obj (.text:LCD_displayFirmwareVersion), . = align(SMALL_ALIGN);
-        lcdDriver.obj (.text:LCD_enable), . = align(SMALL_ALIGN);
-        lcdDriver.obj (.text:LCD_Exist), . = align(SMALL_ALIGN);
-        lcdDriver.obj (.text:LCD_displayError), . = align(SMALL_ALIGN);
-        lcdDriver.obj (.text:LCD_clear), . = align(SMALL_ALIGN);
-        lcdDriver.obj (.text:LCD_displayAll), . = align(SMALL_ALIGN);
-        lcdDriver.obj (.text:LCD_wait), . = align(SMALL_ALIGN);
-        lcdDriver.obj (.text:LCD_disable), . = align(SMALL_ALIGN);
-        lcdDriver.obj (.text:LCD_accessModem), . = align(SMALL_ALIGN);
-        lcdDriver.obj (.text:lcdDataTx), . = align(SMALL_ALIGN);
+        lcdDriver.obj (.text:LCD_displayValue)
+        lcdDriver.obj (.text:sendMsgToLCD)
+        lcdDriver.obj (.text:LCD_updateMeterValue)
+        lcdDriver.obj (.text:LCD_displayString)
+        lcdDriver.obj (.text:LCD_init)
+        lcdDriver.obj (.text:LCD_displayFirmwareVersion)
+        lcdDriver.obj (.text:LCD_enable)
+        lcdDriver.obj (.text:LCD_Exist)
+        lcdDriver.obj (.text:LCD_displayError)
+        lcdDriver.obj (.text:LCD_clear)
+        lcdDriver.obj (.text:LCD_displayAll)
+        lcdDriver.obj (.text:LCD_wait)
+        lcdDriver.obj (.text:LCD_disable)
+        lcdDriver.obj (.text:LCD_accessModem)
+        lcdDriver.obj (.text:lcdDataTx)
         lcdDriver.obj (.text:LCD_redraw)
-    } > LCD_DRIVER
+        MSP430FlashUtil.obj (.text:MSP430FLASH_write)
+        MSP430FlashUtil.obj (.text:MSP430FLASH_erasePage)
+        MSP430FlashUtil.obj (.text:MSP430FLASH_read)
+        check_meter_misc.obj (.text:MISC_NfcPortSelect)
+        check_meter_misc.obj (.text:MISC_getDeviceType)
+        check_meter_misc.obj (.text:MISC_getBslType)
+        check_meter_misc.obj (.text:MISC_delayUs)
+        battery.obj (.text:readBatteryADC)
+        battery.obj (.text:BATT_getVoltage)
+        battery.obj (.text:addBatteryADC)
+        battery.obj (.text:BATT_getLevel)
+        battery.obj (.text:BATT_init)
+        battery.obj (.text:BATT_loadLastVoltage)
+        battery.obj (.text:BATT_getLastVoltage), .=align(CODE_ALIGN);
+        Task_Mgr.obj (.text:TASKMGR_run)
+        Task_Mgr.obj (.text:TASKMGR_init)
+        osal_Timer.obj (.text:addEventTimer)
+        osal_Timer.obj (.text:OSAL_startEventTimer)
+        osal_Timer.obj (.text:delevtEventTimer)
+        osal_Timer.obj (.text:TIMER_getMsecDiff)
+        osal_Timer.obj (.text:OSAL_stopEventTimer)
+        osal_Timer.obj (.text:findEventTimer)
+        osal_Timer.obj (.text:TIMER_init)
+        osal_Timer.obj (.text:TIMER_getMsec)
+        osal_Timer.obj (.text:TIMER_start)
+        osal_Timer.obj (.text:TIMER_stop)
+    } > UTIL
 
     lcdDriver_const : align(CODE_ALIGN) {
-        lcdDriver.obj (.const:$P$T0$1), . = align(SMALL_ALIGN);
+        lcdDriver.obj (.const:$P$T0$1)
         lcdDriver.obj (.const:.string)
-    } > LCD_DRIVER (HIGH)
-
-    flashUtil_text : align(CODE_ALIGN) {
-        MSP430FlashUtil.obj (.text:MSP430FLASH_write), . = align(SMALL_ALIGN);
-        MSP430FlashUtil.obj (.text:MSP430FLASH_erasePage), . = align(SMALL_ALIGN);
-        MSP430FlashUtil.obj (.text:MSP430FLASH_read)
-    } > FLASH_UTIL
-
-    flashUtil_const : align(CODE_ALIGN) {
         MSP430FlashUtil.obj (.const:.string)
-    } > FLASH_UTIL (HIGH)
-
-    battery_text : align(CODE_ALIGN) {
-        battery.obj (.text:readBatteryADC), . = align(SMALL_ALIGN);
-        battery.obj (.text:BATT_getVoltage), . = align(SMALL_ALIGN);
-        battery.obj (.text:addBatteryADC), . = align(SMALL_ALIGN);
-        battery.obj (.text:BATT_getLevel), . = align(SMALL_ALIGN);
-        battery.obj (.text:BATT_init), . = align(SMALL_ALIGN);
-        battery.obj (.text:BATT_loadLastVoltage), . = align(SMALL_ALIGN);
-        battery.obj (.text:BATT_getLastVoltage)
-    } > BATTERY
-
-    meterMisc_text : align(CODE_ALIGN) {
-        check_meter_misc.obj (.text:MISC_NfcPortSelect), . = align(SMALL_ALIGN);
-        check_meter_misc.obj (.text:MISC_getDeviceType), . = align(SMALL_ALIGN);
-        check_meter_misc.obj (.text:MISC_getBslType), . = align(SMALL_ALIGN);
-        check_meter_misc.obj (.text:MISC_delayUs)
-    } > METER_MISC
-
-    osalTimer_text : align(CODE_ALIGN) {
-        osal_Timer.obj (.text:addEventTimer), . = align(SMALL_ALIGN);
-        osal_Timer.obj (.text:OSAL_startEventTimer), . = align(SMALL_ALIGN);
-        osal_Timer.obj (.text:delevtEventTimer), . = align(SMALL_ALIGN);
-        osal_Timer.obj (.text:TIMER_getMsecDiff), . = align(SMALL_ALIGN);
-        osal_Timer.obj (.text:OSAL_stopEventTimer), . = align(SMALL_ALIGN);
-        osal_Timer.obj (.text:findEventTimer), . = align(SMALL_ALIGN);
-        osal_Timer.obj (.text:TIMER_init), . = align(SMALL_ALIGN);
-        osal_Timer.obj (.text:TIMER_getMsec), . = align(SMALL_ALIGN);
-        osal_Timer.obj (.text:TIMER_start), . = align(SMALL_ALIGN);
-        osal_Timer.obj (.text:TIMER_stop)
-    } > OSAL_TIMER
-
-    osalTimer_const : align(CODE_ALIGN) {
-        osal.obj (.text:OSAL_setEvent), . = align(SMALL_ALIGN);
-        osal_Timer.obj (.const:.string)
-    } > OSAL_TIMER (HIGH)
-
-    taskMgr_text : align(CODE_ALIGN) {
-        Task_Mgr.obj (.text:TASKMGR_run), . = align(SMALL_ALIGN);
-        Task_Mgr.obj (.text:TASKMGR_init)
-    } > TASK_MGR
-
-    taskMgr_const : {
-        Task_Mgr.obj (.const:TasksArray), . = align(SMALL_ALIGN);
-        Task_Mgr.obj (.const), . = align(SMALL_ALIGN);
+        Task_Mgr.obj (.const:TasksArray)
+        Task_Mgr.obj (.const)
         Task_Mgr.obj (.const:.string)
-    } > TASK_MGR (HIGH)
+        osal.obj (.text:OSAL_setEvent)
+        osal_Timer.obj (.const:.string)
+    } > UTIL (HIGH)
 
     modem_text : align(CODE_ALIGN) {
-        modem.obj (.text:MODEM_timeout), . = align(SMALL_ALIGN);
-        modem.obj (.text:saveModemErrorLog), . = align(SMALL_ALIGN);
-        modem.obj (.text:MODEM_stop), . = align(SMALL_ALIGN);
-        modem.obj (.text:MODEM_close), . = align(SMALL_ALIGN);
-        modem.obj (.text:MODEM_getStateOrResult), . = align(SMALL_ALIGN);
-        modem.obj (.text:MODEM_read), . = align(SMALL_ALIGN);
-        modem.obj (.text:MODEM_turnOff), . = align(SMALL_ALIGN);
-        modem.obj (.text:MODEM_getAccessState), . = align(SMALL_ALIGN);
-        modem.obj (.text:MODEM_write), . = align(SMALL_ALIGN);
-        modem.obj (.text:MODEM_turnOn), . = align(SMALL_ALIGN);
-        modem.obj (.text:MODEM_open), . = align(SMALL_ALIGN);
-        modem.obj (.text:MODEM_copyCtn), . = align(SMALL_ALIGN);
-        modem.obj (.text:str2BcdForImeiAndImsi), . = align(SMALL_ALIGN);
-        modem.obj (.text:MODEM_initialization), . = align(SMALL_ALIGN);
-        modem.obj (.text:MODEM_changeBaudrate), . = align(SMALL_ALIGN);
-        modem.obj (.text:MODEM_copyIccid), . = align(SMALL_ALIGN);
-        modem.obj (.text:MODEM_copyLastAccessTime), . = align(SMALL_ALIGN);
-        modem.obj (.text:MODEM_sleep), . = align(SMALL_ALIGN);
-        modem.obj (.text:MODEM_wakeup), . = align(SMALL_ALIGN);
-        modem.obj (.text:MODEM_enable), . = align(SMALL_ALIGN);
-        modem.obj (.text:MODEM_handler), . = align(SMALL_ALIGN);
-        modem.obj (.text:MODEM_disable), . = align(SMALL_ALIGN);
-        modem.obj (.text:MODEM_getLastRsrp), . = align(SMALL_ALIGN);
-        modem.obj (.text:MODEM_getLastRsrq), . = align(SMALL_ALIGN);
-        modem.obj (.text:MODEM_getLastRssi), . = align(SMALL_ALIGN);
-        modem.obj (.text:MODEM_copyCseId), . = align(SMALL_ALIGN);
-        modem.obj (.text:MODEM_getLastSNR), . = align(SMALL_ALIGN);
-        modem.obj (.text:MODEM_copyImei), . = align(SMALL_ALIGN);
+        modem.obj (.text:MODEM_timeout)
+        modem.obj (.text:saveModemErrorLog)
+        modem.obj (.text:MODEM_stop)
+        modem.obj (.text:MODEM_close)
+        modem.obj (.text:MODEM_getStateOrResult)
+        modem.obj (.text:MODEM_read)
+        modem.obj (.text:MODEM_turnOff)
+        modem.obj (.text:MODEM_getAccessState)
+        modem.obj (.text:MODEM_write)
+        modem.obj (.text:MODEM_turnOn)
+        modem.obj (.text:MODEM_open)
+        modem.obj (.text:MODEM_copyCtn)
+        modem.obj (.text:str2BcdForImeiAndImsi)
+        modem.obj (.text:MODEM_initialization)
+        modem.obj (.text:MODEM_changeBaudrate)
+        modem.obj (.text:MODEM_copyIccid)
+        modem.obj (.text:MODEM_copyLastAccessTime)
+        modem.obj (.text:MODEM_sleep)
+        modem.obj (.text:MODEM_wakeup)
+        modem.obj (.text:MODEM_enable)
+        modem.obj (.text:MODEM_handler)
+        modem.obj (.text:MODEM_disable)
+        modem.obj (.text:MODEM_getLastRsrp)
+        modem.obj (.text:MODEM_getLastRsrq)
+        modem.obj (.text:MODEM_getLastRssi)
+        modem.obj (.text:MODEM_copyCseId)
+        modem.obj (.text:MODEM_getLastSNR)
+        modem.obj (.text:MODEM_copyImei)
         modem.obj (.text:MODEM_copyImsi)
     } > MODEM
 
     modem_const : align(CODE_ALIGN) {
-        modem.obj (.const:$P$T3$1), . = align(SMALL_ALIGN);
-        modem.obj (.const:$P$T4$2), . = align(SMALL_ALIGN);
+        modem.obj (.const:$P$T3$1)
+        modem.obj (.const:$P$T4$2)
         modem.obj (.const:.string)
     } > MODEM (HIGH)
 
     nbiotResponse_text : align(CODE_ALIGN) {
-        nbiotResponse.obj (.text:MODEM_response), . = align(SMALL_ALIGN);
-        nbiotResponse.obj (.text:parse_fota_downlink), . = align(SMALL_ALIGN);
-        nbiotResponse.obj (.text:parse_server_notify), . = align(SMALL_ALIGN);
-        nbiotResponse.obj (.text:parse_radioQuality), . = align(SMALL_ALIGN);
-        nbiotResponse.obj (.text:parse_imsi), . = align(SMALL_ALIGN);
-        nbiotResponse.obj (.text:parse_bs_param), . = align(SMALL_ALIGN);
-        nbiotResponse.obj (.text:parse_cclk), . = align(SMALL_ALIGN);
-        nbiotResponse.obj (.text:parse_pf_downlink), . = align(SMALL_ALIGN);
-        nbiotResponse.obj (.text:parseQGMR), . = align(SMALL_ALIGN);
-        nbiotResponse.obj (.text:parse_lwm2m_server), . = align(SMALL_ALIGN);
-        nbiotResponse.obj (.text:parse_ncdp), . = align(SMALL_ALIGN);
-        nbiotResponse.obj (.text:parse_cereg), . = align(SMALL_ALIGN);
-        nbiotResponse.obj (.text:parse_imei), . = align(SMALL_ALIGN);
-        nbiotResponse.obj (.text:parse_ep_name), . = align(SMALL_ALIGN);
-        nbiotResponse.obj (.text:parse_iccid), . = align(SMALL_ALIGN);
+        nbiotResponse.obj (.text:parse_fota_downlink)
+        nbiotResponse.obj (.text:parse_server_notify)
+        nbiotResponse.obj (.text:parse_radioQuality)
+        nbiotResponse.obj (.text:parse_imsi)
+        nbiotResponse.obj (.text:parse_bs_param)
+        nbiotResponse.obj (.text:parse_cclk)
+        nbiotResponse.obj (.text:parse_pf_downlink)
+        nbiotResponse.obj (.text:parseQGMR)
+        nbiotResponse.obj (.text:parse_lwm2m_server)
+        nbiotResponse.obj (.text:parse_ncdp)
+        nbiotResponse.obj (.text:parse_cereg)
+        nbiotResponse.obj (.text:parse_imei)
+        nbiotResponse.obj (.text:parse_ep_name)
+        nbiotResponse.obj (.text:parse_iccid)
         nbiotResponse.obj (.text:parseQLWULDATAEX)
+        nbiotResponse.obj (.text:MODEM_response)
     } > NB_RESPONSE
 
     nbiotResponse_const : align(CODE_ALIGN) {
@@ -779,25 +753,25 @@ SECTIONS
     } > NB_RESPONSE (HIGH)
 
     message_text : align(CODE_ALIGN) {
-        message.obj (.text:MODEM_qaData), . = align(SMALL_ALIGN);
-        message.obj (.text:MODEM_errData), . = align(SMALL_ALIGN);
-        message.obj (.text:insert_multiData), . = align(SMALL_ALIGN);
-        message.obj (.text:MODEM_checkDlMessage), . = align(SMALL_ALIGN);
-        message.obj (.text:MODEM_recvIntervalReq), . = align(SMALL_ALIGN);
-        message.obj (.text:insert_meteringTime), . = align(SMALL_ALIGN);
-        message.obj (.text:MODEM_recvFotaReq), . = align(SMALL_ALIGN);
-        message.obj (.text:insert_termInfo), . = align(SMALL_ALIGN);
-        message.obj (.text:MODEM_sendCurrentData), . = align(SMALL_ALIGN);
-        message.obj (.text:MODEM_sendPeriodicData), . = align(SMALL_ALIGN);
-        message.obj (.text:insert_oneData), . = align(SMALL_ALIGN);
-        message.obj (.text:insert_radioQuality), . = align(SMALL_ALIGN);
-        message.obj (.text:MODEM_recvRepRange), . = align(SMALL_ALIGN);
-        message.obj (.text:insert_meterInfo), . = align(SMALL_ALIGN);
-        message.obj (.text:printMessage), . = align(SMALL_ALIGN);
-        message.obj (.text:MODEM_recvResetReq), . = align(SMALL_ALIGN);
-        message.obj (.text:MODEM_recvAckString), . = align(SMALL_ALIGN);
-        message.obj (.text:insert_id), . = align(SMALL_ALIGN);
-        message.obj (.text:cal_checksum), . = align(SMALL_ALIGN);
+        message.obj (.text:MODEM_qaData)
+        message.obj (.text:MODEM_errData)
+        message.obj (.text:insert_multiData)
+        message.obj (.text:MODEM_checkDlMessage)
+        message.obj (.text:MODEM_recvIntervalReq)
+        message.obj (.text:insert_meteringTime)
+        message.obj (.text:MODEM_recvFotaReq)
+        message.obj (.text:insert_termInfo)
+        message.obj (.text:MODEM_sendCurrentData)
+        message.obj (.text:MODEM_sendPeriodicData)
+        message.obj (.text:insert_oneData)
+        message.obj (.text:insert_radioQuality)
+        message.obj (.text:MODEM_recvRepRange)
+        message.obj (.text:insert_meterInfo)
+        message.obj (.text:printMessage)
+        message.obj (.text:MODEM_recvResetReq)
+        message.obj (.text:MODEM_recvAckString)
+        message.obj (.text:insert_id)
+        message.obj (.text:cal_checksum)
         message.obj (.text:insert_meteringParam)
     } > MESSAGE
 
@@ -806,26 +780,26 @@ SECTIONS
     } > MESSAGE (HIGH)
 
     nbiotProcess_text : align(CODE_ALIGN) {
-        nbiotProcess.obj (.text:dFota), . = align(SMALL_ALIGN);
-        nbiotProcess.obj (.text:init), . = align(SMALL_ALIGN);
-        nbiotProcess.obj (.text:setModemData), . = align(SMALL_ALIGN);
-        nbiotProcess.obj (.text:fota), . = align(SMALL_ALIGN);
-        nbiotProcess.obj (.text:updateQa), . = align(SMALL_ALIGN);
-        nbiotProcess.obj (.text:transfer), . = align(SMALL_ALIGN);
-        nbiotProcess.obj (.text:getEndPointName), . = align(SMALL_ALIGN);
-        nbiotProcess.obj (.text:bip), . = align(SMALL_ALIGN);
-        nbiotProcess.obj (.text:retry), . = align(SMALL_ALIGN);
-        nbiotProcess.obj (.text:certify), . = align(SMALL_ALIGN);
-        nbiotProcess.obj (.text:attachNw), . = align(SMALL_ALIGN);
-        nbiotProcess.obj (.text:MODEM_process), . = align(SMALL_ALIGN);
-        nbiotProcess.obj (.text:sendAtCommand), . = align(SMALL_ALIGN);
-        nbiotProcess.obj (.text:idle), . = align(SMALL_ALIGN);
-        nbiotProcess.obj (.text:detachNw), . = align(SMALL_ALIGN);
-        nbiotProcess.obj (.text:sendNoRespAtCommand), . = align(SMALL_ALIGN);
-        nbiotProcess.obj (.text:getErrorReportMessage), . = align(SMALL_ALIGN);
-        nbiotProcess.obj (.text:getMeterDataMessage), . = align(SMALL_ALIGN);
-        nbiotProcess.obj (.text:getQaReportMessage), . = align(SMALL_ALIGN);
-        nbiotProcess.obj (.text:MODEM_generateCseID), . = align(SMALL_ALIGN);
+        nbiotProcess.obj (.text:dFota)
+        nbiotProcess.obj (.text:init)
+        nbiotProcess.obj (.text:setModemData)
+        nbiotProcess.obj (.text:fota)
+        nbiotProcess.obj (.text:updateQa)
+        nbiotProcess.obj (.text:transfer)
+        nbiotProcess.obj (.text:getEndPointName)
+        nbiotProcess.obj (.text:bip)
+        nbiotProcess.obj (.text:retry)
+        nbiotProcess.obj (.text:certify)
+        nbiotProcess.obj (.text:attachNw)
+        nbiotProcess.obj (.text:MODEM_process)
+        nbiotProcess.obj (.text:sendAtCommand)
+        nbiotProcess.obj (.text:idle)
+        nbiotProcess.obj (.text:detachNw)
+        nbiotProcess.obj (.text:sendNoRespAtCommand)
+        nbiotProcess.obj (.text:getErrorReportMessage)
+        nbiotProcess.obj (.text:getMeterDataMessage)
+        nbiotProcess.obj (.text:getQaReportMessage)
+        nbiotProcess.obj (.text:MODEM_generateCseID)
         nbiotProcess.obj (.text:MODEM_detach)
     } > NB_PROCESS
 
@@ -862,8 +836,7 @@ SECTIONS
         nbiotProcess.obj (.const:AtCmdSwtLWM2M)
         nbiotProcess.obj (.const:AtCmdGetSwtLWM2M)
         nbiotProcess.obj (.const:AtCmdSetFOTA)
-        nbiotProcess.obj (.const:AtCmdRunRegister)
-        nbiotProcess.obj (.const:AtCmdULDATAEX), . = align(SMALL_ALIGN);
+        nbiotProcess.obj (.const:AtCmdULDATAEX)
         nbiotProcess.obj (.const:.string)
     } > NB_PROCESS (HIGH)
 
@@ -876,40 +849,40 @@ SECTIONS
     } > MD5 (HIGH)
 
     nfci2c_text : align(CODE_ALIGN) {
-        NFC_i2c.obj (.text:NTAG_writeBlock), . = align(SMALL_ALIGN);
-        NFC_i2c.obj (.text:NTAG_writeBytes), . = align(SMALL_ALIGN);
-        NFC_i2c.obj (.text:NFC_sendMessage), . = align(SMALL_ALIGN);
-        NFC_i2c.obj (.text:I2C_txMultipleBytes), . = align(SMALL_ALIGN);
-        NFC_i2c.obj (.text:NTAG_readBytes), . = align(SMALL_ALIGN);
-        NFC_i2c.obj (.text:NFC_factoryResetTag), . = align(SMALL_ALIGN);
-        NFC_i2c.obj (.text:I2C_rxMultipleBytes), . = align(SMALL_ALIGN);
-        NFC_i2c.obj (.text:NFC_recvMessage), . = align(SMALL_ALIGN);
-        NFC_i2c.obj (.text:NFC_checkRead), . = align(SMALL_ALIGN);
-        NFC_i2c.obj (.text:NTAG_setTransferDir), . = align(SMALL_ALIGN);
-        NFC_i2c.obj (.text:NFC_tagDetect), . = align(SMALL_ALIGN);
-        NFC_i2c.obj (.text:NTAG_readSessionRegister), . = align(SMALL_ALIGN);
-        NFC_i2c.obj (.text:I2C_writeData), . = align(SMALL_ALIGN);
-        NFC_i2c.obj (.text:I2C_readData), . = align(SMALL_ALIGN);
-        NFC_i2c.obj (.text:NFC_tagEnable), . = align(SMALL_ALIGN);
-        NFC_i2c.obj (.text:NTAG_writeSessionRegister), . = align(SMALL_ALIGN);
-        NFC_i2c.obj (.text:I2C_rxBytes), . = align(SMALL_ALIGN);
-        NFC_i2c.obj (.text:I2C_txBytes), . = align(SMALL_ALIGN);
-        NFC_i2c.obj (.text:NFC_fdEnable), . = align(SMALL_ALIGN);
-        NFC_i2c.obj (.text:NFC_tagDisable), . = align(SMALL_ALIGN);
-        NFC_i2c.obj (.text:NTAG_readBlock), . = align(SMALL_ALIGN);
-        NFC_i2c.obj (.text:NTAG_setPthruOnOff), . = align(SMALL_ALIGN);
-        NFC_i2c.obj (.text:NFC_FD_input), . = align(SMALL_ALIGN);
-        NFC_i2c.obj (.text:NFC_fdDisable), . = align(SMALL_ALIGN);
-        NFC_i2c.obj (.text:NTAG_setFDOffFunction), . = align(SMALL_ALIGN);
-        NFC_i2c.obj (.text:NTAG_setFDOnFunction), . = align(SMALL_ALIGN);
+        NFC_i2c.obj (.text:NTAG_writeBlock)
+        NFC_i2c.obj (.text:NTAG_writeBytes)
+        NFC_i2c.obj (.text:NFC_sendMessage)
+        NFC_i2c.obj (.text:I2C_txMultipleBytes)
+        NFC_i2c.obj (.text:NTAG_readBytes)
+        NFC_i2c.obj (.text:NFC_factoryResetTag)
+        NFC_i2c.obj (.text:I2C_rxMultipleBytes)
+        NFC_i2c.obj (.text:NFC_recvMessage)
+        NFC_i2c.obj (.text:NFC_checkRead)
+        NFC_i2c.obj (.text:NTAG_setTransferDir)
+        NFC_i2c.obj (.text:NFC_tagDetect)
+        NFC_i2c.obj (.text:NTAG_readSessionRegister)
+        NFC_i2c.obj (.text:I2C_writeData)
+        NFC_i2c.obj (.text:I2C_readData)
+        NFC_i2c.obj (.text:NFC_tagEnable)
+        NFC_i2c.obj (.text:NTAG_writeSessionRegister)
+        NFC_i2c.obj (.text:I2C_rxBytes)
+        NFC_i2c.obj (.text:I2C_txBytes)
+        NFC_i2c.obj (.text:NFC_fdEnable)
+        NFC_i2c.obj (.text:NFC_tagDisable)
+        NFC_i2c.obj (.text:NTAG_readBlock)
+        NFC_i2c.obj (.text:NTAG_setPthruOnOff)
+        NFC_i2c.obj (.text:NFC_FD_input)
+        NFC_i2c.obj (.text:NFC_fdDisable)
+        NFC_i2c.obj (.text:NTAG_setFDOffFunction)
+        NFC_i2c.obj (.text:NTAG_setFDOnFunction)
         NFC_i2c.obj (.text:NFC_init)
     } > NFC_I2C
 
     nfci2c_const : align(CODE_ALIGN) {
-        NFC_i2c.obj (.const:.string:DefaultBeginingOfMemory), . = align(SMALL_ALIGN);
-        NFC_i2c.obj (.const:.string:NullBlock), . = align(SMALL_ALIGN);
-        NFC_i2c.obj (.const:.string:DefaultPage56), . = align(SMALL_ALIGN);
-        NFC_i2c.obj (.const:.string:DefaultPage57), . = align(SMALL_ALIGN);
+        NFC_i2c.obj (.const:.string:DefaultBeginingOfMemory)
+        NFC_i2c.obj (.const:.string:NullBlock)
+        NFC_i2c.obj (.const:.string:DefaultPage56)
+        NFC_i2c.obj (.const:.string:DefaultPage57)
         NFC_i2c.obj (.const:.string:DefaultPage58)
     } > NFC_I2C (HIGH)
 
@@ -918,7 +891,7 @@ SECTIONS
          --library=rts430x_lc_ld_eabi.lib(.text:_isr:_c_int00_noargs)
     }
 
-    ram_code {
+    .ramcode : {
         * (.text:_isr)
         test.obj (.text:TEST_isTestMode)
         check_meter_misc.obj (.text:MISC_delayMs)
@@ -930,7 +903,10 @@ SECTIONS
         --library=rts430x_lc_ld_eabi.lib(.text:memset)
         fota.obj (.text)
         fota.obj (.const)
-    } load=FOTA_FLASH, run=FOTA_RAM
+    } load=FOTA_FLASH, run=FOTA_RAM, 
+    LOAD_START(ramcode_ld_start),
+    RUN_START(ramcode_rn_start),
+    SIZE(ramcode_size)
 
 #ifndef __LARGE_CODE_MODEL__
     .text       : align(CODE_ALIGN) {} >> FLASHB | FLASHD      /* Code                              */
