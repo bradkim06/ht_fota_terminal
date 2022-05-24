@@ -84,7 +84,7 @@ Note over t: 단말 Sleep
 
 #### Main
 
-- [ ] Retry시 attch실패 -> certify실패 -> attach실패 무한 loop가 생길수 있음. 수정 필요
+- [x] Retry시 attch실패 -> certify실패 -> attach실패 무한 loop가 생길수 있음. 수정 필요
 
 - [x] Flash Read시 쓰레기 데이터가 들어오는지 확인, 초기화하는 기능 추가 필요
 
@@ -120,6 +120,36 @@ Note over t: 단말 Sleep
 
 ### NB-IoT P/F 개선
 
+#### config checksum 추가 (2022-05-24)
+
+- config 변수 추가
+- checksum 확인 절차 추가
+  - checksum fail시 0으로 init
+
+#### lg p/f 접속 설정 auto로 변경 (2022-05-24)
+
+- AT+QREGSWT 0->1 변경
+- manual register 관련 코드 삭제.
+
+- [ ] test 검증 필요
+
+아래와 같은 이유로 auto로 변경.
+
+- manual로 하는것 보다 빠름.
+- manual시 예외처리 코드 신뢰도 낮음
+
+#### lg qa report no response (2022-05-24)
+
+test중 lg qa report가 실패하는 경우 발생 아래와 같이 수정
+
+- lg qa report의 고정 대기 시간 3~5초 가량 삭제.
+- lg qa report는 실패하더라도 진행하도록 noresponse로 변경
+
+#### retry process 변경 (2022-05-24)
+
+기존은 각 STATE별로(attach, certify) retry 횟수가 다르고, 성공시 retry가 초기화 된다.  
+이는 무한loop가 생성될 여지가 있으므로 전체 retry 초기화를 없애고 max retry를 2로(attach, certify, transfer 일 경우) 변경.
+
 #### Delta Fota (2022-05-24)
 
 무선 풀 업그레이드시 90Kb의 용량은 battery, nb-iot 제품에서는 실패 리스크, 배터리 부담, 긴 시간(3분 가량)때문에  
@@ -128,7 +158,8 @@ Delta 업그레이드 기능 추가. Fota 서버는 binary 파일에서 512byte�
 
 #### Device Fota 개발 (인증용) (2022-04-20)
 
-- [ ] Fota 도중 실패시 복구 처리 추가 필요
+- [x] Fota 도중 실패시 복구 처리 추가 필요
+  - Fota 실패시 modem psm->일정시간 대기->재접속->Fota
 - [ ] Fota Application 영역은 실패 복구처리의 필수요소이므로 Upgrade시 이중화로 보호 필요
 
 ##### FOTA Flow
