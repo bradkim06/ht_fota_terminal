@@ -183,11 +183,10 @@ static int parse_server_notify(char *p)
 	int valid = 1;
 	if (*p == '0') {
 		printf_ts("LWM2M : register finish \n");
+		modemCtx.lwm2m.bsFinish = 1;
 		modemCtx.lwm2m.regFinish = 1;
-		modemCtx.lwm2m.regDelete = 0;
 	} else if (*p == '1') {
 		printf_ts("LWM2M : register delete \n");
-		modemCtx.lwm2m.regDelete = 1;
 		modemCtx.lwm2m.regFinish = 0;
 		modemCtx.lwm2m.obsObj10250 = 0;
 		modemCtx.lwm2m.obsObj16241 = 0;
@@ -196,6 +195,8 @@ static int parse_server_notify(char *p)
 		modemCtx.lwm2m.regUpdate = 1;
 	} else if (*p == '3') {
 		printf_ts("LWM2M : observe object 10250 \n");
+		modemCtx.lwm2m.bsFinish = 1;
+		modemCtx.lwm2m.regFinish = 1;
 		modemCtx.lwm2m.obsObj10250 = 1;
 	} else if (*p == '4') {
 		printf_ts("LWM2M : boostrap finish \n");
@@ -211,6 +212,9 @@ static int parse_server_notify(char *p)
 		modemCtx.lwm2m.fotaUpgradeReq = 1;
 	} else if (*p == '8') {
 		printf_ts("LWM2M : observe object 16241 \n");
+		modemCtx.lwm2m.bsFinish = 1;
+		modemCtx.lwm2m.regFinish = 1;
+		modemCtx.lwm2m.obsObj10250 = 1;
 		modemCtx.lwm2m.obsObj16241 = 1;
 	} else if (*p == '9') {
 		printf_ts("LWM2M : cancel object 10250 \n");

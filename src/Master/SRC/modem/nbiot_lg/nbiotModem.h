@@ -113,7 +113,6 @@ typedef union {
 		uint16 bsFinish : 1, // Finish Bootstrap
 			regFinish : 1, // Finish Register
 			regUpdate : 1, // Update Register
-			regDelete : 1, // Delete Register
 			obsObj10250 : 1, // Observe object 10250
 			obsObj503 : 1, // Observe object 503
 			obsObj16241 : 1, // Observe object 16241
@@ -121,7 +120,7 @@ typedef union {
 			fotaDownReq : 1, // FOTA download requested
 			fotaUpgradeReq : 1, // FOTA download requested
 			fotaFinish : 1, // Finish FOTA
-			reserved : 5;
+			reserved : 6;
 	};
 } ModemLwm2m_t;
 

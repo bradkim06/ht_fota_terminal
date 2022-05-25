@@ -470,6 +470,7 @@ void MODEM_close()
 		modemCtx.status.psmOn = 0;
 	}
 	modemCtx.status.stop = 1;
+	modemCtx.lwm2m.value = 0;
 
 	MODEM_disable();
 	if (modemCtx.status.psmOn) {
