@@ -15,6 +15,8 @@
 #include "flashDriver.h"
 #include "meter.h"
 
+#define AT_MODEM_RX "+NSONMI:"
+
 #define CONNECT_SERVER 1
 #define SEND_FW_VER 2
 #define SOCK_CLOSE 3
@@ -30,12 +32,18 @@
 #define FOTA_DELAY 20
 #define FOTA_5SEC 250
 #define FOTA_10SEC 500
+#define FOTA_30SEC 1500
 #define FOTA_60SEC 3000
+
+#define TX_FAIL -1
+#define TX_OK 0
 
 FotaStatus_t Fota = { 0 };
 static char socket[3] = { 0 };
 static char fotaPort[6] = { 0 };
 static char initialMsgSize[4] = { 0 };
+//+NSOSTR:1,101,1
+static char confirmTxSTr[16] = { 0 };
 
 char *rxBuf = NULL;
 int rxLen = 0;
@@ -201,7 +209,6 @@ static int recvModem(char *sendMsg, char *recvMsg, int t)
 		}
 	}
 
-	modemRxClear();
 	MISC_delayMs(1000);
 	return -1;
 }
@@ -211,7 +218,7 @@ static void fotaRecv()
 	while (1) {
 		volatile int len = 0;
 		volatile int count = 0;
-		for (; count < 6000; count++) {
+		for (; count < 3000; count++) {
 			if (waitRx(&len)) {
 				break;
 			}
@@ -220,7 +227,6 @@ static void fotaRecv()
 		if (len > 1) {
 			char *p = NULL;
 
-#define AT_MODEM_RX "+NSONMI:"
 			if ((p = strstr(rxBuf, AT_MODEM_RX))) {
 				fotaModemPrint(rxBuf, rxLen);
 				fotaSend("AT+NSORF=1,1024\n\r");
@@ -257,10 +263,18 @@ static void fotaRecv()
 					if (rxData[0] == 0xB1) {
 						eraseCode(address, SECT_ERASE);
 						writeCode(address, &rxData[4], payloadLen - 5);
-						send(SEND_ACK);
+						if (send(SEND_ACK) == TX_OK) {
+							continue;
+						}
+
+						if (send(SEND_ACK) == TX_FAIL) {
+							break;
+						}
 					} else if (rxData[0] == 0xB3) {
 						// last update
-						send(SEND_FINISH);
+						if (send(SEND_FINISH) == TX_FAIL) {
+							send(SEND_FINISH);
+						}
 						fotaPrint("FOTA Finish\n\r");
 						__disable_interrupt();
 						eraseCode(address, SECT_ERASE);
@@ -270,27 +284,28 @@ static void fotaRecv()
 					}
 				} else {
 					fotaPrint("checksum fail\n\r");
-					send(SEND_REPEAT);
+					if (send(SEND_REPEAT) == TX_FAIL) {
+						break;
+					}
 				}
 			} else if ((p = strstr(rxBuf, "+NSOCLI:"))) {
 				fotaModemPrint(rxBuf, rxLen);
-				recvModem("at+cgatt=0\n\r", "+NPSMR:1", FOTA_10SEC);
-				fotaPrint("socket closed");
 				break;
 			} else {
+				fotaModemPrint(rxBuf, rxLen);
 				modemRxClear();
 			}
 		} else {
-			recvModem("at+cgatt=0\n\r", "+NPSMR:1", FOTA_10SEC);
 			fotaPrint("server no response");
-			fotaSend("at+nsocl=");
-			fotaSend(socket);
-			fotaSend("\n\r");
-			fotaPrint("socket closed");
 			break;
 		}
 	}
 
+	fotaPrint("socket closed\n\r");
+	fotaSend("at+nsocl=");
+	fotaSend(socket);
+	fotaSend("\n\r");
+	recvModem("at+cgatt=0\n\r", "+NPSMR:1", FOTA_10SEC);
 	fotaPrint("sleep\n\r");
 }
 
@@ -301,15 +316,16 @@ static void reboot()
 
 static int send(int option)
 {
+	//AT+NSOSD=1,41,433155333236553332373836343730303034303133383337323435303036313233353239323736305E,0x100,101
 	int ret = 0;
 	if (option == SEND_READY) {
-		ret = txData("2,C1C1\n\r");
+		ret = txData("2,C1C1,0x100,101\n\r");
 	} else if (option == SEND_ACK) {
-		ret = txData("2,C2C2\n\r");
+		ret = txData("2,C2C2,0x100,101\n\r");
 	} else if (option == SEND_REPEAT) {
-		ret = txData("2,C3C3\n\r");
+		ret = txData("2,C3C3,0x100,101\n\r");
 	} else if (option == SEND_FINISH) {
-		ret = txData("2,C4C4\n\r");
+		ret = txData("2,C4C4,0x100,101\n\r");
 	}
 
 	return ret;
@@ -318,6 +334,7 @@ static int send(int option)
 void startFota()
 {
 	Fota.Status = 1;
+	WDTCTL = WDT_ARST_16SEC;
 	fota_uart();
 
 	rxBuf = (char *)malloc(RX_MAX_LEN);
@@ -328,6 +345,8 @@ void startFota()
 	snprintf(socket, sizeof(socket), "%1d", modemCtx.socket);
 	snprintf(fotaPort, sizeof(fotaPort), "%d", Fota.Info.port);
 	snprintf(initialMsgSize, sizeof(initialMsgSize), "%d,", FOTA_REQMSG_SIZE);
+	//+NSOSTR:1,101,1
+	snprintf(confirmTxSTr, sizeof(confirmTxSTr), "+NSOSTR:%1d,101,1", modemCtx.socket);
 
 	fotaPrint("fota start, send Ready\n\r");
 	if (recvModem("at+natspeed=57600,30,0,0,1\n\r", "OK", FOTA_10SEC)) {
@@ -337,13 +356,13 @@ void startFota()
 	MODEM_changeBaudrate(UART_BAUDRATE_57600);
 	MISC_delayMs(100);
 
-	if (send(SEND_READY) == -1) {
+	if (send(SEND_READY) == TX_FAIL) {
 		reboot();
 	}
 
 	while (1) {
 		fotaRecv();
-		readyFota();
+		retryFota();
 	}
 }
 
@@ -362,7 +381,7 @@ static int txData(char *msg)
 	fotaSend("AT+NSOSD=");
 	fotaSend(socket);
 	fotaSend(",");
-	return recvModem(msg, "OK", FOTA_10SEC);
+	return recvModem(msg, confirmTxSTr, FOTA_60SEC);
 }
 
 static int repeatCmd(char *sendMsg, char *recvMsg, int t, int retry)
@@ -378,7 +397,7 @@ static int repeatCmd(char *sendMsg, char *recvMsg, int t, int retry)
 	return -1;
 }
 
-static void readyFota()
+static void retryFota()
 {
 RETRY:
 	// LDO work
@@ -450,7 +469,7 @@ RETRY:
 		goto RETRY;
 	}
 
-	if (send(SEND_READY) == -1) {
+	if (send(SEND_READY) == TX_FAIL) {
 		goto RETRY;
 	}
 }

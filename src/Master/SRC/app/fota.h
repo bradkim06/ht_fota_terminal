@@ -41,7 +41,7 @@ static int send(int option);
 static int fotaatoi(char *cdata);
 static void fotaModemPrint(char *p, int len);
 static void fotaPrint(char *str);
-static void readyFota();
+static void retryFota();
 static int recvModem(char *sendMsg, char *recvMsg, int t);
 static void reboot();
 static int repeatCmd(char *sendMsg, char *recvMsg, int t, int retry);

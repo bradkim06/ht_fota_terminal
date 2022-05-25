@@ -169,7 +169,6 @@ MEMORY
 
 SECTIONS
 {
-#define RAM_ALIGN 32
 #define CODE_ALIGN 512
 
     .nbiotProcess_data : {
