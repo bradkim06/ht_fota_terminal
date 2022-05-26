@@ -27,7 +27,7 @@ typedef struct {
 
 extern FotaStatus_t Fota;
 extern char *rxBuf;
-extern int rxLen;
+extern unsigned int rxLen;
 
 static int checkFlashBusy();
 static void modemRxClear();
@@ -38,7 +38,7 @@ static void fotaSend(char *str);
 static void fotaRecv();
 static int txData(char *msg);
 static int tcpSend(int option);
-static int fotaatoi(char *cdata);
+static unsigned int fotaatoi(char *cdata);
 static void fotaModemPrint(char *p, int len);
 static void fotaPrint(char *str);
 static void retryFota();

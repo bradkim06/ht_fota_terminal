@@ -4,8 +4,6 @@
 #include "common_header.h"
 #include "MSP430FlashUtil.h"
 
-#define STATIC static
-
 /**
  * @brief Flash sector size in MSP430
  */
@@ -20,7 +18,7 @@
  */
 #define FLASH_SECTOR_PROGRAM_USEC (uint32)(FLASH_BYTE_PROGRAM_USEC * FLASH_SECTOR_LENGTH)
 
-inline STATIC BOOL isBusyFlash(uint32 timeoutUsec)
+static BOOL isBusyFlash(uint32 timeoutUsec)
 {
 	if (FCTL3 & BUSY) {
 		MISC_delayUs(timeoutUsec);

@@ -265,7 +265,7 @@ static int parse_fota_downlink(char *p)
 		}
 
 		memcpy(ip, p, (int)(q - p));
-		ip[(int)(q - p)] = '\0';
+		ip[(unsigned int)(q - p)] = '\0';
 
 		// skip second comma
 		p = q + 1;
@@ -289,7 +289,7 @@ static int parse_fota_downlink(char *p)
 		p++;
 
 		// rx data
-		for (int i = 0; i < rxLen; i++) {
+		for (unsigned int i = 0; i < rxLen; i++) {
 			modemComm.dlData[i] = ascii2BCD(*(p + i * 2 + 0), *(p + i * 2 + 1));
 		}
 		modemComm.dlDataLen = rxLen;
@@ -335,7 +335,7 @@ static int parse_pf_downlink(char *p)
 			break;
 		p++;
 
-		for (int i = 0; i < len; i++) {
+		for (unsigned int i = 0; i < len; i++) {
 			modemComm.dlData[i] = ascii2BCD(*(p + i * 2 + 0), *(p + i * 2 + 1));
 		}
 		modemComm.dlDataLen = len;
@@ -366,7 +366,7 @@ static int parse_cclk(char *p)
 	}
 
 	if (RTC_needTimeSync()) {
-		RTC_writeTime(date);
+		RTC_writeTime(&date);
 	}
 
 	return 1;

@@ -36,15 +36,15 @@ extern "C" {
 #endif /* !__ASSERT_FUNC */
 #endif /* !NDEBUG */
 
-static inline void __assert_func(const char *file, int line, const char *func, const char *expr)
+static void __assert_func(const char *file, int line, const char *func, const char *expr)
 {
 	printf("ASSERT:%s:%d:%s:(%s)\n", file, line, func, expr);
 	while (1)
 		;
 }
 
-static inline void __assert_print_func(const char *file, int line, const char *func,
-				       const char *expr, char *str)
+static void __assert_print_func(const char *file, int line, const char *func, const char *expr,
+				char *str)
 {
 	printf("ASSERT:%s:%d:%s:(%s):%s\n", file, line, func, expr, str);
 	while (1)

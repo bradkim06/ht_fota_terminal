@@ -157,8 +157,6 @@ __interrupt void Port_1(void)
 		PORT1_IFG &= ~BM(PORT_NFC_TAG);
 		NFC_tagDetect();
 		OSAL_startEventTimer(AppTaskId, APP_EVENT_NFC_WAIT, (uint32)700);
-		WAKEUP_DEVICE();
-
 		NFCAPP_clearAsyncCmd();
 	}
 
@@ -178,10 +176,10 @@ __interrupt void Port_1(void)
 			} else {
 				OSAL_startEventTimer(AppTaskId, APP_EVENT_SENSOR_REED, (uint32)500);
 			}
-			WAKEUP_DEVICE();
 		}
 	}
 #endif
+	WAKEUP_DEVICE();
 }
 
 // Port 2 interrupt service routine - Reed, Tamper, Flood
@@ -200,7 +198,6 @@ __interrupt void Port_2(void)
 		} else {
 			OSAL_startEventTimer(AppTaskId, APP_EVENT_SENSOR_REED, (uint32)500);
 		}
-		WAKEUP_DEVICE();
 	}
 
 #if defined(AUX_REPEATER)
@@ -221,23 +218,21 @@ __interrupt void Port_2(void)
 		if (CC1200_getRfMode() == RF_MODE_TX) {
 			//PORT_SENSOR_IES &= ~BM(PORT_CC1200_GPIO0);   // P2.7 Low/Hi edge
 			CC1200_isr();
-			WAKEUP_DEVICE();
 		} else { // RF_MODE_RX
 			if (PORT_SENSOR_IES & BM(PORT_CC1200_GPIO0)) {
 				PORT_SENSOR_IES &= ~BM(PORT_CC1200_GPIO0); // P2.7 Low/Hi edge
 				CC1200_isr();
-				WAKEUP_DEVICE();
 				CC1200_worDuty(WOR_SHORT_DUTY);
 				CC1200_wor();
 			} else { // Change Len
 				PORT_SENSOR_IES |= BM(PORT_CC1200_GPIO0); // P2.7 Hi/Low edge
 				CC1200_read_rxByte();
-				WAKEUP_DEVICE();
 			}
 			SLAVE_activeStart(10);
 		}
 	}
 #endif
+	WAKEUP_DEVICE();
 }
 
 #pragma vector = UNMI_VECTOR

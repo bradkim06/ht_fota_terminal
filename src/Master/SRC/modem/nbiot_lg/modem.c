@@ -66,13 +66,8 @@ static void MODEM_STATUS_PRINT()
 #endif
 }
 
-static BOOL isPowerOn = FALSE;
-
 void MODEM_turnOff()
 {
-	if (isPowerOn) {
-		isPowerOn = FALSE;
-	}
 	printf_ts("MODEM : power off\n");
 
 #if (DEVICE_REVISION == DEV_REV_PWRCTRL_MOSFET_LDO)
@@ -273,8 +268,8 @@ static void saveModemErrorLog(Date_t *date, ModemErrorCode_t errCode)
      * @brief error log 상에서 시간비교를 통해 가장 오래된 log에 overwrite.
      *        errLog 배열의 index 1 ~ 6은 날짜 BCD 값이므로 따로 변환 없이 비교.
      */
-	int old = 0;
-	for (int i = 1; i < CNT_ERROR_LOG; i++) {
+	unsigned int old = 0;
+	for (unsigned int i = 1; i < CNT_ERROR_LOG; i++) {
 		// year, month, day value mix and compare
 		uint32 val1 = (uint32)modemCtx.errLog[old][0] << 16 | modemCtx.errLog[old][1] << 8 |
 			      modemCtx.errLog[old][2];
@@ -530,7 +525,7 @@ void MODEM_copyImsi(uchar *imsi)
 void MODEM_copyIccid(uchar *iccid)
 {
 	char *p = modem.iccidStr;
-	int len = sizeof(modem.iccidStr) / 2;
+	static const int len = sizeof(modem.iccidStr) / 2;
 	for (int i = 0; i < len; i++) {
 		*(iccid + i) = ascii2BCD(*(p + i * 2), *(p + i * 2 + 1));
 	}
@@ -662,7 +657,7 @@ void MODEM_copyCtn(uchar *ctn)
 	// 11자리의 CTN을 BCD로 변환 시 가장 앞자리 0을 1byte로 할당한다.
 	// EX :  012-1234-5678 -> 0x00 0x12 0x12 0x34 0x56 0x78
 	char *p = modem.ctnStr;
-	int len = sizeof(modem.ctnStr) / 2;
+	static const int len = sizeof(modem.ctnStr) / 2;
 	*(ctn + 0) = ascii2BCD('0', '0');
 	for (int i = 1; i < len; i++) {
 		*(ctn + i) = ascii2BCD(*(p + i * 2 - 1), *(p + i * 2));

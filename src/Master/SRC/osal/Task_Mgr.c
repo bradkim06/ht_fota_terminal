@@ -1,3 +1,4 @@
+#include "intrinsics.h"
 #include <msp430.h>
 #include "common_header.h"
 #include "Task_Mgr.h"
@@ -83,8 +84,8 @@ void TASKMGR_run(void)
 
 		} else {
 			if (OsalTimerHead == NULL) {
-				int taskIdx;
-				for (taskIdx = 0; taskIdx < TotalTasksCnt; taskIdx++) {
+				unsigned int taskIdx = 0;
+				for (; taskIdx < TotalTasksCnt; taskIdx++) {
 					if (TasksEvents[taskIdx] != 0x00000000) {
 						break;
 					}
@@ -96,6 +97,9 @@ void TASKMGR_run(void)
 					printf("--sleep--\n\n");
 					MISC_delayMs(100);
 					SLEEP_DEVICE();
+					__no_operation();
+					PRINT_enable();
+					TIMER_start();
 				}
 			}
 		}

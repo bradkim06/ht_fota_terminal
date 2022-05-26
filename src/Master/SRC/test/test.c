@@ -38,7 +38,7 @@ extern Config_t conf;
 static BOOL IsTestMode = FALSE;
 static BOOL IsMeterTesting = FALSE;
 static BOOL IsReedTesting = FALSE;
-static uint8 TestTaskId = 0;
+static const uint8 TEST_TASK_ID = 0;
 
 #define TEST_MODE
 #undef TEST_MODE
@@ -210,7 +210,7 @@ void TEST_setRTC(int fromJig, int year, int mon, int day, int hour, int min, int
 	date.min = min;
 	date.sec = sec;
 
-	RTC_set(date);
+	RTC_set(&date);
 
 	TEST_readRTC(fromJig);
 }
@@ -234,13 +234,13 @@ void TEST_readFlash(int sector)
 	}
 
 	extern const uint8 *FlashAddr[];
-	for (int i = start; i < end; i++) {
+	for (unsigned int i = start; i < end; i++) {
 		HAL_ENTER_CRITICAL_SECTION(intState);
 		MSP430FLASH_read((uint8 *)FlashAddr[i], flash, LEN_INFO_FLASH_SECTOR);
 		HAL_EXIT_CRITICAL_SECTION(intState);
 
 		printf("\n======== Flash Memory - Sector[%d] =======\n", i);
-		for (int j = 0; j < LEN_INFO_FLASH_SECTOR; j++) {
+		for (unsigned int j = 0; j < LEN_INFO_FLASH_SECTOR; j++) {
 			if (j && !(j % 16)) {
 				printf("\n");
 			}
@@ -250,9 +250,9 @@ void TEST_readFlash(int sector)
 	}
 }
 
-void TEST_eraseFlash(int sector)
+void TEST_eraseFlash(unsigned int sector)
 {
-	if ((sector < 0 || sector > 3)) {
+	if (sector > 3) {
 		printf("Invalid sector number[%d]\n", sector);
 		return;
 	}
@@ -290,7 +290,7 @@ void TEST_readSerialNum()
 	FLASH_readConfigInfo(&conf);
 
 	printf("trsn ");
-	for (int i = 0; i < SERIAL_NUM_LEN; i++) {
+	for (unsigned int i = 0; i < SERIAL_NUM_LEN; i++) {
 		printf("%c", conf.serialNum[i]);
 	}
 	printf(" %s\n", FIRMWARE_VER);
@@ -305,7 +305,7 @@ void TEST_writeSerialNum(char *serialNum)
 
 	FLASH_readConfigInfo(&conf);
 
-	for (int i = 0; i < SERIAL_NUM_LEN; i++) {
+	for (unsigned int i = 0; i < SERIAL_NUM_LEN; i++) {
 		conf.serialNum[i] = *serialNum++;
 	}
 
@@ -323,7 +323,7 @@ static void reedResponse()
 void TEST_reedSensor()
 {
 	printf("ACK\n");
-	AppTaskId = TestTaskId;
+	AppTaskId = TEST_TASK_ID;
 
 	IsReedTesting = TRUE;
 	while (1) {
@@ -337,7 +337,7 @@ void TEST_reedSensor()
 
 void TEST_readMeter(int type)
 {
-	AppTaskId = TestTaskId;
+	AppTaskId = TEST_TASK_ID;
 
 	if (type == 0xff) {
 		printf("Usage : rmeter [TYPE]\n");
@@ -447,7 +447,7 @@ void TEST_writeMeter(char *valueStr)
 		}
 
 		p = pDot + 1;
-		for (int i = 6; i < 11; i++) {
+		for (unsigned int i = 6; i < 11; i++) {
 			if (*p == '\r' || *p == '\n' || *p == '\0') {
 				break;
 			}
@@ -456,7 +456,7 @@ void TEST_writeMeter(char *valueStr)
 
 		valid = 1;
 
-		for (int i = 0; i < 12; i++) {
+		for (unsigned int i = 0; i < 12; i++) {
 			if (isxdigit(value[i]) == 0) {
 				valid = 0;
 				break;
@@ -485,11 +485,11 @@ void TEST_writeMeter(char *valueStr)
 	pMsg->stx = STD_REQ_START;
 	pMsg->cfield = 0xA1;
 	pMsg->afield = STD_REQ_ADDR;
-	for (int i = 0; i < 6; i++) {
+	for (unsigned int i = 0; i < 6; i++) {
 		pMsg->value[i] = ascii2BCD(value[10 - 2 * i + 0], value[10 - 2 * i + 1]);
 	}
 	pMsg->checksum = pMsg->cfield + pMsg->afield;
-	for (int i = 0; i < 6; i++) {
+	for (unsigned int i = 0; i < 6; i++) {
 		pMsg->checksum += pMsg->value[i];
 	}
 	pMsg->etx = STD_REQ_STOP;
@@ -497,7 +497,7 @@ void TEST_writeMeter(char *valueStr)
 	uint8 *p = (uint8 *)pMsg;
 
 	printf("set meter value: ");
-	for (int i = 0; i < sizeof(set_meter_value_t); i++) {
+	for(unsigned int i = 0; i < sizeof(set_meter_value_t); i++) {
 		printf(" %02X", *(p + i));
 	}
 	printf("\n");
@@ -544,7 +544,6 @@ void TEST_lpm3(int mode)
 
 	MODEM_turnOff();
 
-	device_sleep_state = FALSE;
 	GLOBAL_DISABLE_INT();
 	SLEEP_DEVICE();
 
@@ -583,7 +582,6 @@ void TEST_lpm2()
 	CC1200_rfOff();
 #endif
 
-	device_sleep_state = FALSE;
 	GLOBAL_DISABLE_INT();
 	__bis_SR_register(POWER_ACTIVE_OFF + GIE);
 
@@ -930,7 +928,7 @@ void TEST_resetNFC()
 void TEST_checkNFC()
 {
 	uint8 org_AppTaskId = AppTaskId;
-	AppTaskId = TestTaskId;
+	AppTaskId = TEST_TASK_ID;
 
 	printf("ACK\n");
 
@@ -984,7 +982,7 @@ void TEST_runTasks()
 
 	WDTCTL = WDT_ARST_16SEC; // Start watchdog timer(16 sec)
 
-	for (int i = 0; i < (testTasksCnt + 1); i++) {
+	for (unsigned int i = 0; i < (testTasksCnt + 1); i++) {
 		if (++idx >= testTasksCnt) {
 			idx = 0;
 		}
@@ -1036,7 +1034,7 @@ void TEST_run()
 	LCD_displayString("TEST");
 
 	//task 초기화
-	AppTaskId = TestTaskId;
+	AppTaskId = TEST_TASK_ID;
 #if defined(AUX_REPEATER)
 	// 테스트를 위한 Radio task 동작이 필요하므로 초기화.
 	CC1200_init(TestTaskId + 1);
@@ -1047,7 +1045,7 @@ void TEST_run()
 	FLASH_updateResetCount(&conf);
 
 	PRINT_stop();
-	TEST_initModem(TestTaskId);
+	TEST_initModem(TEST_TASK_ID);
 	PRINT_resume();
 
 	printf("\n\n\n\n");

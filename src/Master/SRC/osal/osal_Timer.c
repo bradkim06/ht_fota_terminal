@@ -267,7 +267,7 @@ __interrupt void TIMER1_A0_ISR(void)
 	OsalTimerRec_t *srchTimer;
 	OsalTimerRec_t *prevTimer;
 	OsalTimerRec_t *saveTimer;
-	int updateTime = 1;
+	static const char updateTime = 1;
 
 	HAL_ENTER_CRITICAL_SECTION(intState); // Hold off interrupts
 

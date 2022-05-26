@@ -90,7 +90,7 @@ static uint16 readBatteryADC(void)
 
 void addBatteryADC(void)
 {
-	int i;
+	uchar i;
 	uint16 batt = 0;
 	uint16 sum = 0;
 
@@ -102,7 +102,8 @@ void addBatteryADC(void)
 
 	if (batt > 0) {
 		for (i = 1; i < BATTERY_AVR_NUM; i++) {
-			BattAdcBuffer[i - 1] = BattAdcBuffer[i];
+			uchar swap = i - 1;
+			BattAdcBuffer[swap] = BattAdcBuffer[i];
 		}
 
 		BattAdcBuffer[BATTERY_AVR_NUM - 1] = batt;
@@ -111,9 +112,7 @@ void addBatteryADC(void)
 
 void BATT_init()
 {
-	int i;
-
-	for (i = 0; i < BATTERY_AVR_NUM; i++) {
+	for (unsigned int i = 0; i < BATTERY_AVR_NUM; i++) {
 		BattAdcBuffer[i] = readBatteryADC();
 	}
 
@@ -133,14 +132,13 @@ void BATT_loadLastVoltage(void)
 
 uint8 BATT_getVoltage(void)
 {
-	int i;
 	uint16 max_adc = BATTERY_MIN_ADC,
 	       min_adc = BATTERY_MAX_ADC; //최대, 최소값 제거를 위한 초기화
 	uint16 total_adc = 0, avr_adc = 0;
 
 	addBatteryADC();
 
-	for (i = 0; i < BATTERY_AVR_NUM; i++) {
+	for (uchar i = 0; i < BATTERY_AVR_NUM; i++) {
 		total_adc += BattAdcBuffer[i];
 
 		if (max_adc < BattAdcBuffer[i])

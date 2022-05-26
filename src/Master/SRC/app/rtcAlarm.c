@@ -62,18 +62,18 @@ void RTC_read(Date_t *date)
 	date->sec = RTCSEC;
 }
 
-void RTC_set(Date_t date)
+void RTC_set(Date_t *date)
 {
-	if (RTC_isValidDate(&date)) {
+	if (RTC_isValidDate(date)) {
 		RTCCTL01 |= RTCMODE;
 		RTCCTL01 &= ~(RTCHOLD);
 
-		RTCYEAR = date.year;
-		RTCMON = date.mon;
-		RTCDAY = date.day;
-		RTCHOUR = date.hour;
-		RTCMIN = date.min;
-		RTCSEC = date.sec;
+		RTCYEAR = date->year;
+		RTCMON = date->mon;
+		RTCDAY = date->day;
+		RTCHOUR = date->hour;
+		RTCMIN = date->min;
+		RTCSEC = date->sec;
 	}
 }
 
@@ -90,7 +90,7 @@ void RTC_init()
 		setDefaultRTC(&date); // default 시간 설정
 	} while (0);
 
-	RTC_set(date);
+	RTC_set(&date);
 
 	// 보조중계기 및 분단위 검침 시 alaram은 1개만 metering type 및 report min으로 등록.
 	// report min에 맞춰 검침 및 보고를 수행. (분단위 동작은 RTC_Alarm_Scheduler_short() 참조)
@@ -181,7 +181,8 @@ void RTC_decDateHour(Date_t *p, uint8 hour)
 	}
 
 	if (--p->mon > 0) {
-		p->day = MaxDays[p->mon - 1];
+		const uint8 idx = p->mon - 1;
+		p->day = MaxDays[idx];
 		if (p->mon == 2 && (p->year % 4) == 0) {
 			p->day = 29; // leap year
 		}
@@ -200,7 +201,8 @@ void RTC_incDateHour(Date_t *p, uint8 hour)
 	}
 	p->hour -= 24;
 
-	uint8 maxDay = MaxDays[p->mon - 1];
+	const uint8 idx = p->mon - 1;
+	uint8 maxDay = MaxDays[idx];
 	if (p->mon == 2 && (p->year % 4) == 0) {
 		maxDay++;
 	}
@@ -254,7 +256,8 @@ void RTC_incDateTime(Date_t *p, uint16 secOffset)
 	}
 	p->hour -= 24;
 
-	uint8 maxDay = MaxDays[p->mon - 1];
+	uint8 idx = p->mon - 1;
+	uint8 maxDay = MaxDays[idx];
 	if (p->mon == 2 && (p->year % 4) == 0) {
 		maxDay++;
 	}
@@ -293,9 +296,9 @@ BOOL RTC_needTimeSync()
 	return TRUE;
 }
 
-int RTC_writeTime(Date_t date)
+int RTC_writeTime(Date_t *date)
 {
-	if (RTC_isValidDate(&date)) {
+	if (RTC_isValidDate(date)) {
 		TimeSyncFlag = 1;
 		RTC_set(date);
 		memcpy(&TimeSyncDate, &date, sizeof(Date_t));
@@ -346,7 +349,7 @@ void RTC_Alarm_Scheduler_normal()
 
 	int diff, lastDiff = 60;
 	RtcAlarm_t *pNext = NULL;
-	for (int idx = 0; idx < RTC_ALARM_COUNT; idx++) {
+	for (uchar idx = 0; idx < RTC_ALARM_COUNT; idx++) {
 		diff = AlarmList[idx].minute - date.min;
 		if (diff <= 0) {
 			// diff 값이 음수이거나 차이가 없는 경우 다음 시간에 event를 발생시키기 위해 1시간을 더한다.

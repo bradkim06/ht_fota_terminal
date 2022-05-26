@@ -61,9 +61,10 @@ static void printMessage(uchar *p, int len)
 
 static int insert_termInfo(NbiotDeviceInfo_t *p)
 {
-	for (int i = 0; i < SERIAL_NUM_LEN / 2; i++) {
-		p->termSerial[i] =
-			ascii2BCD(conf.serialNum[2 + i * 2 + 0], conf.serialNum[2 + i * 2 + 1]);
+	for (uchar i = 0; i < SERIAL_NUM_LEN / 2; i++) {
+		uchar idx1 = (2 + i * 2 + 0);
+		uchar idx2 = (2 + i * 2 + 1);
+		p->termSerial[i] = ascii2BCD(conf.serialNum[idx1], conf.serialNum[idx2]);
 	}
 
 	// f/w version
@@ -211,7 +212,7 @@ static int insert_multiData(NbiotMeterData_t *p)
 {
 	METER_collectStoredData();
 
-	int nData = METER_getNumberOfStoredData();
+	uchar nData = METER_getNumberOfStoredData();
 	if (nData > MAX_NUM_STORED_DATA) {
 		nData = MAX_NUM_STORED_DATA;
 	}
@@ -220,11 +221,11 @@ static int insert_multiData(NbiotMeterData_t *p)
 	p->numData = nData;
 
 	memset(p->refValue, 0xFF, 4);
-	for (int i = 0; i < nData; i++) {
+	for (uchar i = 0; i < nData; i++) {
 		memset(p->valueDiff[i], 0xFF, 2);
 	}
 
-	int validPos = METER_getFirstValidPos();
+	uchar validPos = METER_getFirstValidPos();
 	p->refValuePos = validPos;
 
 	if (validPos != 0xFF) {
@@ -239,7 +240,7 @@ static int insert_multiData(NbiotMeterData_t *p)
 		memcpy(p->refValue, &prevValue, 4);
 		memset(p->valueDiff[validPos], 0, 2);
 
-		for (int i = validPos + 1; i < nData; i++) {
+		for (uchar i = validPos + 1; i < nData; i++) {
 			METER_getMeterData(i, valueArray);
 
 			if (METER_isAllFF(valueArray, 4)) {
@@ -350,8 +351,8 @@ int MODEM_errData(uchar *buf, int pfUlCnt, int pfDlCnt, int udpUlCnt, int udpDlC
 
 	p->npFlag = 0;
 
-	int logCnt = 0;
-	for (int i = 0; i < CNT_NBIOT_ERR_E_LOG; i++) {
+	uchar logCnt = 0;
+	for (uchar i = 0; i < CNT_NBIOT_ERR_E_LOG; i++) {
 		if (modemCtx.errLog[i][0] > 0) {
 			logCnt++;
 		}
@@ -364,7 +365,7 @@ int MODEM_errData(uchar *buf, int pfUlCnt, int pfDlCnt, int udpUlCnt, int udpDlC
 		temp16 = SWAP16(logCnt * LEN_NBIOT_ERR_E_LOG);
 		memcpy(p->errLength, &temp16, LEN_NBIOT_ERR_E_LENGTH);
 
-		for (int i = 0; i < logCnt; i++) {
+		for (uchar i = 0; i < logCnt; i++) {
 			memcpy(pLog, modemCtx.errLog[i], LEN_NBIOT_ERR_E_LOG);
 			pLog += LEN_NBIOT_ERR_E_LOG;
 		}
@@ -401,12 +402,12 @@ int MODEM_sendJoin(uchar *buf)
 }
 #endif
 
-int MODEM_sendCurrentData(uchar *buf)
+unsigned int MODEM_sendCurrentData(uchar *buf)
 {
 	NbiotDataReport_t *p = (NbiotDataReport_t *)buf;
 
 	p->protocol = PROTOCOL_VERSION_A3;
-	int len = 0;
+	unsigned int len = 0;
 	p->mtype = NBIOT_DATA_REPORT;
 	len++;
 
@@ -421,18 +422,18 @@ int MODEM_sendCurrentData(uchar *buf)
 	len += insert_oneData(&p->data);
 
 	p->len = len;
-	buf[len + 2] = cal_checksum(&p->mtype, len); // 2 - protocol, len
+	buf[(len + 2)] = cal_checksum(&p->mtype, len); // 2 - protocol, len
 
 	return len + 3; // 3 = protocol + len + checksum
 }
 
-int MODEM_sendPeriodicData(uchar *buf)
+unsigned int MODEM_sendPeriodicData(uchar *buf)
 {
 	NbiotDataReport_t *p = (NbiotDataReport_t *)buf;
 
 	p->protocol = PROTOCOL_VERSION_A3;
 
-	int len = 0;
+	unsigned int len = 0;
 	p->mtype = NBIOT_DATA_REPORT;
 	len++;
 
@@ -573,7 +574,8 @@ int MODEM_checkDlMessage(uchar *buf, int len)
 	} else {
 		NbiotAck_t *p = (NbiotAck_t *)buf;
 		uchar c_checksum = cal_checksum(&p->mtype, p->len);
-		uchar r_checksum = buf[p->len + 2];
+		const unsigned int rLen = p->len + 2;
+		uchar r_checksum = buf[rLen];
 
 		if (r_checksum == c_checksum) {
 			// frame의 경우 모르는 command라도 checksum을 통과했으면 정상적인
@@ -672,7 +674,7 @@ int MODEM_qaData(uchar *buf)
 
 	// Reserved 0xF1F1F1
 #define QA_RESERVED 0xF1
-	for (int i = 0; i < sizeof(p->reserved); i++) {
+	for (uchar i = 0; i < sizeof(p->reserved); i++) {
 		p->reserved[i] = QA_RESERVED;
 	}
 

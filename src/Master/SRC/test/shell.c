@@ -263,7 +263,7 @@ uint32 SHELL_decimal(char *p)
 
 static int getArguments(char *p, char **cmdArgs, int maxArgs)
 {
-	int numOfArguments = 0;
+	unsigned int numOfArguments = 0;
 	while (1) {
 		// search space
 		while (*p != 0x20) {
@@ -293,8 +293,8 @@ static void help()
 	printf("                                Command set                                 \n");
 	printf("----------------------------------------------------------------------------\n");
 
-	int nCmd = sizeof(CmdSet) / sizeof(ShellCommandSet_t);
-	for (int i = 0; i < nCmd; i++) {
+	static const int nCmd = sizeof(CmdSet) / sizeof(ShellCommandSet_t);
+	for (unsigned int i = 0; i < nCmd; i++) {
 		if (strlen(CmdSet[i].usage)) {
 			printf("%s\n", CmdSet[i].usage);
 		}
@@ -304,7 +304,7 @@ static void help()
 
 static int whatCommand(char *p)
 {
-	int i;
+	unsigned int i;
 	char tmp[0x10];
 
 	i = 0;
@@ -312,7 +312,7 @@ static int whatCommand(char *p)
 		tmp[i++] = *p++;
 	tmp[i] = '\0';
 
-	int nCmd = sizeof(CmdSet) / sizeof(ShellCommandSet_t);
+	static const int nCmd = sizeof(CmdSet) / sizeof(ShellCommandSet_t);
 	for (i = 0; i < nCmd; i++) {
 		if (!strcmp(CmdSet[i].cmd, tmp)) {
 			return i;

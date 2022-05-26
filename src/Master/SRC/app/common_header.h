@@ -242,12 +242,9 @@ extern void MODEM_disable();
 	do {                                                                                       \
 		WDTCTL = WDT_ARST_16SEC;                                                           \
 		if (device_sleep_state == TRUE) {                                                  \
-			PRINT_enable();                                                            \
-			TIMER_start();                                                             \
 			device_sleep_state = FALSE;                                                \
 			__bic_SR_register_on_exit(POWER_MODE);                                     \
 		}                                                                                  \
-		__no_operation();                                                                  \
 	} while (0)
 
 #ifndef ABS

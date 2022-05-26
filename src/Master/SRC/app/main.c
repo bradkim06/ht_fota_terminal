@@ -238,7 +238,7 @@ int main()
 	WDTCTL = WDT_VRST_50SEC; // Start watchdog timer(3.2768 sec)
 #define FOTA_RAM_ADDR 0x1C00
 #define FOTA_FLASH_ADDR 0x20200
-#define FOTA_SIZE 0x1000
+#define FOTA_SIZE 0x1200
 	// isr copy ram(size & addr need to check lnk.cmd)
 	memcpy((void *)FOTA_RAM_ADDR, (void *)FOTA_FLASH_ADDR, FOTA_SIZE);
 	initSystem();

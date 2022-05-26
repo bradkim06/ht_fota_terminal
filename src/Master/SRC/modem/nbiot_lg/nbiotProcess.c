@@ -107,40 +107,11 @@ static StepFlowIndex_t StepFlowIndex = { 0 };
 // NB-IoT Modem AT command list
 static const AtCmd_t AtCmdSwReset = { AT_CMD_IDX_SW_RESET, "AT+NRB" };
 static const AtCmd_t AtCmdDetachNw = { AT_CMD_IDX_DETACH_NW, "AT+CGATT" };
-static const AtCmd_t AtCmdGetIMEI = { AT_CMD_IDX_GET_IMEI, "AT+CGSN" };
-static const AtCmd_t AtCmdGetIMSI = { AT_CMD_IDX_GET_IMSI, "AT+CIMI" };
-static const AtCmd_t AtCmdGetICCID = { AT_CMD_IDX_GET_ICCID, "AT+NCCID" };
-static const AtCmd_t AtCmdGetRadioQuality = { AT_CMD_IDX_GET_RADIO_QUALITY, "AT+NUESTATS" };
-static const AtCmd_t AtCmdGetNwAlarm = { AT_CMD_IDX_GET_NW_ALARM, "AT+CEREG?" };
-static const AtCmd_t AtCmdGetTime = { AT_CMD_IDX_GET_TIME, "AT+CCLK?" };
 static const AtCmd_t AtCmdSetRfCtrl = { AT_CMD_IDX_SET_RF_CTRL, "AT+CFUN" };
-static const AtCmd_t AtCmdSetPSM = { AT_CMD_IDX_SET_PSM, "AT+CPSMS" };
-static const AtCmd_t AtCmdSetBAND = { AT_CMD_IDX_SET_BAND, "AT+NBAND" };
-static const AtCmd_t AtCmdSetReselect = { AT_CMD_IDX_SET_RESELECT, "AT+NCONFIG" };
-static const AtCmd_t AtCmdSetNwAlarm = { AT_CMD_IDX_SET_NW_ALARM, "AT+CEREG" };
 static const AtCmd_t AtCmdSocketCreate = { AT_CMD_IDX_SOCKET_CREATE, "AT+NSOCR" };
-static const AtCmd_t AtCmdTcpConnect = { AT_CMD_IDX_TCP_CONNECT, "AT+NSOCO" };
-static const AtCmd_t AtCmdTcpSendUL = { AT_CMD_IDX_TCP_CONNECT, "AT+NSOSD" };
-static const AtCmd_t AtCmdSocketSendUL = { AT_CMD_IDX_SOCKET_SEND_UL, "AT+NSOST" };
 static const AtCmd_t AtCmdSocketClose = { AT_CMD_IDX_SOCKET_CLOSE, "AT+NSOCL" };
-static const AtCmd_t AtCmdSetReportPSM = { AT_CMD_IDX_SET_REPORT_PSM, "AT+NPSMR" };
-static const AtCmd_t AtCmdGetReportPSM = { AT_CMD_IDX_GET_REPORT_PSM, "AT+NPSMR?" };
-static const AtCmd_t AtCmdSocketRecvDL = { AT_CMD_IDX_SOCKET_RECV_DL, "AT+NSORF" };
 
-static const AtCmd_t AtCmdGetFwRev = { AT_CMD_IDX_GET_FW_REV, "AT+QGMR" };
-static const AtCmd_t AtCmdSetLWM2M = { AT_CMD_IDX_SET_LWM2M, "AT+QBOOTSTRAPHOLDOFF" };
-static const AtCmd_t AtCmdSetLWServer = { AT_CMD_IDX_SET_LWM2M_SERVER, "AT+QLWSERVERIP" };
-static const AtCmd_t AtCmdSetEPN = { AT_CMD_IDX_SET_EPN, "AT+QLWEPNS" };
-static const AtCmd_t AtCmdSetBSPS = { AT_CMD_IDX_SET_BSPS, "AT+QLWMBSPS" };
-static const AtCmd_t AtCmdGetLWServer = { AT_CMD_IDX_GET_LWM2M_SERVER, "AT+QLWSERVERIP?" };
-static const AtCmd_t AtCmdGetBSPS = { AT_CMD_IDX_GET_BSPS, "AT+QLWMBSPS?" };
-static const AtCmd_t AtCmdGetEPN = { AT_CMD_IDX_GET_EPN, "AT+QLWEPNS?" };
-static const AtCmd_t AtCmdSwtLWM2M = { AT_CMD_IDX_SWITCH_LWM2M, "AT+QREGSWT" };
-static const AtCmd_t AtCmdGetSwtLWM2M = { AT_CMD_IDX_GET_SWITCH_LWM2M, "AT+QREGSWT?" };
 static const AtCmd_t AtCmdSetFOTA = { AT_CMD_IDX_SET_FOTA, "AT+QLWFOTAIND" };
-#if defined(NBIOT_LG_TYPE)
-static const AtCmd_t AtCmdULDATAEX = { AT_CMD_IDX_QLWULDATAEX, "AT+QLWULDATAEX" };
-#endif
 
 /**
  * @brief Get the End Point Name(= CSE ID) object
@@ -167,7 +138,7 @@ static char *getEndPointName(const char *serviceCode, const char *ctnStr, const 
 	uuid_create_md5_from_name(&u, uuidParam, LEN_UUID_PARAM);
 	snprintf(uuid, LEN_MODEM_UUID + 1, "%8.8lx-%4.4x-%4.4x-%2.2x%2.2x-", u.time_low, u.time_mid,
 		 u.time_hi_and_version, u.clock_seq_hi_and_reserved, u.clock_seq_low);
-	for (int i = 0; i < 6; i++) {
+	for (unsigned int i = 0; i < 6; i++) {
 		snprintf(uuid, LEN_MODEM_UUID + 1, "%s%2.2x", uuid, u.node[i]);
 	}
 
@@ -326,7 +297,7 @@ static char *getQaReportMessage(int *messageLen)
 	int dataLen = (len * 2) + 1;
 	memset(ul_data, 0, sizeof(ul_data));
 
-	for (int i = 0; i < len; i++) {
+	for (unsigned int i = 0; i < len; i++) {
 		snprintf(ul_data, dataLen, "%s%02X", ul_data, *(raw_data + i));
 	}
 
@@ -353,7 +324,7 @@ static char *getErrorReportMessage(int *messageLen)
 	int dataLen = (len * 2) + 1;
 	memset(ul_data, 0, sizeof(ul_data));
 
-	for (int i = 0; i < len; i++) {
+	for (unsigned int i = 0; i < len; i++) {
 		snprintf(ul_data, dataLen, "%s%02X", ul_data, *(raw_data + i));
 	}
 
@@ -373,7 +344,7 @@ static char *getErrorReportMessage(int *messageLen)
 static char *getMeterDataMessage(BOOL isJoin, int *messageLen)
 {
 	memset(raw_data, 0, LEN_MAX_NBIOT_DATA);
-	int len;
+	unsigned int len;
 	if (isJoin) {
 		len = MODEM_sendCurrentData(raw_data);
 	} else {
@@ -384,7 +355,7 @@ static char *getMeterDataMessage(BOOL isJoin, int *messageLen)
 	// 본래 데이터 길이의 x2에 '\0'를 위한 +1로 정의.
 	memset(ul_data, 0, sizeof(ul_data));
 
-	for (int i = 0; i < len; i++) {
+	for (unsigned int i = 0; i < len; i++) {
 		snprintf(ul_data, LEN_MAX_AT_DATA, "%s%02X", ul_data, *(raw_data + i));
 	}
 
@@ -473,6 +444,7 @@ static ModemStep_t bip()
 	} break;
 
 	case 2: {
+		static const AtCmd_t AtCmdGetIMSI = { AT_CMD_IDX_GET_IMSI, "AT+CIMI" };
 		sendAtCommand(MODEM_CHECK_ALIVE_TIMEOUT, MODEM_CHECK_ALIVE_RETRY, &AtCmdGetIMSI,
 			      NULL);
 		StepFlowIndex.bip++;
@@ -508,6 +480,8 @@ static ModemStep_t bip()
  */
 static ModemStep_t init()
 {
+	static const AtCmd_t AtCmdSetLWServer = { AT_CMD_IDX_SET_LWM2M_SERVER, "AT+QLWSERVERIP" };
+
 	ModemStep_t nextStep =
 		modemCtx.step; // step 종료 전 까지 현재 step을 next step 으로 return.
 	modemCtx.errCode = MODEM_ERROR_AT_CMD_NO_RESP;
@@ -518,33 +492,41 @@ static ModemStep_t init()
 
 	switch (StepFlowIndex.init) {
 	case 0: {
+		static const AtCmd_t AtCmdGetICCID = { AT_CMD_IDX_GET_ICCID, "AT+NCCID" };
 		sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, AT_CMD_DEFAULT_RETRY, &AtCmdGetICCID, NULL);
 		StepFlowIndex.init++;
 	} break;
 
 	case 1: {
+		static const AtCmd_t AtCmdGetIMEI = { AT_CMD_IDX_GET_IMEI, "AT+CGSN" };
 		sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, AT_CMD_DEFAULT_RETRY, &AtCmdGetIMEI, "=1");
 		StepFlowIndex.init++;
 	} break;
 
 	case 2: {
 		setModemData();
+		static const AtCmd_t AtCmdGetLWServer = { AT_CMD_IDX_GET_LWM2M_SERVER,
+							  "AT+QLWSERVERIP?" };
 		sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, AT_CMD_DEFAULT_RETRY, &AtCmdGetLWServer,
 			      NULL);
 		StepFlowIndex.init++;
 	} break;
 
 	case 3: {
+		static const AtCmd_t AtCmdGetEPN = { AT_CMD_IDX_GET_EPN, "AT+QLWEPNS?" };
 		sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, AT_CMD_DEFAULT_RETRY, &AtCmdGetEPN, NULL);
 		StepFlowIndex.init++;
 	} break;
 
 	case 4: {
+		static const AtCmd_t AtCmdGetBSPS = { AT_CMD_IDX_GET_BSPS, "AT+QLWMBSPS?" };
 		sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, AT_CMD_DEFAULT_RETRY, &AtCmdGetBSPS, NULL);
 		StepFlowIndex.init++;
 	} break;
 
 	case 5: {
+		static const AtCmd_t AtCmdGetSwtLWM2M = { AT_CMD_IDX_GET_SWITCH_LWM2M,
+							  "AT+QREGSWT?" };
 		sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, AT_CMD_DEFAULT_RETRY, &AtCmdGetSwtLWM2M,
 			      NULL);
 		StepFlowIndex.init++;
@@ -552,6 +534,7 @@ static ModemStep_t init()
 
 #define STEP_RESET_MODEM 19
 	case 6: {
+		static const AtCmd_t AtCmdGetFwRev = { AT_CMD_IDX_GET_FW_REV, "AT+QGMR" };
 		sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, AT_CMD_DEFAULT_RETRY, &AtCmdGetFwRev, NULL);
 		StepFlowIndex.init =
 			(modemCtx.proc.runInit) ? (StepFlowIndex.init + 1) : STEP_RESET_MODEM;
@@ -568,16 +551,19 @@ static ModemStep_t init()
 	} break;
 
 	case 9: {
+		static const AtCmd_t AtCmdSetBAND = { AT_CMD_IDX_SET_BAND, "AT+NBAND" };
 		sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, AT_CMD_DEFAULT_RETRY, &AtCmdSetBAND, "=5");
 		StepFlowIndex.init++;
 	} break;
 
 	case 10: {
+		static const AtCmd_t AtCmdSetPSM = { AT_CMD_IDX_SET_PSM, "AT+CPSMS" };
 		sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, AT_CMD_DEFAULT_RETRY, &AtCmdSetPSM, "=0");
 		StepFlowIndex.init++;
 	} break;
 
 	case 11: {
+		static const AtCmd_t AtCmdSetReselect = { AT_CMD_IDX_SET_RESELECT, "AT+NCONFIG" };
 		sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, AT_CMD_DEFAULT_RETRY, &AtCmdSetReselect,
 			      "=CELL_RESELECTION,TRUE");
 		StepFlowIndex.init++;
@@ -596,18 +582,22 @@ static ModemStep_t init()
 	} break;
 
 	case 14: {
+		static const AtCmd_t AtCmdSetEPN = { AT_CMD_IDX_SET_EPN, "AT+QLWEPNS" };
 		sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, AT_CMD_DEFAULT_RETRY, &AtCmdSetEPN,
 			      "=1,\"%s\"", modem.epName);
 		StepFlowIndex.init++;
 	} break;
 
 	case 15: {
+		static const AtCmd_t AtCmdSetBSPS = { AT_CMD_IDX_SET_BSPS, "AT+QLWMBSPS" };
 		sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, AT_CMD_DEFAULT_RETRY, &AtCmdSetBSPS, "=%s",
 			      modem.bsParam);
 		StepFlowIndex.init++; // BS start after 15sec after attach complete
 	} break;
 
 	case 16: {
+		static const AtCmd_t AtCmdSetLWM2M = { AT_CMD_IDX_SET_LWM2M,
+						       "AT+QBOOTSTRAPHOLDOFF" };
 		sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, AT_CMD_DEFAULT_RETRY, &AtCmdSetLWM2M, "=0");
 		StepFlowIndex.init++;
 	} break;
@@ -618,6 +608,7 @@ static ModemStep_t init()
 	} break;
 
 	case 18: {
+		static const AtCmd_t AtCmdSwtLWM2M = { AT_CMD_IDX_SWITCH_LWM2M, "AT+QREGSWT" };
 		sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, AT_CMD_DEFAULT_RETRY, &AtCmdSwtLWM2M, "=1");
 		StepFlowIndex.init++;
 	} break;
@@ -671,18 +662,21 @@ static ModemStep_t attachNw()
 	} break;
 
 	case 2: {
+		static const AtCmd_t AtCmdGetReportPSM = { AT_CMD_IDX_GET_REPORT_PSM, "AT+NPSMR?" };
 		sendAtCommand(AT_CMD_CHECK_PSM_TIMEOUT, AT_CMD_CHECK_PSM_RETRY, &AtCmdGetReportPSM,
 			      NULL);
 		StepFlowIndex.attach++;
 	} break;
 
 	case 3: {
+		static const AtCmd_t AtCmdSetNwAlarm = { AT_CMD_IDX_SET_NW_ALARM, "AT+CEREG" };
 		sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, AT_CMD_DEFAULT_RETRY, &AtCmdSetNwAlarm, "=5");
 		StepFlowIndex.attach++;
 	} break;
 
 	case 4: {
 		modemCtx.errCode = MODEM_ERROR_ATTACH_FAIL;
+		static const AtCmd_t AtCmdGetNwAlarm = { AT_CMD_IDX_GET_NW_ALARM, "AT+CEREG?" };
 		sendAtCommand(AT_CMD_ATTACH_TIMEOUT, AT_CMD_ATTACH_RETRY, &AtCmdGetNwAlarm, NULL);
 		StepFlowIndex.attach++;
 	} break;
@@ -690,17 +684,21 @@ static ModemStep_t attachNw()
 	case 5: {
 #define GET_TIME_TIMEOUT 5000
 #define GET_TIME_RETRY 11
+		static const AtCmd_t AtCmdGetTime = { AT_CMD_IDX_GET_TIME, "AT+CCLK?" };
 		sendAtCommand(GET_TIME_TIMEOUT, GET_TIME_RETRY, &AtCmdGetTime, NULL);
 		StepFlowIndex.attach++;
 	} break;
 
 	case 6: {
+		static const AtCmd_t AtCmdGetRadioQuality = { AT_CMD_IDX_GET_RADIO_QUALITY,
+							      "AT+NUESTATS" };
 		sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, AT_CMD_DEFAULT_RETRY, &AtCmdGetRadioQuality,
 			      "=RADIO");
 		StepFlowIndex.attach++;
 	} break;
 
 	case 7: {
+		static const AtCmd_t AtCmdSetReportPSM = { AT_CMD_IDX_SET_REPORT_PSM, "AT+NPSMR" };
 		sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, AT_CMD_DEFAULT_RETRY, &AtCmdSetReportPSM,
 			      "=1");
 		StepFlowIndex.attach++;
@@ -726,6 +724,7 @@ static ModemStep_t attachNw()
  */
 static ModemStep_t updateQa()
 {
+	static const AtCmd_t AtCmdSocketSendUL = { AT_CMD_IDX_SOCKET_SEND_UL, "AT+NSOST" };
 	ModemStep_t nextStep =
 		modemCtx.step; // step 종료 전 까지 현재 step을 next step 으로 return.
 	modemCtx.errCode = MODEM_ERROR_AT_CMD_NO_RESP;
@@ -813,6 +812,7 @@ static ModemStep_t transfer()
 		modemCtx.status.psmOn = 0;
 
 		modemCtx.errCode = MODEM_ERROR_PF_UL_FAIL;
+		static const AtCmd_t AtCmdULDATAEX = { AT_CMD_IDX_QLWULDATAEX, "AT+QLWULDATAEX" };
 		sendAtCommand(AT_CMD_DATA_SEND_TIMEOUT, AT_CMD_DATA_SEND_RETRY, &AtCmdULDATAEX,
 			      "=0,%d,%s,0x0100,0", len, data);
 
@@ -1082,6 +1082,8 @@ static ModemStep_t fota()
 
 static ModemStep_t dFota()
 {
+	static const AtCmd_t AtCmdSocketRecvDL = { AT_CMD_IDX_SOCKET_RECV_DL, "AT+NSORF" };
+
 	ModemStep_t nextStep =
 		modemCtx.step; // step 종료 전 까지 현재 step을 next step 으로 return.
 	modemCtx.errCode = MODEM_ERROR_AT_CMD_NO_RESP;
@@ -1097,6 +1099,7 @@ static ModemStep_t dFota()
 	} break;
 
 	case 1: {
+		static const AtCmd_t AtCmdTcpConnect = { AT_CMD_IDX_TCP_CONNECT, "AT+NSOCO" };
 		sendAtCommand(FOTA_TIMEOUT, FOTA_RETRY, &AtCmdTcpConnect, "=%d,%s,%d",
 			      modemCtx.socket, Fota.Info.ip, Fota.Info.port);
 		StepFlowIndex.dfota++;
@@ -1125,7 +1128,7 @@ static ModemStep_t dFota()
 		memset(Fota.reqMsg, 0, sizeof(Fota.reqMsg));
 
 		char checksum = 0;
-		for (int i = 0; i < sizeof(msg); i++) {
+		for (unsigned int i = 0; i < sizeof(msg); i++) {
 			char data = *(msg + i);
 			checksum += data;
 			snprintf(Fota.reqMsg, FOTA_REQMSG_SIZE * 2 - 1, "%s%02X", Fota.reqMsg,
@@ -1133,6 +1136,7 @@ static ModemStep_t dFota()
 		}
 		snprintf(Fota.reqMsg, FOTA_REQMSG_SIZE * 2 + 2, "%s%02X", Fota.reqMsg, checksum);
 
+		static const AtCmd_t AtCmdTcpSendUL = { AT_CMD_IDX_TCP_CONNECT, "AT+NSOSD" };
 		sendAtCommand(FOTA_TIMEOUT, FOTA_RETRY, &AtCmdTcpSendUL, "=%d,%d,%s,0x100,101",
 			      modemCtx.socket, FOTA_REQMSG_SIZE, Fota.reqMsg);
 		StepFlowIndex.dfota++;

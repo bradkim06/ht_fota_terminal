@@ -111,9 +111,9 @@
 	} while (0);
 
 typedef struct {
-	int len;
-	int wpos;
-	int rpos;
+	unsigned int len;
+	unsigned int wpos;
+	unsigned int rpos;
 	char *buf;
 } UartBuf_t;
 
@@ -403,7 +403,7 @@ int printf(const char *format, ...)
 #define BUF_SIZE DEBUG_TX_BUF_LEN
 
 	if (IsPrintOn) {
-		int len = 0;
+		unsigned int len = 0;
 		char buf[BUF_SIZE];
 
 		va_list arg;
@@ -412,7 +412,7 @@ int printf(const char *format, ...)
 		len += vsnprintf(buf + len, BUF_SIZE - 1, format, arg);
 		va_end(arg);
 
-		if (buf[len - 1] == '\n') {
+		if (buf[(len - 1)] == '\n') {
 			buf[len++] = '\r';
 		}
 
@@ -431,7 +431,7 @@ int printf_ts(const char *format, ...)
 #define BUF_SIZE DEBUG_TX_BUF_LEN
 
 	if (IsPrintOn) {
-		int len = 0;
+		unsigned int len = 0;
 		char buf[BUF_SIZE];
 		Date_t date;
 
@@ -709,6 +709,7 @@ __interrupt void USCI_A0_ISR(void)
 			}
 		}
 	}
+	WAKEUP_DEVICE();
 }
 #endif
 
@@ -751,6 +752,7 @@ __interrupt void USCI_A1_ISR(void)
 			}
 		}
 	}
+	WAKEUP_DEVICE();
 }
 
 // UART_2 interrupt - SMT/SKT/NB-IoT Modem
@@ -795,6 +797,7 @@ __interrupt void USCI_A2_ISR(void)
 			}
 		}
 	}
+	WAKEUP_DEVICE();
 }
 
 // UART_3 interrupt - Rx는 계량기 데이터 수신용, Tx는 신한 이외의 계량기에 명령 전송용으로 사용
@@ -838,5 +841,6 @@ __interrupt void USCI_A3_ISR(void)
 			OSAL_startEventTimer(AppTaskId, APP_EVENT_METER_RX, (uint32)50);
 		}
 	}
+	WAKEUP_DEVICE();
 }
 #endif // #if !defined(AUX_REPEATER)

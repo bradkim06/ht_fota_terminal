@@ -48,7 +48,7 @@ MeterTempData_t TempMeterData = { 0 };
 //주기 검침 데이터 저장 영역
 static MeterStoredData_t StoredMeterData = { 0 };
 
-inline void insertDateToData(Date_t *pDate, MeterUnitData_t *pData, BOOL isIgnoreSec)
+void insertDateToData(Date_t *pDate, MeterUnitData_t *pData, BOOL isIgnoreSec)
 {
 	if (RTC_isValidDate(pDate)) {
 		// Data의 year는 RTC의 year에서 2000을 빼서 사용
@@ -62,7 +62,7 @@ inline void insertDateToData(Date_t *pDate, MeterUnitData_t *pData, BOOL isIgnor
 	}
 }
 
-inline void copyDateFromData(MeterUnitData_t *pData, Date_t *pDate, BOOL isIgnoreSec)
+void copyDateFromData(MeterUnitData_t *pData, Date_t *pDate, BOOL isIgnoreSec)
 {
 	// RTC의 year는 Data의 year에서 2000을 더해야 함.
 	pDate->year = pData->year + 2000;
@@ -149,7 +149,7 @@ void METER_displayStoredData()
 	printf("# %d data, serial no: %02x%02x%02x%02x(%02x) T: %s\n", p->nData, p->meterSerial[0],
 	       p->meterSerial[1], p->meterSerial[2], p->meterSerial[3], p->caliberDp, termSerial);
 
-	for (int i = 0; i < p->nData; i++) {
+	for (unsigned int i = 0; i < p->nData; i++) {
 		MeterUnitData_t *pUnit = &p->unit[i];
 		printf("   %2d)  %2d-%02d-%02d %02d:%02d:%02d   %02x%02x%02x%02x(%02x)\n", i + 1,
 		       pUnit->year, pUnit->mon, pUnit->day, pUnit->hour, pUnit->min, pUnit->sec,
@@ -179,7 +179,7 @@ BOOL METER_isAllFF(uchar *p, int len)
 {
 	BOOL result = TRUE;
 
-	for (int i = 0; i < len; i++) {
+	for (unsigned int i = 0; i < len; i++) {
 		if (*(p + i) != 0xFF) {
 			result = FALSE;
 			break;
@@ -206,7 +206,7 @@ void METER_deleteAllData()
 	METER_deleteStoredData();
 }
 
-int METER_getNumberOfStoredData()
+uint8 METER_getNumberOfStoredData()
 {
 	return StoredMeterData.nData;
 }
@@ -231,18 +231,18 @@ uint8 METER_getMeterCaliber_dp()
 	return StoredMeterData.caliberDp;
 }
 
-void METER_getMeterData(int index, uint8 *buf)
+void METER_getMeterData(uint8 index, uint8 *buf)
 {
-	int nData = METER_getNumberOfStoredData();
-	if (index >= 0 && index < nData) {
+	uint8 nData = METER_getNumberOfStoredData();
+	if (index < nData) {
 		memcpy(buf, StoredMeterData.unit[index].meterData, 4);
 	}
 }
 
-uint8 METER_getMeterStatus(int index)
+uint8 METER_getMeterStatus(uint8 index)
 {
-	int nData = METER_getNumberOfStoredData();
-	if (index >= 0 && index < nData) {
+	uint8 nData = METER_getNumberOfStoredData();
+	if (index < nData) {
 		return StoredMeterData.unit[index].meterStatus;
 	}
 	return 0;
@@ -390,11 +390,11 @@ void METER_addTempData(Date_t *pDate, MeterUnitData_t *pUnit)
 	memcpy(TempMeterData.meterSerial, StoredMeterData.meterSerial, 4);
 }
 
-int METER_getFirstValidPos()
+uchar METER_getFirstValidPos()
 {
-	int pos = 0xFF;
+	uchar pos = 0xFF;
 
-	for (int i = 0; i < StoredMeterData.nData; i++) {
+	for (uchar i = 0; i < StoredMeterData.nData; i++) {
 		if (METER_isAllFF(StoredMeterData.unit[i].meterData, 4) == FALSE) {
 			pos = i;
 			break;
@@ -422,7 +422,7 @@ void METER_saveMeterInfo(uint8 *serial, uint8 caliberDp, uint8 dif, uint8 vif)
 uint8 std_checksum(uint8 *from, int size)
 {
 	uint8 checksum = 0;
-	for (int i = 0; i < size; i++) {
+	for (unsigned int i = 0; i < size; i++) {
 		checksum += *(from + i);
 	}
 
@@ -444,8 +444,9 @@ BOOL read_std_d_meter(uint8 *rxBuf, MeterUnitData_t *pUnit)
 		return FAIL;
 	}
 
-	for (int i = 0; i < 4; i++) {
-		pUnit->meterData[i] = pMsg->value[3 - i];
+	for (uchar i = 0; i < 4; i++) {
+		uchar idx = 3 - i;
+		pUnit->meterData[i] = pMsg->value[idx];
 	}
 
 	pUnit->meterStatus = pMsg->status;
@@ -457,8 +458,9 @@ BOOL read_std_d_meter(uint8 *rxBuf, MeterUnitData_t *pUnit)
 	pUnit->icon.leak = (pUnit->meterStatus & 0x20) ? 1 : 0;
 
 	uint8 serial[4];
-	for (int i = 0; i < 4; i++) { // serial 4byte
-		serial[i] = pMsg->serial[3 - i];
+	for (uchar i = 0; i < 4; i++) { // serial 4byte
+		uchar idx = 3 - i;
+		serial[i] = pMsg->serial[idx];
 	}
 
 	uchar caliberDp = (pMsg->dif & 0xF0) | (pMsg->vif & 0x0F);
@@ -497,8 +499,8 @@ BOOL read_std_d_meter(uint8 *rxBuf, MeterUnitData_t *pUnit)
 BOOL read_shinhan_d_meter(uint8 *rxBuf, MeterUnitData_t *pUnit)
 {
 	uint8 checksum = 0x00;
-	int offset = 0;
-	int frame_len = 0;
+	unsigned int offset = 0;
+	unsigned int frame_len = 0;
 
 	uchar decimalPoint = 3;
 	if (rxBuf[2] == SHINHAN_METER_DATA_LEN) {
@@ -520,7 +522,7 @@ BOOL read_shinhan_d_meter(uint8 *rxBuf, MeterUnitData_t *pUnit)
 	}
 
 	checksum = 0;
-	for (int i = 1; i < frame_len - 1; i++) {
+	for (uchar i = 1; i < frame_len - 1; i++) {
 		checksum ^= rxBuf[i];
 	}
 
@@ -530,7 +532,7 @@ BOOL read_shinhan_d_meter(uint8 *rxBuf, MeterUnitData_t *pUnit)
 	}
 
 	int dataValid = 0;
-	for (int i = 0; i < 4; i++) {
+	for (unsigned int i = 0; i < 4; i++) {
 		dataValid += rxBuf[10 + offset - i];
 		pUnit->meterData[i] = rxBuf[10 + offset - i];
 	}
@@ -559,8 +561,9 @@ BOOL read_shinhan_d_meter(uint8 *rxBuf, MeterUnitData_t *pUnit)
 	pUnit->icon.leak = (pUnit->meterStatus & 0x08) ? 1 : 0;
 
 	uint8 serial[4];
-	for (int i = 0; i < 4; i++) { // serial 4byte
-		serial[i] = rxBuf[6 - i];
+	for (uchar i = 0; i < 4; i++) { // serial 4byte
+		uchar idx = 6 - i;
+		serial[i] = rxBuf[idx];
 	}
 
 	// printf("  - Serial Num  : %02x%02x%02x%02x\n", serial[0], serial[1], serial[2], serial[3]);
@@ -604,15 +607,15 @@ BOOL read_mns_d_meter(uint8 *rxBuf, MeterUnitData_t *pUnit)
 	uint8 rChecksum = hex2int(pRaw->checksum[0]) * 16 + hex2int(pRaw->checksum[1]);
 	uint8 cChecksum = 0;
 
-	for (int i = MNS_CHECKSUM_START1; i <= MNS_CHECKSUM_STOP1; i++) {
+	for (unsigned int i = MNS_CHECKSUM_START1; i <= MNS_CHECKSUM_STOP1; i++) {
 		cChecksum += rxBuf[i - 1];
 	}
 
-	for (int i = MNS_CHECKSUM_START2; i <= MNS_CHECKSUM_STOP2; i += 2) {
+	for (unsigned int i = MNS_CHECKSUM_START2; i <= MNS_CHECKSUM_STOP2; i += 2) {
 		cChecksum += (hex2int(rxBuf[i - 1]) * 16 + hex2int(rxBuf[i]));
 	}
 
-	for (int i = MNS_CHECKSUM_START3; i <= MNS_CHECKSUM_STOP3; i += 2) {
+	for (unsigned int i = MNS_CHECKSUM_START3; i <= MNS_CHECKSUM_STOP3; i += 2) {
 		cChecksum += (hex2int(rxBuf[i - 1]) * 16 + hex2int(rxBuf[i]));
 	}
 
@@ -622,18 +625,18 @@ BOOL read_mns_d_meter(uint8 *rxBuf, MeterUnitData_t *pUnit)
 	}
 
 	// meter data
-	for (int i = 0; i < 4; i++) {
+	for (unsigned int i = 0; i < 4; i++) {
 		pUnit->meterData[i] = (pRaw->meterValue[2 * i + 0] - '0') << 4 |
 				      pRaw->meterValue[2 * i + 1] - '0';
 	}
 
 	uint8 serial[4];
-	for (int i = 0; i < 4; i++) { // serial 4byte
-		serial[i] = pRaw->userID[2 * i + 2] - '0' << 4 | pRaw->userID[2 * i + 3] - '0';
+	for (unsigned int i = 0; i < 4; i++) { // serial 4byte
+		serial[i] = (pRaw->userID[2 * i + 2] - '0') << 4 | pRaw->userID[2 * i + 3] - '0';
 	}
 
 	pUnit->meterStatus = 0;
-	uchar caliberDp = 0x13; // MNS는 항상 15mm/소숫점 3자리
+	static const uchar caliberDp = 0x13; // MNS는 항상 15mm/소숫점 3자리
 
 	// mns는 상태정보를 제공하지 않음
 	pUnit->icon.lowBatt = 0;
@@ -658,7 +661,7 @@ BOOL read_mns_d_meter(uint8 *rxBuf, MeterUnitData_t *pUnit)
  */
 BOOL read_onetl_meter(uint8 *rxBuf, int len, MeterUnitData_t *pUnit)
 {
-	int stxIdx = 0;
+	unsigned int stxIdx = 0;
 	while (stxIdx < len) {
 		if (rxBuf[stxIdx] == ONETL_RESP_STX) {
 			break;
@@ -687,9 +690,10 @@ BOOL read_onetl_meter(uint8 *rxBuf, int len, MeterUnitData_t *pUnit)
 	}
 
 	switch (pMsg->id) {
+		static const uchar decimalPoint = 0x03; // 소수점 3자리
 	case ONETL_ID_READ_FLOW: {
 		OntelFlowResp_t *pMsg = (OntelFlowResp_t *)pBuf;
-		for (int i = 0; i < 4; i++) {
+		for (unsigned int i = 0; i < 4; i++) {
 			pUnit->meterData[i] = LO_UINT8(pMsg->meterValue[4 - i]) << 4 |
 					      HI_UINT8(pMsg->meterValue[3 - i]);
 		}
@@ -704,24 +708,23 @@ BOOL read_onetl_meter(uint8 *rxBuf, int len, MeterUnitData_t *pUnit)
 		pUnit->icon.leak = 0;
 
 		uint8 serial[4];
-		for (int i = 0; i < 4; i++) { // serial 4byte
+		for (unsigned int i = 0; i < 4; i++) { // serial 4byte
 			serial[i] = pMsg->serial[3 - i];
 		}
 
-		uchar decimalPoint = 0x03; // 소수점 3자리
 		METER_saveMeterInfo(serial, decimalPoint, 0, 0);
 	} break;
 
 	case ONETL_ID_READ_TOTAL: {
 		OntelTotalResp_t *pMsg = (OntelTotalResp_t *)pBuf;
-		for (int i = 0; i < 4; i++) {
+		for (unsigned int i = 0; i < 4; i++) {
 			pUnit->meterData[i] = LO_UINT8(pMsg->meterValue[4 - i]) << 4 |
 					      HI_UINT8(pMsg->meterValue[3 - i]);
 			pUnit->flowData[i] = LO_UINT8(pMsg->flowValue[4 - i]) << 4 |
 					     HI_UINT8(pMsg->flowValue[3 - i]);
 		}
 
-		for (int i = 0; i < 2; i++) {
+		for (unsigned int i = 0; i < 2; i++) {
 			pUnit->st[i] = pMsg->rt[1 - i];
 			pUnit->rt[i] = pMsg->rt[1 - i];
 		}
@@ -736,11 +739,10 @@ BOOL read_onetl_meter(uint8 *rxBuf, int len, MeterUnitData_t *pUnit)
 		pUnit->icon.leak = 0;
 
 		uint8 serial[4];
-		for (int i = 0; i < 4; i++) { // serial 4byte
+		for (unsigned int i = 0; i < 4; i++) { // serial 4byte
 			serial[i] = pMsg->serial[3 - i];
 		}
 
-		uchar decimalPoint = 0x03; // 소수점 3자리
 		METER_saveMeterInfo(serial, decimalPoint, 0, 0);
 	} break;
 
@@ -1161,9 +1163,9 @@ BOOL METER_addStoredData(Date_t *pDate, MeterUnitData_t *pUnit)
 
 	if (p->nData == 0 || checkInterval(pUnit, &p->unit[0], p->saveInterval)) {
 #if LORA_DEVICE
-		int nMaxData = NUM_LORA_STORED_DATA;
+		static const int nMaxData = NUM_LORA_STORED_DATA;
 #else // NBIOT_DEVICE
-		int nMaxData = NUM_NBIOT_STORED_DATA;
+		static const int nMaxData = NUM_NBIOT_STORED_DATA;
 #endif
 
 		if (p->nData >= nMaxData) {
@@ -1177,7 +1179,7 @@ BOOL METER_addStoredData(Date_t *pDate, MeterUnitData_t *pUnit)
 					// 하나 걸러 하나씩 없앰 - 짝수 번째 것은 무조건 지우고,
 					// 홀수 번째 것은 1->0, 3->1, 5->2, 7->3, 9->4와 같이 이동 후 삭제.
 					// 결과적으로 데이터의 갯수는 절반이 됨
-					for (int i = 0; i < p->nData; i++) {
+					for (unsigned int i = 0; i < p->nData; i++) {
 						if ((i % 2) == 0) {
 							memset(&p->unit[i], 0,
 							       sizeof(MeterUnitData_t));
@@ -1223,9 +1225,9 @@ BOOL METER_addStoredData(Date_t *pDate, MeterUnitData_t *pUnit)
 void METER_clearIntervalData()
 {
 #if LORA_DEVICE
-	int nMaxData = NUM_LORA_STORED_DATA;
+	static const int nMaxData = NUM_LORA_STORED_DATA;
 #else // NBIOT_DEVICE
-	int nMaxData = NUM_NBIOT_STORED_DATA;
+	static const int nMaxData = NUM_NBIOT_STORED_DATA;
 #endif
 	MeterStoredData_t *p = &StoredMeterData;
 
@@ -1255,7 +1257,7 @@ void METER_clearStoredData()
 	}
 
 	StoredMeterData.saveInterval = conf.meterInterval;
-	for (int i = 0; i < MAX_NUM_STORED_DATA; i++) {
+	for (unsigned int i = 0; i < MAX_NUM_STORED_DATA; i++) {
 		memset(&StoredMeterData.unit[i], 0, sizeof(MeterUnitData_t));
 	}
 }

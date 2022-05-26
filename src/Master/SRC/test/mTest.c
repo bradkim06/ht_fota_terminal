@@ -318,7 +318,7 @@ static void parseNbiotModemResp(char *pStr)
 #define PATTERN_IMEI "+CGSN:"
 	if (p = strstr(pStr, PATTERN_IMEI)) {
 		p += strlen(PATTERN_IMEI);
-		for (int idx = 0; idx < LEN_TEST_NBIOT_IMEI; idx++) {
+		for (unsigned int idx = 0; idx < LEN_TEST_NBIOT_IMEI; idx++) {
 			if (*p >= '0' && *p <= '9') {
 				modemTestCtx.imei[idx] = *p;
 			} else {
@@ -344,7 +344,7 @@ static void parseNbiotModemResp(char *pStr)
 			}
 		}
 		if (isCtn) {
-			for (int idx = 0; idx < LEN_TEST_NBIOT_IMSI; idx++) {
+			for (unsigned int idx = 0; idx < LEN_TEST_NBIOT_IMSI; idx++) {
 				modemTestCtx.imsi[idx] = *(p + idx);
 			}
 		}
@@ -353,7 +353,7 @@ static void parseNbiotModemResp(char *pStr)
 #define PATTERN_ICCID "+NCCID:"
 	if (p = strstr(pStr, PATTERN_ICCID)) {
 		p += strlen(PATTERN_ICCID);
-		for (int idx = 0; idx < LEN_TEST_NBIOT_ICCID; idx++) {
+		for (unsigned int idx = 0; idx < LEN_TEST_NBIOT_ICCID; idx++) {
 			if (*p >= '0' && *p <= '9') {
 				modemTestCtx.iccid[idx] = *p;
 			} else {
@@ -619,7 +619,7 @@ void TEST_pwserver(char *ip, int port, char *serviceCode)
 	conf.serverPort = port;
 
 #if (defined(NBIOT_LG_TYPE) || defined(NBIOT_BASE_TYPE))
-	int sc_len = sizeof(conf.serviceCode);
+	static const int sc_len = sizeof(conf.serviceCode);
 	strncpy(conf.serviceCode, serviceCode, sc_len);
 	// 배열 마지막은 string처리를 위해 '0'으로 설정.
 	conf.serviceCode[sc_len - 1] = 0;
@@ -711,7 +711,7 @@ void TEST_prnbid()
 	}
 
 	if (isImeiOk) { // IMEI 읽기 성공 시 Flash에 저장.
-		for (int i = 0; i < 8; i++) {
+		for (unsigned int i = 0; i < 8; i++) {
 			conf.imei[i] = ascii2BCD(modemTestCtx.imei[2 * i + 0],
 						 modemTestCtx.imei[2 * i + 1]);
 		}

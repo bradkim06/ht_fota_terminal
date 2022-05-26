@@ -178,7 +178,7 @@ void setRtcV1(uint8 *p)
 	date.min = *(p + 5);
 	date.sec = *(p + 6);
 
-	RTC_set(date);
+	RTC_set(&date);
 }
 
 void setRtcV2(uint8 *p)
@@ -195,7 +195,7 @@ void setRtcV2(uint8 *p)
 	date.min = tmp.min;
 	date.sec = tmp.sec;
 
-	RTC_set(date);
+	RTC_set(&date);
 }
 
 void readRtcV1(uint8 *p)
@@ -294,7 +294,7 @@ void sendNodeConfReportV3(uint8 reportType, int error)
 	p->meterInfo[0].meterType = conf.meterType;
 #else
 	p->nMeter = conf.meterNum;
-	for (int i = 0; i < conf.meterNum; i++) {
+	for (unsigned int i = 0; i < conf.meterNum; i++) {
 		p->meterInfo[i].meterPort = conf.meterInfo[i].meterPort;
 		p->meterInfo[i].meterType = conf.meterInfo[i].meterType;
 	}
@@ -693,7 +693,7 @@ void recvNodeConfSetV3(byte *data, uint8 len)
 #if NBIOT_DEVICE
 		char needChangeCode = FALSE;
 
-		for (int i = 0; i < 4; i++) {
+		for (unsigned int i = 0; i < 4; i++) {
 			if (p->serviceCode[i] != 0) {
 				needChangeCode = TRUE;
 			}
@@ -805,7 +805,7 @@ void recvNodeConfSetV4(byte *data, uint8 len)
 #if NBIOT_DEVICE
 		char needChangeCode = FALSE;
 
-		for (int i = 0; i < 4; i++) {
+		for (unsigned int i = 0; i < 4; i++) {
 			if (p->serviceCode[i] != 0) {
 				needChangeCode = TRUE;
 			}
@@ -1167,7 +1167,7 @@ void recvNbiotIdSet(byte *data, uint8 len)
 
 	char needChangeCode = FALSE;
 
-	for (int i = 0; i < 4; i++) {
+	for (unsigned int i = 0; i < 4; i++) {
 		if (p->serviceCode[i] != 0) {
 			needChangeCode = TRUE;
 		}

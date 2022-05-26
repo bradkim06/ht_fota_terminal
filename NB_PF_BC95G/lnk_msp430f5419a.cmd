@@ -84,7 +84,7 @@
 /* RAM */
 #define RAM_ORIGIN 0x1C00
 
-#define FOTA_LEN 0x1000
+#define FOTA_LEN 0x1200
 #define NOINIT_LEN 0x80
 #define PROC_DATA_LEN 0x2E0
 #define STATIC_DATA_LEN 0x60
@@ -482,10 +482,11 @@ SECTIONS
         meter.obj (.text:METER_getSaveInterval)
         meter.obj (.text:METER_getSerialNum)
         meter.obj (.text:METER_getTempData)
+        meter.obj (.text:insertDateToData)
+        meter.obj (.text:copyDateFromData)
     } > METER
 
     .meter_const : align(CODE_ALIGN) {
-        meter.obj (.const:$P$T0$1)
         meter.obj (.const:.string)
     } > METER (HIGH)
 
@@ -764,37 +765,37 @@ SECTIONS
     nbiotProcess_const : align(CODE_ALIGN) {
         nbiotProcess.obj (.const:AtCmdSwReset)
         nbiotProcess.obj (.const:AtCmdDetachNw)
-        nbiotProcess.obj (.const:AtCmdGetIMEI)
-        nbiotProcess.obj (.const:AtCmdGetIMSI)
-        nbiotProcess.obj (.const:AtCmdGetICCID)
-        nbiotProcess.obj (.const:AtCmdGetRadioQuality)
-        nbiotProcess.obj (.const:AtCmdGetNwAlarm)
-        nbiotProcess.obj (.const:AtCmdGetTime)
         nbiotProcess.obj (.const:AtCmdSetRfCtrl)
-        nbiotProcess.obj (.const:AtCmdSetPSM)
-        nbiotProcess.obj (.const:AtCmdSetBAND)
-        nbiotProcess.obj (.const:AtCmdSetReselect)
-        nbiotProcess.obj (.const:AtCmdSetNwAlarm)
         nbiotProcess.obj (.const:AtCmdSocketCreate)
-        nbiotProcess.obj (.const:AtCmdTcpConnect)
-        nbiotProcess.obj (.const:AtCmdTcpSendUL)
-        nbiotProcess.obj (.const:AtCmdSocketSendUL)
         nbiotProcess.obj (.const:AtCmdSocketClose)
-        nbiotProcess.obj (.const:AtCmdSetReportPSM)
-        nbiotProcess.obj (.const:AtCmdGetReportPSM)
-        nbiotProcess.obj (.const:AtCmdSocketRecvDL)
-        nbiotProcess.obj (.const:AtCmdGetFwRev)
-        nbiotProcess.obj (.const:AtCmdSetLWM2M)
-        nbiotProcess.obj (.const:AtCmdSetLWServer)
-        nbiotProcess.obj (.const:AtCmdSetEPN)
-        nbiotProcess.obj (.const:AtCmdSetBSPS)
-        nbiotProcess.obj (.const:AtCmdGetLWServer)
-        nbiotProcess.obj (.const:AtCmdGetBSPS)
-        nbiotProcess.obj (.const:AtCmdGetEPN)
-        nbiotProcess.obj (.const:AtCmdSwtLWM2M)
-        nbiotProcess.obj (.const:AtCmdGetSwtLWM2M)
         nbiotProcess.obj (.const:AtCmdSetFOTA)
-        nbiotProcess.obj (.const:AtCmdULDATAEX)
+        nbiotProcess.obj (.const:AtCmdGetIMSI$1)
+        nbiotProcess.obj (.const:AtCmdSetLWServer$2)
+        nbiotProcess.obj (.const:AtCmdGetICCID$3)
+        nbiotProcess.obj (.const:AtCmdGetIMEI$4)
+        nbiotProcess.obj (.const:AtCmdGetLWServer$5)
+        nbiotProcess.obj (.const:AtCmdGetEPN$6)
+        nbiotProcess.obj (.const:AtCmdGetBSPS$7)
+        nbiotProcess.obj (.const:AtCmdGetSwtLWM2M$8)
+        nbiotProcess.obj (.const:AtCmdGetFwRev$9)
+        nbiotProcess.obj (.const:AtCmdSetBAND$10)
+        nbiotProcess.obj (.const:AtCmdSetPSM$11)
+        nbiotProcess.obj (.const:AtCmdSetReselect$12)
+        nbiotProcess.obj (.const:AtCmdSetEPN$13)
+        nbiotProcess.obj (.const:AtCmdSetBSPS$14)
+        nbiotProcess.obj (.const:AtCmdSetLWM2M$15)
+        nbiotProcess.obj (.const:AtCmdSwtLWM2M$16)
+        nbiotProcess.obj (.const:AtCmdGetReportPSM$17)
+        nbiotProcess.obj (.const:AtCmdSetNwAlarm$18)
+        nbiotProcess.obj (.const:AtCmdGetNwAlarm$19)
+        nbiotProcess.obj (.const:AtCmdGetTime$20)
+        nbiotProcess.obj (.const:AtCmdGetRadioQuality$21)
+        nbiotProcess.obj (.const:AtCmdSetReportPSM$22)
+        nbiotProcess.obj (.const:AtCmdSocketSendUL$23)
+        nbiotProcess.obj (.const:AtCmdULDATAEX$25)
+        nbiotProcess.obj (.const:AtCmdSocketRecvDL$26)
+        nbiotProcess.obj (.const:AtCmdTcpConnect$27)
+        nbiotProcess.obj (.const:AtCmdTcpSendUL$28)
         nbiotProcess.obj (.const:.string)
     } > NB_PROCESS (HIGH)
 

@@ -46,7 +46,7 @@ static char initialMsgSize[4] = { 0 };
 static char confirmTxSTr[16] = { 0 };
 
 char *rxBuf = NULL;
-int rxLen = 0;
+unsigned int rxLen = 0;
 
 static int checkFlashBusy()
 {
@@ -89,7 +89,7 @@ static void writeCode(unsigned long addr, volatile unsigned char data[], int siz
 		FCTL3 = FWKEY; // clear lock
 		FCTL1 = FWKEY + WRT; // Set Write bit
 
-		for (int i = 0; i < size; i++) {
+		for (unsigned int i = 0; i < size; i++) {
 			if (data[i] == 0xFF) {
 				continue;
 			}
@@ -121,7 +121,7 @@ static void fotaPrint(char *str)
 
 static void modemRxClear()
 {
-	for (int i = 0; i < RX_MAX_LEN; i++) {
+	for (unsigned int i = 0; i < RX_MAX_LEN; i++) {
 		rxBuf[i] = 0;
 	}
 	rxLen = 0;
@@ -159,7 +159,7 @@ static void fotaSend(char *str)
 	fotaPrint(str);
 }
 
-static int fotaatoi(char *cdata)
+static unsigned int fotaatoi(char *cdata)
 {
 	int data = 0;
 
@@ -234,12 +234,12 @@ static void fotaRecv()
 				// data len
 				p = strstr(p, ",");
 				p = strstr(p, ",") + 1;
-				int payloadLen = fotaatoi(p);
+				unsigned int payloadLen = fotaatoi(p);
 
 				// payload
 				p = strstr(p, ",") + 1;
 				volatile unsigned char rxData[517];
-				for (int i = 0; i < payloadLen; i++) {
+				for (unsigned int i = 0; i < payloadLen; i++) {
 					rxData[i] = ascii2BCD(*(p + 0), *(p + 1));
 					p += 2;
 				}
@@ -250,7 +250,7 @@ static void fotaRecv()
 				if (rxData[payloadLen - 1] == checksum) {
 					volatile unsigned long address = 0;
 					// address parsing
-					for (int i = 1; i < 4; i++) {
+					for (uchar i = 1; i < 4; i++) {
 						if (address) {
 							unsigned long mulData = address;
 							for (int j = 0; j < 255; j++) {
@@ -396,7 +396,6 @@ static int repeatCmd(char *sendMsg, char *recvMsg, int t, int retry)
 static void fotaAlarmSet()
 {
 	uint16 alarm_minhr = 0x0000;
-	uint16 alarm_dowday = 0x0000;
 
 	//clearing and disable alarm
 	RTCCTL01 &= ~(RTCAIE + RTCAIFG);
@@ -407,7 +406,7 @@ static void fotaAlarmSet()
 
 	RTCCTL01 |= RTCAIE;
 	RTCAMINHR = alarm_minhr;
-	RTCADOWDAY = alarm_dowday;
+	RTCADOWDAY = 0x0000;
 }
 
 static void retryFota()
