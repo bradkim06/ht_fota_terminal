@@ -120,6 +120,17 @@ Note over t: 단말 Sleep
 
 ### NB-IoT P/F 개선
 
+#### fota retry process 변경 (2022-05-26)
+
+fota fail 감지시 동작
+
+1. socket close
+2. modem psm
+3. rtc alarm set
+4. mcu lpm3
+5. wakeup
+6. retry fota
+
 #### config checksum 추가 (2022-05-24)
 
 - config 변수 추가
