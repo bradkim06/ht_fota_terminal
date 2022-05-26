@@ -673,7 +673,7 @@ void set_meterPortForBSL()
 #pragma vector = USCI_A0_VECTOR
 __interrupt void USCI_A0_ISR(void)
 {
-	if (Fota.Status) {
+	if (Fota.Status == 1) {
 		return;
 	}
 
@@ -716,7 +716,7 @@ __interrupt void USCI_A0_ISR(void)
 #pragma vector = USCI_A1_VECTOR
 __interrupt void USCI_A1_ISR(void)
 {
-	if (Fota.Status) {
+	if (Fota.Status == 1) {
 		return;
 	}
 
@@ -757,7 +757,7 @@ __interrupt void USCI_A1_ISR(void)
 #pragma vector = USCI_A2_VECTOR
 __interrupt void USCI_A2_ISR(void)
 {
-	if (Fota.Status) {
+	if (Fota.Status == 1) {
 		if (UCA2IFG & UCRXIFG) {
 			rxBuf[rxLen++] = UCA2RXBUF;
 		}
@@ -802,7 +802,7 @@ __interrupt void USCI_A2_ISR(void)
 #pragma vector = USCI_A3_VECTOR
 __interrupt void USCI_A3_ISR(void)
 {
-	if (Fota.Status) {
+	if (Fota.Status == 1) {
 		return;
 	}
 

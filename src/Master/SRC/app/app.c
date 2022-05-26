@@ -24,6 +24,7 @@
 #include "modem.h"
 #include "nfcProtocol.h"
 #include "dataFlash.h"
+#include "fota.h"
 
 #if defined(AUX_REPEATER)
 #include "slaveAccess.h"
@@ -138,6 +139,11 @@ void REBOOT_SYSTEM()
 __interrupt void RTC_ISR(void)
 {
 	if (RTCIV & RTCAIFG) {
+		if (Fota.Status == 1) {
+			LPM3_EXIT;
+			return;
+		}
+
 		WAKEUP_DEVICE();
 		OSAL_setEvent(AppTaskId, APP_EVENT_RTC_ALARM);
 	}

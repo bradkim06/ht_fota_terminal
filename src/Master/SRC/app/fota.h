@@ -37,7 +37,7 @@ static void modemSend(char *str);
 static void fotaSend(char *str);
 static void fotaRecv();
 static int txData(char *msg);
-static int send(int option);
+static int tcpSend(int option);
 static int fotaatoi(char *cdata);
 static void fotaModemPrint(char *p, int len);
 static void fotaPrint(char *str);

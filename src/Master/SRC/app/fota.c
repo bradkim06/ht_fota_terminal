@@ -263,17 +263,13 @@ static void fotaRecv()
 					if (rxData[0] == 0xB1) {
 						eraseCode(address, SECT_ERASE);
 						writeCode(address, &rxData[4], payloadLen - 5);
-						if (send(SEND_ACK) == TX_OK) {
-							continue;
-						}
-
-						if (send(SEND_ACK) == TX_FAIL) {
+						if (tcpSend(SEND_ACK) == TX_FAIL) {
 							break;
 						}
 					} else if (rxData[0] == 0xB3) {
 						// last update
-						if (send(SEND_FINISH) == TX_FAIL) {
-							send(SEND_FINISH);
+						if (tcpSend(SEND_FINISH) == TX_FAIL) {
+							tcpSend(SEND_FINISH);
 						}
 						fotaPrint("FOTA Finish\n\r");
 						__disable_interrupt();
@@ -284,7 +280,7 @@ static void fotaRecv()
 					}
 				} else {
 					fotaPrint("checksum fail\n\r");
-					if (send(SEND_REPEAT) == TX_FAIL) {
+					if (tcpSend(SEND_REPEAT) == TX_FAIL) {
 						break;
 					}
 				}
@@ -314,7 +310,7 @@ static void reboot()
 	PMMCTL0 = (PMMPW + PMMSWPOR);
 }
 
-static int send(int option)
+static int tcpSend(int option)
 {
 	//AT+NSOSD=1,41,433155333236553332373836343730303034303133383337323435303036313233353239323736305E,0x100,101
 	int ret = 0;
@@ -356,7 +352,7 @@ void startFota()
 	MODEM_changeBaudrate(UART_BAUDRATE_57600);
 	MISC_delayMs(100);
 
-	if (send(SEND_READY) == TX_FAIL) {
+	if (tcpSend(SEND_READY) == TX_FAIL) {
 		reboot();
 	}
 
@@ -397,6 +393,23 @@ static int repeatCmd(char *sendMsg, char *recvMsg, int t, int retry)
 	return -1;
 }
 
+static void fotaAlarmSet()
+{
+	uint16 alarm_minhr = 0x0000;
+	uint16 alarm_dowday = 0x0000;
+
+	//clearing and disable alarm
+	RTCCTL01 &= ~(RTCAIE + RTCAIFG);
+	RTCAMINHR = 0x0000;
+	RTCADOWDAY = 0x0000;
+
+	alarm_minhr |= (0x0080 | 41);
+
+	RTCCTL01 |= RTCAIE;
+	RTCAMINHR = alarm_minhr;
+	RTCADOWDAY = alarm_dowday;
+}
+
 static void retryFota()
 {
 RETRY:
@@ -406,11 +419,8 @@ RETRY:
 	P2OUT &= ~BM(0); // make low
 
 	P2OUT &= ~0x20;
-	for (int i = 0; i < 5; i++) {
-		// minute
-		// MISC_delayMs(60000);
-		MISC_delayMs(1000);
-	}
+	fotaAlarmSet();
+	LPM3;
 
 	modemWakeup();
 	MISC_delayMs(10000);
@@ -469,7 +479,7 @@ RETRY:
 		goto RETRY;
 	}
 
-	if (send(SEND_READY) == TX_FAIL) {
+	if (tcpSend(SEND_READY) == TX_FAIL) {
 		goto RETRY;
 	}
 }
