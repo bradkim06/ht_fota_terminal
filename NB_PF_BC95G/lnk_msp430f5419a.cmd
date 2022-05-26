@@ -228,7 +228,6 @@ SECTIONS
         rtcAlarm.obj (.data)
         Task_Mgr.obj (.data)
         battery.obj (.data)
-        lcdDriver.obj (.data:lcdCon)
         main.obj (.data)
         test.obj (.data)
         fota.obj (.data)

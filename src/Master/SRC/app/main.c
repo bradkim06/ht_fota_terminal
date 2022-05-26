@@ -31,7 +31,7 @@ static BOOL checkTestMode()
 	P1DIR |= 0x01;
 	P1OUT &= ~0x01;
 
-	return IsTestMode;
+	return (IsTestMode);
 }
 
 void initClock(void)
