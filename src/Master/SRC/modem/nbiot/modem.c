@@ -157,7 +157,7 @@ void MODEM_turnOn()
 	}
 }
 
-void MODEM_sleep()
+static void MODEM_sleep()
 {
 #if (DEVICE_REVISION == DEV_REV_PWRCTRL_MOSFET_LDO)
 	printf_ts("MODEM : sleep");

@@ -285,7 +285,6 @@ SECTIONS
         test.obj (.text:TEST_meterLCD)
         test.obj (.text:TEST_readFwVersion)
         test.obj (.text:TEST_stop)
-        test.obj (.text:reedResponse)
         test.obj (.text:TEST_config)
         test.obj (.text:TEST_isTestMode)
     } > TEST
@@ -298,7 +297,6 @@ SECTIONS
     .mtest_text : align(CODE_ALIGN) {
         mTest.obj (.text:TEST_prnbid)
         mTest.obj (.text:parseNbiotModemResp)
-        mTest.obj (.text:printAtCmdList)
         mTest.obj (.text:TEST_modemResponse)
         mTest.obj (.text:TEST_modem)
         mTest.obj (.text:TEST_pnbctx)
@@ -309,9 +307,7 @@ SECTIONS
         mTest.obj (.text:TEST_prserver)
         mTest.obj (.text:TEST_prfota)
         mTest.obj (.text:TEST_pwfota)
-        mTest.obj (.text:sendToModem)
         mTest.obj (.text:TEST_pmodem)
-        mTest.obj (.text:waitModem)
         mTest.obj (.text:TEST_initModem)
         mTest.obj (.text:resetModem)
     } > MTEST
@@ -324,8 +320,6 @@ SECTIONS
         shell.obj (.text:SHELL_run)
         shell.obj (.text:SHELL_gets)
         shell.obj (.text:SHELL_getChar)
-        shell.obj (.text:help)
-        shell.obj (.text:getArguments)
         shell.obj (.text:whatCommand)
         shell.obj (.text:SHELL_decimal)
         shell.obj (.text:SHELL_init)
@@ -432,18 +426,12 @@ SECTIONS
         nfcProtocol.obj (.text:send)
         nfcProtocol.obj (.text:sendNbiotIdReport)
         nfcProtocol.obj (.text:sendMeterAdjustError)
-        nfcProtocol.obj (.text:copyToAsyncCmd)
         nfcProtocol.obj (.text:jumpToBSL)
         nfcProtocol.obj (.text:readRtcV1)
         nfcProtocol.obj (.text:sendFwVerReport)
         nfcProtocol.obj (.text:NFCAPP_continueSend)
-        nfcProtocol.obj (.text:dev_clock_internal)
         nfcProtocol.obj (.text:recvMeterAdjustRequest)
         nfcProtocol.obj (.text:NFCAPP_clearAsyncCmd)
-        nfcProtocol.obj (.text:recvMeterReq)
-        nfcProtocol.obj (.text:recvServerConnectReq)
-        nfcProtocol.obj (.text:disable_OFIE)
-        nfcProtocol.obj (.text:getMyDeviceCode)
     } > NFC_PROTOCOL
 
     nfcProtocol_const : align(CODE_ALIGN) {
@@ -486,9 +474,7 @@ SECTIONS
         meter.obj (.text:METER_disable)
         meter.obj (.text:METER_getMeterData)
         meter.obj (.text:METER_getMeterStatus)
-        meter.obj (.text:METER_deleteStoredData)
         meter.obj (.text:METER_isAllFF)
-        meter.obj (.text:METER_deleteTempData)
         meter.obj (.text:METER_deleteAllData)
         meter.obj (.text:METER_getLastData)
         meter.obj (.text:METER_getMeterCaliber_dp)
@@ -510,7 +496,6 @@ SECTIONS
         dataFlash.obj (.text:saveData)
         dataFlash.obj (.text:read_dataSector)
         dataFlash.obj (.text:fix_mapSector)
-        dataFlash.obj (.text:print_dataReport)
         dataFlash.obj (.text:dataFlash_displayDataSector)
         dataFlash.obj (.text:dataFlash_displayMapSector)
         dataFlash.obj (.text:make_nfcDataReport)
@@ -525,7 +510,6 @@ SECTIONS
         dataFlash.obj (.text:eraseSector)
         dataFlash.obj (.text:readSector)
         dataFlash.obj (.text:dataFlash_eraseSector)
-        dataFlash.obj (.text:hex2binary)
         dataFlash.obj (.text:isValidMeterValue)
         dataFlash.obj (.text:get_flashAddress)
         dataFlash.obj (.text:isValidDate)
@@ -553,7 +537,6 @@ SECTIONS
         app.obj (.text:REBOOT_SYSTEM)
         app.obj (.text:APP_checkTimeInterval)
         app.obj (.text:APP_runPeriodicReport)
-        app.obj (.text:meteringTimeout)
     } > APP
 
     .app_const : align(CODE_ALIGN) {
@@ -574,7 +557,6 @@ SECTIONS
         rtcAlarm.obj (.text:RTC_writeTime)
         rtcAlarm.obj (.text:RTC_read)
         rtcAlarm.obj (.text:RTC_needTimeSync)
-        rtcAlarm.obj (.text:setDefaultRTC)
         rtcAlarm.obj (.text:RTC_alarmSchedule)
         rtcAlarm.obj (.text:RTC_calcMinDiff)
         rtcAlarm.obj (.text:RTC_isTimeSync)
@@ -600,7 +582,6 @@ SECTIONS
         uart.obj (.text:UART_debugMode)
         uart.obj (.text:set_meterPortForBSL)
         uart.obj (.text:UART_init)
-        uart.obj (.text:mallocBuf)
         uart.obj (.text:fota_uart)
         uart.obj (.text:PRINT_enable)
         uart.obj (.text:PRINT_resume)
@@ -649,7 +630,6 @@ SECTIONS
         lcdDriver.obj (.text:LCD_wait)
         lcdDriver.obj (.text:LCD_disable)
         lcdDriver.obj (.text:LCD_accessModem)
-        lcdDriver.obj (.text:lcdDataTx)
         lcdDriver.obj (.text:LCD_redraw)
         MSP430FlashUtil.obj (.text:MSP430FLASH_write)
         MSP430FlashUtil.obj (.text:MSP430FLASH_erasePage)
@@ -667,9 +647,7 @@ SECTIONS
         battery.obj (.text:BATT_getLastVoltage), .=align(CODE_ALIGN);
         Task_Mgr.obj (.text:TASKMGR_run)
         Task_Mgr.obj (.text:TASKMGR_init)
-        osal_Timer.obj (.text:addEventTimer)
         osal_Timer.obj (.text:OSAL_startEventTimer)
-        osal_Timer.obj (.text:delevtEventTimer)
         osal_Timer.obj (.text:TIMER_getMsecDiff)
         osal_Timer.obj (.text:OSAL_stopEventTimer)
         osal_Timer.obj (.text:findEventTimer)
@@ -708,8 +686,6 @@ SECTIONS
         modem.obj (.text:MODEM_changeBaudrate)
         modem.obj (.text:MODEM_copyIccid)
         modem.obj (.text:MODEM_copyLastAccessTime)
-        modem.obj (.text:MODEM_sleep)
-        modem.obj (.text:MODEM_wakeup)
         modem.obj (.text:MODEM_enable)
         modem.obj (.text:MODEM_handler)
         modem.obj (.text:MODEM_disable)
@@ -732,17 +708,11 @@ SECTIONS
         nbiotResponse.obj (.text:parse_fota_downlink)
         nbiotResponse.obj (.text:parse_server_notify)
         nbiotResponse.obj (.text:parse_radioQuality)
-        nbiotResponse.obj (.text:parse_imsi)
         nbiotResponse.obj (.text:parse_bs_param)
-        nbiotResponse.obj (.text:parse_cclk)
-        nbiotResponse.obj (.text:parse_pf_downlink)
         nbiotResponse.obj (.text:parseQGMR)
         nbiotResponse.obj (.text:parse_lwm2m_server)
         nbiotResponse.obj (.text:parse_ncdp)
         nbiotResponse.obj (.text:parse_cereg)
-        nbiotResponse.obj (.text:parse_imei)
-        nbiotResponse.obj (.text:parse_ep_name)
-        nbiotResponse.obj (.text:parse_iccid)
         nbiotResponse.obj (.text:parseQLWULDATAEX)
         nbiotResponse.obj (.text:MODEM_response)
     } > NB_RESPONSE
@@ -762,16 +732,10 @@ SECTIONS
         message.obj (.text:insert_termInfo)
         message.obj (.text:MODEM_sendCurrentData)
         message.obj (.text:MODEM_sendPeriodicData)
-        message.obj (.text:insert_oneData)
         message.obj (.text:insert_radioQuality)
         message.obj (.text:MODEM_recvRepRange)
         message.obj (.text:insert_meterInfo)
-        message.obj (.text:printMessage)
-        message.obj (.text:MODEM_recvResetReq)
-        message.obj (.text:MODEM_recvAckString)
-        message.obj (.text:insert_id)
         message.obj (.text:cal_checksum)
-        message.obj (.text:insert_meteringParam)
     } > MESSAGE
 
     message_const : align(CODE_ALIGN) {
@@ -792,12 +756,7 @@ SECTIONS
         nbiotProcess.obj (.text:attachNw)
         nbiotProcess.obj (.text:MODEM_process)
         nbiotProcess.obj (.text:sendAtCommand)
-        nbiotProcess.obj (.text:idle)
-        nbiotProcess.obj (.text:detachNw)
         nbiotProcess.obj (.text:sendNoRespAtCommand)
-        nbiotProcess.obj (.text:getErrorReportMessage)
-        nbiotProcess.obj (.text:getMeterDataMessage)
-        nbiotProcess.obj (.text:getQaReportMessage)
         nbiotProcess.obj (.text:MODEM_generateCseID)
         nbiotProcess.obj (.text:MODEM_detach)
     } > NB_PROCESS
@@ -866,14 +825,8 @@ SECTIONS
         NFC_i2c.obj (.text:NTAG_writeSessionRegister)
         NFC_i2c.obj (.text:I2C_rxBytes)
         NFC_i2c.obj (.text:I2C_txBytes)
-        NFC_i2c.obj (.text:NFC_fdEnable)
         NFC_i2c.obj (.text:NFC_tagDisable)
-        NFC_i2c.obj (.text:NTAG_readBlock)
-        NFC_i2c.obj (.text:NTAG_setPthruOnOff)
-        NFC_i2c.obj (.text:NFC_FD_input)
         NFC_i2c.obj (.text:NFC_fdDisable)
-        NFC_i2c.obj (.text:NTAG_setFDOffFunction)
-        NFC_i2c.obj (.text:NTAG_setFDOnFunction)
         NFC_i2c.obj (.text:NFC_init)
     } > NFC_I2C
 
@@ -907,6 +860,15 @@ SECTIONS
     RUN_START(ramcode_rn_start),
     SIZE(ramcode_size)
 
+    .cinit      : align(CODE_ALIGN) {} > FLASHB                /* Initialization tables             */
+    .cio        : align(CODE_ALIGN) {} > RAM                  /* C I/O Buffer                      */
+
+    .pinit      : align(CODE_ALIGN) {} > FLASHB                /* C++ Constructor tables            */
+    .binit      : align(CODE_ALIGN) {} > FLASHB                /* Boot-time Initialization tables   */
+    .init_array : align(CODE_ALIGN) {} > FLASHB                /* C++ Constructor tables            */
+    .mspabi.exidx : align(CODE_ALIGN) {} > FLASHB              /* C++ Constructor tables            */
+    .mspabi.extab : align(CODE_ALIGN) {} > FLASHB              /* C++ Constructor tables            */
+
 #ifndef __LARGE_CODE_MODEL__
     .text       : align(CODE_ALIGN) {} >> FLASHB | FLASHD      /* Code                              */
 #else
@@ -915,19 +877,11 @@ SECTIONS
 /* Errata Flash Read Error and Susceptibility for MSP430F54xxA 
 Manual placement of interrupt service routines into memory locations above 0x008000
 can eliminate the effect on interrupt vector address fetches. */
-    .cinit      : align(CODE_ALIGN) {} > FLASHB                /* Initialization tables             */
 #ifndef __LARGE_DATA_MODEL__
     .const      : align(CODE_ALIGN) {} >> FLASHB | FLASHD                /* Constant data                     */
 #else
     .const      : align(CODE_ALIGN) {} > FLASHB      /* Constant data                     */
 #endif
-    .cio        : align(CODE_ALIGN) {} > RAM                  /* C I/O Buffer                      */
-
-    .pinit      : align(CODE_ALIGN) {} > FLASHB                /* C++ Constructor tables            */
-    .binit      : align(CODE_ALIGN) {} > FLASHB                /* Boot-time Initialization tables   */
-    .init_array : align(CODE_ALIGN) {} > FLASHB                /* C++ Constructor tables            */
-    .mspabi.exidx : align(CODE_ALIGN) {} > FLASHB              /* C++ Constructor tables            */
-    .mspabi.extab : align(CODE_ALIGN) {} > FLASHB              /* C++ Constructor tables            */
 
     .infoA     : {} > INFOA              /* MSP430 INFO FLASH Memory segments */
     .infoB     : {} > INFOB

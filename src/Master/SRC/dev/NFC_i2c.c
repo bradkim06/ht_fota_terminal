@@ -209,7 +209,7 @@ __interrupt void USCI_B3_ISR(void)
 	}
 }
 
-BOOL I2C_rxBytes(uint8 slaveAddr, uint8 *data, uint8 len)
+static BOOL I2C_rxBytes(uint8 slaveAddr, uint8 *data, uint8 len)
 {
 	//오류시 2 회 실시
 	for (int i = 0; i < 2; i++) {
@@ -289,7 +289,7 @@ BOOL NTAG_writeSessionRegister(uint8 regAddr, uint8 mask, uint8 regData)
 	return NTAG_RET_ERR;
 }
 
-BOOL NTAG_readBlock(uint8 addr, uint8 *bytes, uint8 len)
+static BOOL NTAG_readBlock(uint8 addr, uint8 *bytes, uint8 len)
 {
 	/* receive bytes */
 	if (I2C_readData(addr, bytes, NTAG_I2C_BLOCK_SIZE) == NTAG_RET_ERR) {
@@ -422,19 +422,19 @@ BOOL NTAG_writeBytes(uint8 startAddr, const uint8 *bytes, uint16 len)
 }
 
 //---------------------------------------------------------------------
-BOOL NTAG_setFDOnFunction(uint8 func)
+static BOOL NTAG_setFDOnFunction(uint8 func)
 {
 	return NTAG_writeSessionRegister(NTAG_MEM_OFFSET_NC_REG, NTAG_NC_REG_MASK_FD_ON, func);
 }
 
 //---------------------------------------------------------------------
-BOOL NTAG_setFDOffFunction(uint8 func)
+static BOOL NTAG_setFDOffFunction(uint8 func)
 {
 	return NTAG_writeSessionRegister(NTAG_MEM_OFFSET_NC_REG, NTAG_NC_REG_MASK_FD_OFF, func);
 }
 
 //---------------------------------------------------------------------
-BOOL NTAG_setPthruOnOff(BOOL on)
+static BOOL NTAG_setPthruOnOff(BOOL on)
 {
 	uint8 val = 0;
 	if (on)
@@ -485,7 +485,7 @@ void NFC_tagDisable()
 	PORT1_IE &= ~BM(PORT_NFC_TAG); // Interrupt diabled
 }
 
-void NFC_fdEnable()
+static void NFC_fdEnable()
 {
 	//FD
 	PORT1_DIR &= ~BM(PORT_NFC_FD_IN); // Set to Input
@@ -503,7 +503,7 @@ void NFC_fdDisable()
 	PORT1_IE &= ~BM(PORT_NFC_FD_IN); // Interrupt disabled
 }
 
-BOOL NFC_FD_input()
+static BOOL NFC_FD_input()
 {
 	uint8 input = PORT1_IN & BM(PORT_NFC_FD_IN);
 

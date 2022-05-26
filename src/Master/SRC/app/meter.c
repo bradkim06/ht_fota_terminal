@@ -188,12 +188,12 @@ BOOL METER_isAllFF(uchar *p, int len)
 	return result;
 }
 
-void METER_deleteTempData()
+static void METER_deleteTempData()
 {
 	memset(&TempMeterData, 0, sizeof(TempMeterData));
 }
 
-void METER_deleteStoredData()
+static void METER_deleteStoredData()
 {
 	memset(&StoredMeterData, 0, sizeof(StoredMeterData));
 	StoredMeterData.saveInterval = conf.meterInterval;

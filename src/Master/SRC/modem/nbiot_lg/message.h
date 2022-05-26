@@ -233,7 +233,6 @@ int MODEM_sendJoin(uchar *buf);
 int MODEM_sendCurrentData(uchar *buf);
 int MODEM_sendPeriodicData(uchar *buf);
 int MODEM_recvAck(char *p, int len);
-int MODEM_recvResetReq(uchar *buf, int len);
 int MODEM_recvIntervalReq(uchar *buf, int len);
 int MODEM_checkDlMessage(uchar *buf, int len);
 

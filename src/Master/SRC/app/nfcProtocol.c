@@ -48,16 +48,14 @@ typedef struct {
 
 static nfcAsyncRx_t nfcAsyncRx = { 0 };
 
-#if 1 // sholee
 extern int internal_clock;
-void enable_OFIE();
 
-void disable_OFIE()
+static void disable_OFIE()
 {
 	SFRIE1 &= ~(0x0002);
 }
 
-void dev_clock_internal(void)
+static void dev_clock_internal(void)
 {
 	// set watchdog register
 	WDTCTL = WDTPW | WDTHOLD; // Stop watchdog timer
@@ -102,8 +100,6 @@ void jumpToBSL()
 	((void (*)())0x1000)(); // jump to BSL
 }
 
-#endif
-
 void NFCAPP_clearAsyncCmd()
 {
 	nfcAsyncRx.len = 0;
@@ -123,7 +119,7 @@ static int copyToAsyncCmd(uint8 *p, int len)
 	return 1;
 }
 
-uint8 getMyDeviceCode()
+static uint8 getMyDeviceCode()
 {
 #if LORA_DEVICE
 	return DEVICE_CODE_LORA;
@@ -888,7 +884,7 @@ void recvNodeConfSet(byte *data, uint8 len)
 #endif
 }
 
-void recvMeterReq(byte *data, uint8 len)
+static void recvMeterReq(byte *data, uint8 len)
 {
 	NfcMeterReq_t *p = (NfcMeterReq_t *)data;
 
@@ -1018,7 +1014,7 @@ void recvFlashDataReq(byte *data, uint8 len)
 #endif
 }
 
-void recvServerConnectReq(byte *data, uint8 len)
+static void recvServerConnectReq(byte *data, uint8 len)
 {
 	NfcServerConnReq_t *p = (NfcServerConnReq_t *)data;
 	sendServerConnectReport(p->reqType);

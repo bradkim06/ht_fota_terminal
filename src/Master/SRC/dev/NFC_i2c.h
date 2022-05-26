@@ -173,7 +173,6 @@ typedef enum { RF_TO_I2C = NTAG_NC_REG_MASK_TRANSFER_DIR, I2C_TO_RF = 0 } NtagTr
 void NFC_init();
 void NFC_tagEnable();
 void NFC_tagDisable();
-void NFC_fdEnable();
 void NFC_fdDisable();
 BOOL NFC_factoryResetTag();
 BOOL NFC_checkRead(int msec);

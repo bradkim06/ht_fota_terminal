@@ -511,7 +511,7 @@ int MODEM_recvIntervalReq(uchar *buf, int len)
 	return 1;
 }
 
-int MODEM_recvResetReq(uchar *buf, int len)
+static int MODEM_recvResetReq(uchar *buf, int len)
 {
 #define RESET_STRING "DevReset"
 	if (strncmp((char *)buf, RESET_STRING, strlen(RESET_STRING)) == 0) {
@@ -524,7 +524,7 @@ int MODEM_recvResetReq(uchar *buf, int len)
 	return 0;
 }
 
-int MODEM_recvAckString(uchar *buf, int len)
+static int MODEM_recvAckString(uchar *buf, int len)
 {
 #define ACK_STRING "ACK"
 	if (strncmp((char *)buf, ACK_STRING, strlen(ACK_STRING)) == 0) {
