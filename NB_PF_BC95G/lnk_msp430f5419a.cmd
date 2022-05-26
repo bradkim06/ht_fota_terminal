@@ -288,6 +288,7 @@ SECTIONS
         test.obj (.text:TEST_stop)
         test.obj (.text:reedResponse)
         test.obj (.text:TEST_config)
+        test.obj (.text:TEST_isTestMode)
     } > TEST
 
     .test_const : align(CODE_ALIGN) {
@@ -891,15 +892,15 @@ SECTIONS
     }
 
     .ramcode : {
-        * (.text:_isr)
-        test.obj (.text:TEST_isTestMode)
-        check_meter_misc.obj (.text:MISC_delayMs)
-        flashDriver.obj (.text:ascii2BCD)
-        flashDriver.obj (.text:ascii2Hex)
-        meter.obj (.text:std_checksum)
         --library=rts430x_lc_ld_eabi.lib(.text:strlen)
         --library=rts430x_lc_ld_eabi.lib(.text:strstr)
         --library=rts430x_lc_ld_eabi.lib(.text:memset)
+        check_meter_misc.obj (.text:MISC_delayMs)
+        /* test.obj (.text:TEST_isTestMode) */
+        flashDriver.obj (.text:ascii2BCD)
+        flashDriver.obj (.text:ascii2Hex)
+        meter.obj (.text:std_checksum)
+        * (.text:_isr)
         fota.obj (.text)
         fota.obj (.const)
     } load=FOTA_FLASH, run=FOTA_RAM, 
