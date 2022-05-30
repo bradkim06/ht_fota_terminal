@@ -392,7 +392,6 @@ void APP_init(uint8 taskId)
 			METER_std_lcdMarkReq(conf.sleepMode);
 			MISC_delayMs(100);
 		}
-		APP_prepareToSleep();
 		return;
 	}
 
@@ -431,9 +430,6 @@ static void meteringCompleted()
 		MODEM_open(APP_PERIODIC_REPORT);
 	}
 #endif
-	else {
-		APP_prepareToSleep();
-	}
 }
 
 #if defined(AUX_REPEATER)
@@ -441,17 +437,11 @@ static void meteringCompleted()
 void APP_slaveAccessCompleted()
 {
 	printf_ts("Slave access complete\n");
-	// Metering.inProcess = 0;
-	// Metering.success = 1;
-	APP_prepareToSleep();
 }
 
 void APP_slaveAccessFailed()
 {
 	printf_ts("Slave access fail\n");
-	// Metering.inProcess = 0;
-	// Metering.success = 0;
-	APP_prepareToSleep();
 }
 
 void APP_slaveMeteringCompleted()
@@ -692,7 +682,6 @@ static void meteringRecvResp()
 static void meteringTimeout()
 {
 	if (conf.sleepMode) {
-		APP_prepareToSleep();
 		return;
 	}
 
@@ -745,12 +734,9 @@ event32_t APP_tasks(uint8 taskId, event32_t events)
 		if (SLAVE_isTimeSync() == FALSE && RTC_isTimeSync()) {
 			MODEM_close();
 			SLAVE_updateTimeSync();
-		} else {
-			APP_prepareToSleep();
 		}
 #else
 		ctrlReportInterval();
-		APP_prepareToSleep();
 #endif
 		return (events ^ APP_EVENT_MODEM_POWER_OFF);
 	}

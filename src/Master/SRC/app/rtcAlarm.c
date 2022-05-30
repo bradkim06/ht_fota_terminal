@@ -402,7 +402,6 @@ void RTC_alarmSchedule()
 void RTC_runAlarm()
 {
 	if (NextAlarm == NULL) {
-		APP_prepareToSleep();
 		return;
 	}
 
@@ -410,7 +409,6 @@ void RTC_runAlarm()
 		  (conf.sleepMode) ? "(sleep)" : "(active)");
 	if (conf.sleepMode) {
 		MISC_delayMs(1500); // sleep mode 인 경우 1.5sec 대기 후 다시 LPM3준비
-		APP_prepareToSleep();
 		return;
 	}
 
@@ -427,22 +425,16 @@ void RTC_runAlarm()
 	if (alarmType == RTC_ALARM_METERING) {
 		if (APP_checkTimeInterval(date.hour, conf.intervalBaseTime, conf.riCtrlValue)) {
 			APP_runMetering(PERIODIC_METERING);
-		} else {
-			APP_prepareToSleep();
 		}
 	}
 #else
 	if (alarmType == RTC_ALARM_REPORT) {
 		if (APP_checkTimeInterval(date.hour, conf.intervalBaseTime, conf.riCtrlValue)) {
 			APP_runPeriodicReport();
-		} else {
-			APP_prepareToSleep();
 		}
 	} else if (alarmType == RTC_ALARM_METERING) {
 		if (APP_checkTimeInterval(date.hour, conf.intervalBaseTime, conf.meterInterval)) {
 			APP_runMetering(PERIODIC_METERING);
-		} else {
-			APP_prepareToSleep();
 		}
 	} else if (alarmType == RTC_ALARM_METER_SAVE) {
 		if (conf.periodMode && RTC_isTimeSync()) {
@@ -451,18 +443,12 @@ void RTC_runAlarm()
 			// 경우에 따라 0시에 기간검침 데이터를 저장하지 않는 문제가 발생하므로 수정.
 			if ((date.hour % METER_DATA_SAVE_INTERVAL) == (conf.intervalBaseTime + 1)) {
 				APP_runMetering(PERIODIC_METERING_FOR_SAVE);
-			} else {
-				APP_prepareToSleep();
 			}
-		} else {
-			APP_prepareToSleep();
 		}
 	}
-
 #endif
 	else {
 		printf_ts("unknow alarm type(%d)\n", alarmType);
-		APP_prepareToSleep();
 	}
 }
 
