@@ -92,7 +92,7 @@ static int insert_radioQuality(NbiotRadioQuality_t *p)
 	int snr = MODEM_getLastSNR();
 
 	p->rssi = rssi;
-	p->ber = 0; // BER - »ç¿ëÇÏÁö ¾ÊÀ½.
+	p->ber = 0; // BER - ì‚¬ìš©í•˜ì§€ ì•ŠìŒ.
 	memcpy(p->cid, &modem.modemQuality.cid, 2);
 	memcpy(p->rsrp, &rsrp, 2);
 	memcpy(p->rsrq, &rsrq, 2);
@@ -160,9 +160,9 @@ static int insert_meteringTime(NbiotTimeStamp_t *p, BOOL isJoinMsg)
 		p->sec = pUnit->sec;
 		printf_ts("MODEM : Metering time - set from data\n");
 	} else {
-		// °ËÄ§ µ¥ÀÌÅÍÀÇ ½Ã°£ÀÌ µ¿±âÈ­µÈ °ÍÀÌ ¾Æ´Ò °æ¿ì Àü¼Û½Ã°£¿¡ ´ëÇÑ Â÷ÀÌ°ªÀ¸·Î ¼³Á¤.
+		// ê²€ì¹¨ ë°ì´í„°ì˜ ì‹œê°„ì´ ë™ê¸°í™”ëœ ê²ƒì´ ì•„ë‹ ê²½ìš° ì „ì†¡ì‹œê°„ì— ëŒ€í•œ ì°¨ì´ê°’ìœ¼ë¡œ ì„¤ì •.
 		if (isJoinMsg) {
-			// Join message ÀÇ°æ¿ì °ËÄ§ Á÷ÈÄ º¸°íÇÏ¹Ç·Î Â÷ÀÌ°ªÀ» 0·Î ¼³Á¤.
+			// Join message ì˜ê²½ìš° ê²€ì¹¨ ì§í›„ ë³´ê³ í•˜ë¯€ë¡œ ì°¨ì´ê°’ì„ 0ë¡œ ì„¤ì •.
 			p->year = 0xFF;
 			p->mon = 0xFF;
 			p->day = 0xFF;
@@ -171,7 +171,7 @@ static int insert_meteringTime(NbiotTimeStamp_t *p, BOOL isJoinMsg)
 			p->sec = 0;
 			printf_ts("MODEM : Metering time - set now\n");
 		} else {
-			// Join message°¡ ¾Æ´Ò °æ¿ì Àü¼Û½Ã°£¿¡ ´ëÇÑ Â÷ÀÌ°ªÀ» °è»êÇÏ¿© ¼³Á¤.
+			// Join messageê°€ ì•„ë‹ ê²½ìš° ì „ì†¡ì‹œê°„ì— ëŒ€í•œ ì°¨ì´ê°’ì„ ê³„ì‚°í•˜ì—¬ ì„¤ì •.
 			p->year = 0xFF;
 			p->mon = 0xFF;
 			p->day = 0xFF;
@@ -179,10 +179,10 @@ static int insert_meteringTime(NbiotTimeStamp_t *p, BOOL isJoinMsg)
 			Date_t now;
 			RTC_read(&now);
 			uint8 diff = conf.reportInterval % conf.meterInterval;
-			// 1. ÁÖ±âº¸°íÀÇ °æ¿ì Base time ¹× interval·Î °è»êµÈ ½Ã°£À» ¼³Á¤ÇÑ´Ù.
-			// 1.1. ÀÌ¶§ ºĞ´ÜÀ§ ÁÖ±â µ¿ÀÛ ¿©ºÎ¿¡ µû¶ó ´Ù¸£°Ô ¼³Á¤ÇÑ´Ù.
-			// 2. ½Ã°£´ÜÀ§ ÁÖ±âµ¿ÀÛ ¿¡¼­ °ËÄ§½Ã°£ ´ëºñ º¸°í½Ã°£Àº report min¸¸Å­ ÀÌÈÄ¿¡ º¸°íÇÑ´Ù.
-			// 2.1. À§ÀÇ ÀÌÀ¯·Î ºĞ´ÜÀ§´Â report min °ªÀ» ¼³Á¤ÇÑ´Ù.
+			// 1. ì£¼ê¸°ë³´ê³ ì˜ ê²½ìš° Base time ë° intervalë¡œ ê³„ì‚°ëœ ì‹œê°„ì„ ì„¤ì •í•œë‹¤.
+			// 1.1. ì´ë•Œ ë¶„ë‹¨ìœ„ ì£¼ê¸° ë™ì‘ ì—¬ë¶€ì— ë”°ë¼ ë‹¤ë¥´ê²Œ ì„¤ì •í•œë‹¤.
+			// 2. ì‹œê°„ë‹¨ìœ„ ì£¼ê¸°ë™ì‘ ì—ì„œ ê²€ì¹¨ì‹œê°„ ëŒ€ë¹„ ë³´ê³ ì‹œê°„ì€ report minë§Œí¼ ì´í›„ì— ë³´ê³ í•œë‹¤.
+			// 2.1. ìœ„ì˜ ì´ìœ ë¡œ ë¶„ë‹¨ìœ„ëŠ” report min ê°’ì„ ì„¤ì •í•œë‹¤.
 			if (conf.isShortInterval) {
 				p->hour = 0;
 				p->min = 0;
@@ -231,7 +231,7 @@ static int insert_multiData(NbiotMeterData_t *p)
 	if (validPos != 0xFF) {
 		uint8 valueArray[4];
 
-		// À¯È¿ÇÑ ÃÖ½Å µ¥ÀÌÅÍ Ã¤¿ì±â
+		// ìœ íš¨í•œ ìµœì‹  ë°ì´í„° ì±„ìš°ê¸°
 		METER_getMeterData(validPos, valueArray);
 
 		uint32 prevValue = 0;
@@ -250,7 +250,7 @@ static int insert_multiData(NbiotMeterData_t *p)
 				uint32 currValue = 0;
 				bcd2int(valueArray, &currValue, 4);
 
-				if (prevValue < currValue) { // °ËÄ§°ªÀÌ ÁÙ¾îµç °æ¿ì
+				if (prevValue < currValue) { // ê²€ì¹¨ê°’ì´ ì¤„ì–´ë“  ê²½ìš°
 					memset(p->valueDiff[i], 0, 2);
 				} else {
 					uint16 diff = (uint16)(prevValue - currValue);
@@ -375,7 +375,7 @@ int MODEM_errData(uchar *buf, int pfUlCnt, int pfDlCnt, int udpUlCnt, int udpDlC
 	return dataLen;
 }
 
-#if 0 // sholee - ´õ ÀÌ»ó »ç¿ëÇÏÁö ¾ÊÀ½
+#if 0 // sholee - ë” ì´ìƒ ì‚¬ìš©í•˜ì§€ ì•ŠìŒ
 int MODEM_sendJoin(uchar *buf)
 {
 	NbiotJoin_t *p = (NbiotJoin_t *)buf;
@@ -416,8 +416,8 @@ unsigned int MODEM_sendCurrentData(uchar *buf)
 	len += insert_termInfo(&p->term);
 	len += insert_meterInfo(&p->meter);
 	len += insert_meteringParam(&p->mp);
-	// Join message´Â ¾Æ´ÏÁö¸¸ Áï½Ã°ËÄ§/º¸°í¸¦ À§ÇÑ messageÀÌ¹Ç·Î
-	// Join message¿Í µ¿ÀÏÇÑ ¹æ½ÄÀÇ metering timeÀ» ¾ò´Â´Ù.
+	// Join messageëŠ” ì•„ë‹ˆì§€ë§Œ ì¦‰ì‹œê²€ì¹¨/ë³´ê³ ë¥¼ ìœ„í•œ messageì´ë¯€ë¡œ
+	// Join messageì™€ ë™ì¼í•œ ë°©ì‹ì˜ metering timeì„ ì–»ëŠ”ë‹¤.
 	len += insert_meteringTime(&p->meterTime, TRUE);
 	len += insert_oneData(&p->data);
 
@@ -482,19 +482,19 @@ int MODEM_recvIntervalReq(uchar *buf, int len)
 	uchar mi = p->mi;
 	uchar ri = p->ri;
 
-	// ±âÁ¸ °Í°ú °°À¸¸é ¹«½Ã
+	// ê¸°ì¡´ ê²ƒê³¼ ê°™ìœ¼ë©´ ë¬´ì‹œ
 	if (mi == conf.meterInterval && ri == conf.reportInterval) {
 		printf_ts("DL : interval is same (mi : %d, ri : %d)\n", mi, ri);
 		return 0;
 	}
 
-	// µÑ Áß ÇÏ³ª°¡ 0ÀÌ°Å³ª, º¸°íÁÖ±âº¸´Ù °ËÄ§ÁÖ±âº¸°¡ Å©¸é ¹«½Ã
+	// ë‘˜ ì¤‘ í•˜ë‚˜ê°€ 0ì´ê±°ë‚˜, ë³´ê³ ì£¼ê¸°ë³´ë‹¤ ê²€ì¹¨ì£¼ê¸°ë³´ê°€ í¬ë©´ ë¬´ì‹œ
 	if (ri == 0 || mi == 0 || ri < mi) {
 		printf_ts("DL : interval is '0' or 'ri < mi' (mi : %d, ri : %d)\n", mi, ri);
 		return 0;
 	}
 
-	// °ËÄ§ÁÖ±â³ª º¸°íÁÖ±â°¡ 24ÀÇ ¾à¼ö°¡ ¾Æ´Ï¸é ¹«½Ã
+	// ê²€ì¹¨ì£¼ê¸°ë‚˜ ë³´ê³ ì£¼ê¸°ê°€ 24ì˜ ì•½ìˆ˜ê°€ ì•„ë‹ˆë©´ ë¬´ì‹œ
 	if ((24 % mi) || (24 % ri)) {
 		printf_ts("DL : interval can not over 24h (mi : %d, ri : %d)\n", mi, ri);
 		return 0;
@@ -569,7 +569,7 @@ int MODEM_checkDlMessage(uchar *buf, int len)
 			resultOK = 1;
 			Fota.Req = 1;
 		} else {
-			// ¹®ÀÚ¿­ÀÇ °æ¿ì Á¤È®ÇÑ ÆĞÅÏÀÌ ¾Æ´Ï¸é ¾²·¹±âÀÏ °¡´É¼ºÀÌ ÀÖÀ½
+			// ë¬¸ìì—´ì˜ ê²½ìš° ì •í™•í•œ íŒ¨í„´ì´ ì•„ë‹ˆë©´ ì“°ë ˆê¸°ì¼ ê°€ëŠ¥ì„±ì´ ìˆìŒ
 		}
 	} else {
 		NbiotAck_t *p = (NbiotAck_t *)buf;
@@ -578,12 +578,12 @@ int MODEM_checkDlMessage(uchar *buf, int len)
 		uchar r_checksum = buf[rLen];
 
 		if (r_checksum == c_checksum) {
-			// frameÀÇ °æ¿ì ¸ğ¸£´Â command¶óµµ checksumÀ» Åë°úÇßÀ¸¸é Á¤»óÀûÀÎ
-			// ÀÀ´äÀ¸·Î Ã³¸®ÇÔ - ÃßÈÄ DL ¸Ş½ÃÁö°¡ Ãß°¡µÇ´Â »óÈ²¿¡ ´ëÀÀÇÏ±â À§ÇÔ.
+			// frameì˜ ê²½ìš° ëª¨ë¥´ëŠ” commandë¼ë„ checksumì„ í†µê³¼í–ˆìœ¼ë©´ ì •ìƒì ì¸
+			// ì‘ë‹µìœ¼ë¡œ ì²˜ë¦¬í•¨ - ì¶”í›„ DL ë©”ì‹œì§€ê°€ ì¶”ê°€ë˜ëŠ” ìƒí™©ì— ëŒ€ì‘í•˜ê¸° ìœ„í•¨.
 			resultOK = 1;
 
 			if (p->mtype == NBIOT_ACK) {
-				// protocol version¿¡ ¹«°üÇÏ°Ô Á¤»ó Ã³¸®ÇÔ.
+				// protocol versionì— ë¬´ê´€í•˜ê²Œ ì •ìƒ ì²˜ë¦¬í•¨.
 				printf_ts("DL : ACK Frame\n");
 			} else if (p->mtype == NBIOT_INTERVAL_REQ) {
 				resetRequired = MODEM_recvIntervalReq(buf, len);
@@ -611,7 +611,7 @@ int MODEM_checkDlMessage(uchar *buf, int len)
 // TDD_TEST
 
 /**
- * @brief LGU+ Ç°Áú¸®Æ÷Æ® Version 1.75
+ * @brief LGU+ í’ˆì§ˆë¦¬í¬íŠ¸ Version 1.75
  * See Detail Description README.md
  * @param buf QA Report Message buf
  *
@@ -641,7 +641,7 @@ int MODEM_qaData(uchar *buf)
 	uint32 rsrp = abs(modem.modemQuality.rsrp) / 10;
 	int2bcd(&rsrp, p->rsrp, LEN_NBIOT_QA_RSRP);
 
-	// Set SNR (1byte À½¼ö/¾ç¼ö ¼³Á¤, 1byte BCD)
+	// Set SNR (1byte ìŒìˆ˜/ì–‘ìˆ˜ ì„¤ì •, 1byte BCD)
 	uint32 snr = abs(modem.modemQuality.snr) / 10;
 	p->sinr[0] = (modem.modemQuality.snr > 0) ? 0 : 1;
 	int2bcd(&snr, &p->sinr[1], LEN_NBIOT_QA_SINR - 1);
@@ -659,18 +659,18 @@ int MODEM_qaData(uchar *buf)
 	snprintf(version, LEN_NBIOT_QA_FW_VER, "%s/%s", FIRMWARE_VER, modem.FwVer);
 	memcpy(&p->fwVer[1], version, p->fwVer[0]);
 
-	// Set TX power (1byte À½¼ö/¾ç¼ö ¼³Á¤, 1byte BCD)
+	// Set TX power (1byte ìŒìˆ˜/ì–‘ìˆ˜ ì„¤ì •, 1byte BCD)
 	uint32 txPower = abs(modem.modemQuality.txPower) / 10;
 	p->txPower[0] = (modem.modemQuality.txPower > 0) ? 0 : 1;
 	int2bcd(&txPower, &p->txPower[1], LEN_NBIOT_QA_TX_POWER - 1);
 
-	// À§Ä¡ÁÂÇ¥, Neighbor Cell ID Áö¿ø¾ÈÇÔ PASS
+	// ìœ„ì¹˜ì¢Œí‘œ, Neighbor Cell ID ì§€ì›ì•ˆí•¨ PASS
 
-	// UE INFO BAND5(LTE), °íÁ¤Çü
+	// UE INFO BAND5(LTE), ê³ ì •í˜•
 #define UE_INFO_BC95G 0x42
 	p->ueInfo = UE_INFO_BC95G + modemCtx.proc.initialReport;
 
-	// PORT INFO »ç¿ë¾ÈÇÔ PASS
+	// PORT INFO ì‚¬ìš©ì•ˆí•¨ PASS
 
 	// Reserved 0xF1F1F1
 #define QA_RESERVED 0xF1

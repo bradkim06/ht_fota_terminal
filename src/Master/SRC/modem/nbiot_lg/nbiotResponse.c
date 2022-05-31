@@ -148,7 +148,7 @@ static int parse_bs_param(char *p)
 	memcpy(str, p, len);
 
 	char *pStr = str;
-	for (; *pStr != '\0'; pStr++) { //Á¾·á ¹®ÀÚ¸¦ ¸¸³¯ ¶§±îÁö ¹İº¹
+	for (; *pStr != '\0'; pStr++) { //ì¢…ë£Œ ë¬¸ìë¥¼ ë§Œë‚  ë•Œê¹Œì§€ ë°˜ë³µ
 		if (*pStr == '\"') {
 			strcpy(pStr, pStr + 1);
 			len--;
@@ -235,7 +235,7 @@ static int parse_fota_downlink(char *p)
 	char ipAddr[SERVER_IP_STR_LEN];
 
 	do {
-		// ip address Search (Downlink ÀÀ´äÀÌ ¾Æ´Ñ°ÍÀ» ÇÊÅÍ¸µ)
+		// ip address Search (Downlink ì‘ë‹µì´ ì•„ë‹Œê²ƒì„ í•„í„°ë§)
 		strncpy(ipAddr, Fota.Info.ip, SERVER_IP_STR_LEN);
 		if ((p = strstr(p, ipAddr)) == NULL) {
 			break;
@@ -518,7 +518,7 @@ void MODEM_response(char *pHead, int len)
 #define PATTERN_CEREG_ATTACH_EVENT "+CEREG:1"
 #define PATTERN_CEREG_TRY_ATTACH_EVENT "+CEREG:2"
 #define PATTERN_CEREG_REJECT_EVENT "+CEREG:3"
-// No service event ¹ß»ı ½Ã attach flag ÃÊ±âÈ­.
+// No service event ë°œìƒ ì‹œ attach flag ì´ˆê¸°í™”.
 #define PATTERN_CEREG_NO_SERVICE_PREFIX "+CEREG:4"
 
 	if ((p = strstr(pHead, PATTERN_CEREG_ATTACH_EVENT))) {
@@ -653,8 +653,8 @@ void MODEM_response(char *pHead, int len)
 					modemCtx.proc.runInit = 1;
 				}
 			}
-			// LWM2MÀÇ °æ¿ì ÇÃ·§Æû Á¢¼Ó ÈÄ ÇÃ·§Æû ¿äÃ»¿¡ ÀÇÇØ
-			// ÁÖ¼Ò°ªÀÌ º¯°æµÉ ¼ö ÀÖÀ¸¹Ç·Î µû·Î È®ÀÎÇÏÁö ¾Ê´Â´Ù.
+			// LWM2Mì˜ ê²½ìš° í”Œë«í¼ ì ‘ì† í›„ í”Œë«í¼ ìš”ì²­ì— ì˜í•´
+			// ì£¼ì†Œê°’ì´ ë³€ê²½ë  ìˆ˜ ìˆìœ¼ë¯€ë¡œ ë”°ë¡œ í™•ì¸í•˜ì§€ ì•ŠëŠ”ë‹¤.
 			// #define PATTERN_READ_LWM2M_SERVER "+QLWSERVERIP:LWM2M,"
 
 			if (isAckOk) {
@@ -733,7 +733,7 @@ void MODEM_response(char *pHead, int len)
 	case AT_CMD_IDX_SOCKET_CREATE: {
 #define PATTERN_CREATE_SOCKET "OK"
 		if ((p = strstr(pHead, PATTERN_CREATE_SOCKET))) {
-			// 'OK'¸¦ ±âÁØÀ¸·Î '\r\n\r\n' ÀÌÀü¿¡ socket number °ªÀÌ Á¸Àç.
+			// 'OK'ë¥¼ ê¸°ì¤€ìœ¼ë¡œ '\r\n\r\n' ì´ì „ì— socket number ê°’ì´ ì¡´ì¬.
 			isRleaseBusy = TRUE;
 			modemCtx.socket = atoi(p -= 5);
 		}

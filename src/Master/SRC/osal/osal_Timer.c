@@ -287,7 +287,7 @@ __interrupt void TIMER1_A0_ISR(void)
 
 			// When timeout, execute the task
 			if (srchTimer->timeout == 0) {
-				//Active ON½Ã Power Mode¸¦ Á¾·áÇÑ´Ù.
+				//Active ONì‹œ Power Modeë¥¼ ì¢…ë£Œí•œë‹¤.
 				SET_ACTIVE_OFF_LPM(FALSE);
 				OSAL_setEvent(srchTimer->taskId, srchTimer->event_flag);
 

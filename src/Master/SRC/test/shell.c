@@ -510,7 +510,7 @@ void SHELL_run()
 		case CMDN_PWMETER:
 		case CMDN_PMETER:
 			if (numOfCmdArgs >= 3) {
-				// Γ³ΐ½ 3°³ ΖΔ¶σΉΜΕΝΈ¦ Α¦ΏάΗΡ ³ªΈΣΑφ 4°³΄Β Ό±ΕΓΐΜΉΗ·Ξ ΎΖ·΅ΏΝ °°ΐΜ Γ³Έ®.
+				// μ²μ 3κ° νλΌλ―Έν„°λ¥Ό μ μ™Έν• λ‚λ¨Έμ§€ 4κ°λ” μ„ νƒμ΄λ―€λ΅ μ•„λμ™€ κ°™μ΄ μ²λ¦¬.
 				int numMeter = SHELL_decimal(cmdArgs[0]); /* num of meter */
 				int type1 = SHELL_decimal(cmdArgs[1]);
 				int port1 = SHELL_decimal(cmdArgs[2]);

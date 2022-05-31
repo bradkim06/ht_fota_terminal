@@ -23,7 +23,7 @@
 #include "meter.h"
 #include "modem.h"
 
-// Á¤ÀÇµÈ RTC Å¸ÀÌ¸Ó ÀÌº¥Æ® °³¼ö.
+// ì •ì˜ëœ RTC íƒ€ì´ë¨¸ ì´ë²¤íŠ¸ ê°œìˆ˜.
 #if defined(AUX_REPEATER)
 #define RTC_ALARM_COUNT 1
 #else
@@ -83,17 +83,17 @@ void RTC_init()
 	RTC_read(&date);
 
 	do {
-		if (RTC_isValidDate(&date)) { // CPU ³»ÀÇ RTC register°¡ À¯È¿ÇÑ °ª.
+		if (RTC_isValidDate(&date)) { // CPU ë‚´ì˜ RTC registerê°€ ìœ íš¨í•œ ê°’.
 			break;
 		}
 
-		setDefaultRTC(&date); // default ½Ã°£ ¼³Á¤
+		setDefaultRTC(&date); // default ì‹œê°„ ì„¤ì •
 	} while (0);
 
 	RTC_set(&date);
 
-	// º¸Á¶Áß°è±â ¹× ºÐ´ÜÀ§ °ËÄ§ ½Ã alaramÀº 1°³¸¸ metering type ¹× report minÀ¸·Î µî·Ï.
-	// report min¿¡ ¸ÂÃç °ËÄ§ ¹× º¸°í¸¦ ¼öÇà. (ºÐ´ÜÀ§ µ¿ÀÛÀº RTC_Alarm_Scheduler_short() ÂüÁ¶)
+	// ë³´ì¡°ì¤‘ê³„ê¸° ë° ë¶„ë‹¨ìœ„ ê²€ì¹¨ ì‹œ alaramì€ 1ê°œë§Œ metering type ë° report minìœ¼ë¡œ ë“±ë¡.
+	// report minì— ë§žì¶° ê²€ì¹¨ ë° ë³´ê³ ë¥¼ ìˆ˜í–‰. (ë¶„ë‹¨ìœ„ ë™ìž‘ì€ RTC_Alarm_Scheduler_short() ì°¸ì¡°)
 	if (conf.isShortInterval) {
 		AlarmList[0].type = RTC_ALARM_METERING;
 		AlarmList[0].minute = conf.reportMin;
@@ -128,12 +128,12 @@ void RTC_init()
 	memset(&TimeSyncDate, 0, sizeof(Date_t));
 }
 
-//¾Ë¶÷½Ã°£ ¼³Á¤
-// »ç¿ëÇÏÁö ¾Ê´Â ÆÄ¶ó¸ÞÅ¸´Â 0xFF·Î ¼³Á¤
-// ex: ¸ÅÀÏ 12:00¿¡ ¾Ë¶÷À» ¼³Á¤
+//ì•ŒëžŒì‹œê°„ ì„¤ì •
+// ì‚¬ìš©í•˜ì§€ ì•ŠëŠ” íŒŒë¼ë©”íƒ€ëŠ” 0xFFë¡œ ì„¤ì •
+// ex: ë§¤ì¼ 12:00ì— ì•ŒëžŒì„ ì„¤ì •
 //      day = 0xFF, hour=12, min=0xFF
 
-// ex: ¸Å¿ù 1ÀÏ 15:30¿¡ ¾Ë¶÷À» ¼³Á¤
+// ex: ë§¤ì›” 1ì¼ 15:30ì— ì•ŒëžŒì„ ì„¤ì •
 //      day = 1, hour=15, min=30
 
 static void rtcAlarmSet(uint8 day, uint8 hour, uint8 min)
@@ -284,7 +284,7 @@ int RTC_isTimeSync()
 
 BOOL RTC_needTimeSync()
 {
-	// LORA¿¡¼­´Â ³¯ÀÚ°¡ ¹Ù²î¸é »õ·Î¿î time sync¸¦ ½ÇÇàÇÔ.
+	// LORAì—ì„œëŠ” ë‚ ìžê°€ ë°”ë€Œë©´ ìƒˆë¡œìš´ time syncë¥¼ ì‹¤í–‰í•¨.
 
 	Date_t date;
 	RTC_read(&date);
@@ -312,11 +312,11 @@ void RTC_Alarm_Scheduler_short()
 	Date_t date;
 	RTC_read(&date);
 
-	// ÇöÀç½Ã°£ÀÌ 55ÃÊ¸¦ ÃÊ°úÇÒ °æ¿ì ºÐÀ¸·Î ¿Ã¸²ÇÏ¿© °è»ê.
+	// í˜„ìž¬ì‹œê°„ì´ 55ì´ˆë¥¼ ì´ˆê³¼í•  ê²½ìš° ë¶„ìœ¼ë¡œ ì˜¬ë¦¼í•˜ì—¬ ê³„ì‚°.
 	if (date.sec > 55) {
 		date.min++;
 	}
-	// ºÐ´ÜÀ§ °ËÄ§ ½Ã Alarm list[0]¸¸ »ç¿ëÇÏ¸ç, minuteÀ» ±â¹ÝÀ¸·Î °íÁ¤µÈ ½Ã°£¿¡ ¼öÇàÇÏµµ·Ï schdulingÇÑ´Ù.
+	// ë¶„ë‹¨ìœ„ ê²€ì¹¨ ì‹œ Alarm list[0]ë§Œ ì‚¬ìš©í•˜ë©°, minuteì„ ê¸°ë°˜ìœ¼ë¡œ ê³ ì •ëœ ì‹œê°„ì— ìˆ˜í–‰í•˜ë„ë¡ schdulingí•œë‹¤.
 	// ex) AlarmList[0].minute = 8, interval = 3 >> alarm set = 8, 11, 14, 17, ..., 59
 	// int ri   = conf.reportInterval;
 	int ri = conf.riCtrlValue;
@@ -341,25 +341,25 @@ void RTC_Alarm_Scheduler_normal()
 	Date_t date;
 	RTC_read(&date);
 
-	// ½Ã°£ µ¿±âÈ­¿¡ ÀÇÇÑ ¾Ë¶÷ Áßº¹ µî·ÏÀ» ÇÇÇÏ±â À§ÇØ ÀÌÀü ¾Ë¶÷ ÀÌº¥Æ®¿¡ ÀÇÇÑ ¼øÂ÷ µî·ÏÀ¸·Î ¼öÁ¤.
-	// ´Ü, ½Ã°£ µ¿±âÈ­ ÈÄ ¹ß»ý ¿ÀÂ÷¿¡ ÀÇÇÑ ¹®Á¦¸¦ ¹æÁöÇÏ±â À§ÇØ ¾Æ·¡¿Í °°Àº ±âÁØÀ¸·Î ¾Ë¶÷À» ¼³Á¤.
-	// 1. ¾Ë¶÷ ¹ß»ý ÈÄ ¿Ï·á±îÁö ½Ã°£ 5ºÐ.
-	// 2. ¾Ë¶÷ µ¿ÀÛ ¿Ï·á ÈÄ Idle ½Ã°£ 5ºÐ.
-	// 3. ½Ã°£ ¿ÀÂ÷¸¦ °í·ÁÇÏ¿© ½ÇÁ¦ ¾Ë¶÷ ½Ã°£ÀÇ +-1ºÐ ¿ÀÂ÷¸¦ °í·Á.
+	// ì‹œê°„ ë™ê¸°í™”ì— ì˜í•œ ì•ŒëžŒ ì¤‘ë³µ ë“±ë¡ì„ í”¼í•˜ê¸° ìœ„í•´ ì´ì „ ì•ŒëžŒ ì´ë²¤íŠ¸ì— ì˜í•œ ìˆœì°¨ ë“±ë¡ìœ¼ë¡œ ìˆ˜ì •.
+	// ë‹¨, ì‹œê°„ ë™ê¸°í™” í›„ ë°œìƒ ì˜¤ì°¨ì— ì˜í•œ ë¬¸ì œë¥¼ ë°©ì§€í•˜ê¸° ìœ„í•´ ì•„ëž˜ì™€ ê°™ì€ ê¸°ì¤€ìœ¼ë¡œ ì•ŒëžŒì„ ì„¤ì •.
+	// 1. ì•ŒëžŒ ë°œìƒ í›„ ì™„ë£Œê¹Œì§€ ì‹œê°„ 5ë¶„.
+	// 2. ì•ŒëžŒ ë™ìž‘ ì™„ë£Œ í›„ Idle ì‹œê°„ 5ë¶„.
+	// 3. ì‹œê°„ ì˜¤ì°¨ë¥¼ ê³ ë ¤í•˜ì—¬ ì‹¤ì œ ì•ŒëžŒ ì‹œê°„ì˜ +-1ë¶„ ì˜¤ì°¨ë¥¼ ê³ ë ¤.
 
 	int diff, lastDiff = 60;
 	RtcAlarm_t *pNext = NULL;
 	for (uchar idx = 0; idx < RTC_ALARM_COUNT; idx++) {
 		diff = AlarmList[idx].minute - date.min;
 		if (diff <= 0) {
-			// diff °ªÀÌ À½¼öÀÌ°Å³ª Â÷ÀÌ°¡ ¾ø´Â °æ¿ì ´ÙÀ½ ½Ã°£¿¡ event¸¦ ¹ß»ý½ÃÅ°±â À§ÇØ 1½Ã°£À» ´õÇÑ´Ù.
+			// diff ê°’ì´ ìŒìˆ˜ì´ê±°ë‚˜ ì°¨ì´ê°€ ì—†ëŠ” ê²½ìš° ë‹¤ìŒ ì‹œê°„ì— eventë¥¼ ë°œìƒì‹œí‚¤ê¸° ìœ„í•´ 1ì‹œê°„ì„ ë”í•œë‹¤.
 			diff += 60;
 		}
 
 		printf_ts("set next alarm [%10s:%02dm diff=%02dm] - ",
 			  ALARM_TYPE_STR(AlarmList[idx].type), AlarmList[idx].minute, diff);
 
-		// diff °ªÀÌ 0ÀÌ°Å³ª 1ÀÎ ¾Ë¶÷À» ¼³Á¤ÇÒ °æ¿ì ¾Ë¶÷ÀÌ ¹ß»ýÇÏÁö ¾ÊÀ» ¼ö ÀÖÀ¸¹Ç·Î Á¦¿ÜÇÑ´Ù.
+		// diff ê°’ì´ 0ì´ê±°ë‚˜ 1ì¸ ì•ŒëžŒì„ ì„¤ì •í•  ê²½ìš° ì•ŒëžŒì´ ë°œìƒí•˜ì§€ ì•Šì„ ìˆ˜ ìžˆìœ¼ë¯€ë¡œ ì œì™¸í•œë‹¤.
 		if (diff > 1) {
 			if (diff <= lastDiff) {
 				pNext = &AlarmList[idx];
@@ -374,7 +374,7 @@ void RTC_Alarm_Scheduler_normal()
 		}
 	}
 
-	// °Ë»öµÈ next alarmÀÌ ¾ø´Â °æ¿ì Ã¹¹øÂ° ¾Ë¶÷À» ¼³Á¤ÇÑ´Ù.
+	// ê²€ìƒ‰ëœ next alarmì´ ì—†ëŠ” ê²½ìš° ì²«ë²ˆì§¸ ì•ŒëžŒì„ ì„¤ì •í•œë‹¤.
 	if (pNext) {
 		NextAlarm = pNext;
 	} else {
@@ -408,7 +408,7 @@ void RTC_runAlarm()
 	printf_ts("alarm occurred - '%s'%s\n", ALARM_TYPE_STR(NextAlarm->type),
 		  (conf.sleepMode) ? "(sleep)" : "(active)");
 	if (conf.sleepMode) {
-		MISC_delayMs(1500); // sleep mode ÀÎ °æ¿ì 1.5sec ´ë±â ÈÄ ´Ù½Ã LPM3ÁØºñ
+		MISC_delayMs(1500); // sleep mode ì¸ ê²½ìš° 1.5sec ëŒ€ê¸° í›„ ë‹¤ì‹œ LPM3ì¤€ë¹„
 		return;
 	}
 
@@ -438,9 +438,9 @@ void RTC_runAlarm()
 		}
 	} else if (alarmType == RTC_ALARM_METER_SAVE) {
 		if (conf.periodMode && RTC_isTimeSync()) {
-			// ±â°£°ËÄ§ µ¥ÀÌÅÍ ÀúÀå Base TimeÀ» "Åë½Å Base Time + 1½Ã°£" À¸·Î ¼³Á¤.
-			// ÇØ´ç ÀÌÀ¯´Â LoRa Åë½Å ¹®Á¦ ¹ß»ý ½Ã Join½Ãµµ¸¦ 1½Ã°£µ¿¾È ÇÏ¹Ç·Î
-			// °æ¿ì¿¡ µû¶ó 0½Ã¿¡ ±â°£°ËÄ§ µ¥ÀÌÅÍ¸¦ ÀúÀåÇÏÁö ¾Ê´Â ¹®Á¦°¡ ¹ß»ýÇÏ¹Ç·Î ¼öÁ¤.
+			// ê¸°ê°„ê²€ì¹¨ ë°ì´í„° ì €ìž¥ Base Timeì„ "í†µì‹  Base Time + 1ì‹œê°„" ìœ¼ë¡œ ì„¤ì •.
+			// í•´ë‹¹ ì´ìœ ëŠ” LoRa í†µì‹  ë¬¸ì œ ë°œìƒ ì‹œ Joinì‹œë„ë¥¼ 1ì‹œê°„ë™ì•ˆ í•˜ë¯€ë¡œ
+			// ê²½ìš°ì— ë”°ë¼ 0ì‹œì— ê¸°ê°„ê²€ì¹¨ ë°ì´í„°ë¥¼ ì €ìž¥í•˜ì§€ ì•ŠëŠ” ë¬¸ì œê°€ ë°œìƒí•˜ë¯€ë¡œ ìˆ˜ì •.
 			if ((date.hour % METER_DATA_SAVE_INTERVAL) == (conf.intervalBaseTime + 1)) {
 				APP_runMetering(PERIODIC_METERING_FOR_SAVE);
 			}

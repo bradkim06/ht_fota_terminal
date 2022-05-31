@@ -188,7 +188,7 @@ void MODEM_initialization()
 	memset(&modemCtx, 0, sizeof(modemCtx));
 	memset(&modemComm, 0, sizeof(modemComm));
 
-	// LGU+ QA Report V1.75, UE INFO ÇÊµå ÃÊ±âº¸°í½Ã 0x01
+	// LGU+ QA Report V1.75, UE INFO í•„ë“œ ì´ˆê¸°ë³´ê³ ì‹œ 0x01
 	modemCtx.proc.initialReport = 1;
 }
 
@@ -231,7 +231,7 @@ void MODEM_write(char *pCmd)
 {
 	if (TEST_isTestMode() == FALSE) {
 		printf(TP_ANSI_FG_BLUE);
-		// AT CMD°¡ 512 byte¿¡ ±ÙÁ¢ÇÒ °æ¿ì buffer overflowÀÇ À§ÇèÀÌ ÀÖ¾î timestamp Ãâ·ÂÀ» ºĞ¸®
+		// AT CMDê°€ 512 byteì— ê·¼ì ‘í•  ê²½ìš° buffer overflowì˜ ìœ„í—˜ì´ ìˆì–´ timestamp ì¶œë ¥ì„ ë¶„ë¦¬
 		printf_ts("");
 		printf("%s\n", pCmd);
 		printf(TP_ANSI_RESET);
@@ -253,7 +253,7 @@ void MODEM_read()
 		printf(TP_ANSI_RESET);
 	}
 
-	// Stop »óÅÂÀÎ °æ¿ì MODEM response ¹«½Ã.
+	// Stop ìƒíƒœì¸ ê²½ìš° MODEM response ë¬´ì‹œ.
 	if (modemCtx.status.stop) {
 		return;
 	}
@@ -265,8 +265,8 @@ void MODEM_read()
 static void saveModemErrorLog(Date_t *date, ModemErrorCode_t errCode)
 {
 	/**
-     * @brief error log »ó¿¡¼­ ½Ã°£ºñ±³¸¦ ÅëÇØ °¡Àå ¿À·¡µÈ log¿¡ overwrite.
-     *        errLog ¹è¿­ÀÇ index 1 ~ 6Àº ³¯Â¥ BCD °ªÀÌ¹Ç·Î µû·Î º¯È¯ ¾øÀÌ ºñ±³.
+     * @brief error log ìƒì—ì„œ ì‹œê°„ë¹„êµë¥¼ í†µí•´ ê°€ì¥ ì˜¤ë˜ëœ logì— overwrite.
+     *        errLog ë°°ì—´ì˜ index 1 ~ 6ì€ ë‚ ì§œ BCD ê°’ì´ë¯€ë¡œ ë”°ë¡œ ë³€í™˜ ì—†ì´ ë¹„êµ.
      */
 	unsigned int old = 0;
 	for (unsigned int i = 1; i < CNT_ERROR_LOG; i++) {
@@ -318,7 +318,7 @@ void MODEM_stop(int resultCode)
 
 	if (resultCode == SUCCESS) {
 		modemCtx.errCode = MODEM_ERROR_NONE;
-		// µ¿ÀÛ ¿Ï·á ÈÄ Detached µÈ °æ¿ì PSM off.
+		// ë™ì‘ ì™„ë£Œ í›„ Detached ëœ ê²½ìš° PSM off.
 		if (modemCtx.status.cellreg == MODEM_CELLREG_REJECTED) {
 			modemCtx.status.psmOn = 0;
 		}
@@ -332,16 +332,16 @@ void MODEM_stop(int resultCode)
 			LCD_redraw();
 		}
 	} else {
-		// FailÀÎ °æ¿ì PSM disable
+		// Failì¸ ê²½ìš° PSM disable
 		modemCtx.status.psmOn = 0;
-		// Error code°¡ AT command no respÀÌ°í ERROR flag°¡ setµÈ °æ¿ì AT command fail·Î º¯°æ.
+		// Error codeê°€ AT command no respì´ê³  ERROR flagê°€ setëœ ê²½ìš° AT command failë¡œ ë³€ê²½.
 		if (modemCtx.status.error) {
 			modemCtx.errCode = (modemCtx.errCode == MODEM_ERROR_AT_CMD_NO_RESP) ?
 						   MODEM_ERROR_AT_CMD_FAIL :
 							 modemCtx.errCode;
 		}
 
-		// FailÀÎ °æ¿ì µ¿ÀÛ Áß°£¿¡ Á¾·áÇÏ¹Ç·Î process done flag¸¦ setÇØ¾ß ÇÔ.
+		// Failì¸ ê²½ìš° ë™ì‘ ì¤‘ê°„ì— ì¢…ë£Œí•˜ë¯€ë¡œ process done flagë¥¼ setí•´ì•¼ í•¨.
 		if (AppProcess == APP_INITIAL_REPORT || AppProcess == APP_IMMEDIATE_REPORT) {
 			LCD_displayError(ERROR_REPORT);
 			MISC_delayMs(2000);
@@ -349,7 +349,7 @@ void MODEM_stop(int resultCode)
 		}
 	}
 
-	// µ¿ÀÛ ¿Ï·á ÈÄ °ü·Ã context clear
+	// ë™ì‘ ì™„ë£Œ í›„ ê´€ë ¨ context clear
 	modemCtx.retryCount = 0;
 	modemCtx.retryStep = MODEM_STEP_UNKNOWN;
 	modemCtx.step = MODEM_STEP_IDLE;
@@ -381,8 +381,8 @@ void MODEM_timeout()
 		// Clear MODEM AT command working flag
 		modemCtx.status.busy = 0;
 
-		// INIT/RETRY ´Ü°è°¡ ¾Æ´Ï¸é¼­ ÇöÀç Àç½Ãµµ È½¼ö°¡ MAX¹Ì¸¸ÀÎ °æ¿ì Àç½Ãµµ.
-		// ±× ¿Ü INIT/RETRY ´Ü°èÀÌ°Å³ª ÇöÀç Àç½Ãµµ È½¼ö°¡ MAXÀÌ»óÀÎ °æ¿ì Á¾·á.
+		// INIT/RETRY ë‹¨ê³„ê°€ ì•„ë‹ˆë©´ì„œ í˜„ì¬ ì¬ì‹œë„ íšŸìˆ˜ê°€ MAXë¯¸ë§Œì¸ ê²½ìš° ì¬ì‹œë„.
+		// ê·¸ ì™¸ INIT/RETRY ë‹¨ê³„ì´ê±°ë‚˜ í˜„ì¬ ì¬ì‹œë„ íšŸìˆ˜ê°€ MAXì´ìƒì¸ ê²½ìš° ì¢…ë£Œ.
 #define NB_MAX_RETRY 2
 		static int maxRetryCount = NB_MAX_RETRY;
 		if (modemCtx.retryStep == MODEM_STEP_UNKNOWN) {
@@ -412,7 +412,7 @@ void MODEM_timeout()
 			  MODEM_STEP_STRING(modemCtx.step), MODEM_STEP_STRING(modemCtx.retryStep),
 			  modemCtx.retryCount);
 
-		// Àç½Ãµµ °úÁ¤¿¡¼­ ½ÇÆĞÇÒ °æ¿ì Àç½Ãµµ È½¼ö¿Í °ü°è¾øÀÌ FailÃ³¸®.
+		// ì¬ì‹œë„ ê³¼ì •ì—ì„œ ì‹¤íŒ¨í•  ê²½ìš° ì¬ì‹œë„ íšŸìˆ˜ì™€ ê´€ê³„ì—†ì´ Failì²˜ë¦¬.
 		if (modemCtx.step != MODEM_STEP_RETRY && modemCtx.retryCount < maxRetryCount) {
 			printf("- retry(%d/%d)\n", modemCtx.retryCount, maxRetryCount);
 
@@ -436,7 +436,7 @@ void MODEM_open(int process)
 	if (modemCtx.step != MODEM_STEP_IDLE) {
 		return;
 	} else {
-		// Process ½ÃÀÛ Àü status flag ÃÊ±âÈ­
+		// Process ì‹œì‘ ì „ status flag ì´ˆê¸°í™”
 		modemCtx.status.error = 0;
 		modemCtx.status.busy = 0;
 		modemCtx.status.stop = 0;
@@ -461,12 +461,12 @@ void MODEM_close()
 {
 	modemCtx.proc.initialReport = 0;
 
-	// ´Ü¸»±â sleep mode ÀÎ °æ¿ì sleep disable.
+	// ë‹¨ë§ê¸° sleep mode ì¸ ê²½ìš° sleep disable.
 	if (conf.sleepMode) {
 		modemCtx.status.psmOn = 0;
 	}
 
-	// MODEM µ¿ÀÛ Áß°£¿¡ ¹ß»ıÇÒ °æ¿ì IDLE·Î ¼³Á¤ÇÏ°í sleep disable.
+	// MODEM ë™ì‘ ì¤‘ê°„ì— ë°œìƒí•  ê²½ìš° IDLEë¡œ ì„¤ì •í•˜ê³  sleep disable.
 	if (modemCtx.step != MODEM_STEP_IDLE) {
 		modemCtx.step = MODEM_STEP_IDLE;
 		modemCtx.status.psmOn = 0;
@@ -575,7 +575,7 @@ int MODEM_getAccessState()
 
 	int32 secDiff = RTC_calcSecDiff(&modem.lastAccessTime, &now);
 
-	if (secDiff < 0 || secDiff > 3) { // ¸ğµ© µ¿ÀÛ¿¡ ´ëÇØ IntervalÀ» À§ÇØ Ãß°¡.
+	if (secDiff < 0 || secDiff > 3) { // ëª¨ë€ ë™ì‘ì— ëŒ€í•´ Intervalì„ ìœ„í•´ ì¶”ê°€.
 		return ACCESS_STATE_IDLE;
 	}
 
@@ -588,8 +588,8 @@ int MODEM_getStateOrResult()
 		int error = ERROR_CODE_UNKNOWN;
 		switch (modemCtx.errCode) {
 		case MODEM_ERROR_NONE:
-		case MODEM_ERROR_PF_EPNS_CHANGE: // EPNS º¯°æ ¹ß»ı. (error´Â ¾Æ´Ô.)
-		case MODEM_ERROR_PF_FOTA_FAIL: // Platform module FOTA ½ÇÆĞ
+		case MODEM_ERROR_PF_EPNS_CHANGE: // EPNS ë³€ê²½ ë°œìƒ. (errorëŠ” ì•„ë‹˜.)
+		case MODEM_ERROR_PF_FOTA_FAIL: // Platform module FOTA ì‹¤íŒ¨
 			error = ERROR_CODE_NONE;
 			break;
 
@@ -598,22 +598,22 @@ int MODEM_getStateOrResult()
 			error = ERROR_CODE_MODEM;
 			break;
 
-		case MODEM_ERROR_USIM_INVALID: // AT+CIMI ¹«ÀÀ´ä OR ERROR
+		case MODEM_ERROR_USIM_INVALID: // AT+CIMI ë¬´ì‘ë‹µ OR ERROR
 			error = ERROR_CODE_SIM;
 			break;
 
-		case MODEM_ERROR_PF_UL_FAIL: // Platform ¿¬µ¿ ½Ã UL ½ÇÆĞ
-		case MODEM_ERROR_PF_UD_FAIL: // Platform ¿¬µ¿ ½Ã DL ½ÇÆĞ
-		case MODEM_ERROR_UDP_UL_FAIL: // UDP UL ½ÇÆĞ
-		case MODEM_ERROR_UDP_DL_FAIL: // UDP DL ½ÇÆĞ
+		case MODEM_ERROR_PF_UL_FAIL: // Platform ì—°ë™ ì‹œ UL ì‹¤íŒ¨
+		case MODEM_ERROR_PF_UD_FAIL: // Platform ì—°ë™ ì‹œ DL ì‹¤íŒ¨
+		case MODEM_ERROR_UDP_UL_FAIL: // UDP UL ì‹¤íŒ¨
+		case MODEM_ERROR_UDP_DL_FAIL: // UDP DL ì‹¤íŒ¨
 			error = ERROR_CODE_COMM;
 			break;
 
-		case MODEM_ERROR_PF_CERITY_FAIL: // Bootstrap or Register ½ÇÆĞ
+		case MODEM_ERROR_PF_CERITY_FAIL: // Bootstrap or Register ì‹¤íŒ¨
 			error = ERROR_CODE_FAIL_CERTIFY;
 			break;
 
-		case MODEM_ERROR_ATTACH_FAIL: // ¸ÁÁ¢¼Ó ½ÇÆĞ
+		case MODEM_ERROR_ATTACH_FAIL: // ë§ì ‘ì† ì‹¤íŒ¨
 			error = ERROR_CODE_FAIL_ATTACH;
 			break;
 		}
@@ -661,7 +661,7 @@ void MODEM_copyLastAccessTime(uint8 *p)
 // TDD_TEST
 void MODEM_copyCtn(uchar *ctn)
 {
-	// 11ÀÚ¸®ÀÇ CTNÀ» BCD·Î º¯È¯ ½Ã °¡Àå ¾ÕÀÚ¸® 0À» 1byte·Î ÇÒ´çÇÑ´Ù.
+	// 11ìë¦¬ì˜ CTNì„ BCDë¡œ ë³€í™˜ ì‹œ ê°€ì¥ ì•ìë¦¬ 0ì„ 1byteë¡œ í• ë‹¹í•œë‹¤.
 	// EX :  012-1234-5678 -> 0x00 0x12 0x12 0x34 0x56 0x78
 	char *p = modem.ctnStr;
 	static const int len = sizeof(modem.ctnStr) / 2;

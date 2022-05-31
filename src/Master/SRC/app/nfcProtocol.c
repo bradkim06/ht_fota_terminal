@@ -36,7 +36,7 @@ extern Metering_t Metering;
 
 #define CELLPHONE_NOMAL_RESPONSE 0
 
-// NFC ÇÁ·ÎÅäÄÝ v2¸¦ À§ÇÑ ½Ã°£ ±¸Á¶Ã¼.
+// NFC í”„ë¡œí† ì½œ v2ë¥¼ ìœ„í•œ ì‹œê°„ êµ¬ì¡°ì²´.
 typedef struct {
 	union {
 		uint32 dateTime;
@@ -143,13 +143,13 @@ void send(byte *p, int len)
 	NFC_sendMessage(p, len);
 
 	//yikim 2018.01.30
-	NFC_checkRead(100); // µ¥ÀÌÅÍ Àü¼Û ÈÄ ½º¸¶Æ®Æù¿¡¼­ ÀÐ¾î°¡´Â ÀÌº¥Æ® Ã¼Å©.
+	NFC_checkRead(100); // ë°ì´í„° ì „ì†¡ í›„ ìŠ¤ë§ˆíŠ¸í°ì—ì„œ ì½ì–´ê°€ëŠ” ì´ë²¤íŠ¸ ì²´í¬.
 
-	//´ÙÀ½ ¸Þ¼¼Áö ´ë±â
+	//ë‹¤ìŒ ë©”ì„¸ì§€ ëŒ€ê¸°
 	OSAL_startEventTimer(AppTaskId, APP_EVENT_NFC_WAIT, (uint32)300);
 	NFC_tagDetect();
 
-	BATT_loadLastVoltage(); // ´ÙÀ½ º¸°í½Ã »ç¿ëÇÒ ¸ñÀûÀ¸·Î ¹èÅÍ¸® Àü¾ÐÀ» ÀÐ¾î µÒ.
+	BATT_loadLastVoltage(); // ë‹¤ìŒ ë³´ê³ ì‹œ ì‚¬ìš©í•  ëª©ì ìœ¼ë¡œ ë°°í„°ë¦¬ ì „ì••ì„ ì½ì–´ ë‘ .
 }
 
 void NFCAPP_continueSend(byte *p, int len)
@@ -245,7 +245,7 @@ void sendNodeConfReportV3(uint8 reportType, int error)
 #else
 	p->mtype = NB_CONF_REPORT;
 #endif
-#define NB_CONF_REPORT_V3 2 //´Ü¸»±â
+#define NB_CONF_REPORT_V3 2 //ë‹¨ë§ê¸°
 	p->mversion = NB_CONF_REPORT_V3;
 	p->reportType = reportType;
 	if (p->reportType == REPORT_TYPE_SET) {
@@ -300,7 +300,7 @@ void sendNodeConfReportV3(uint8 reportType, int error)
 	}
 #endif
 
-	// meter°¡ 3°³ÀÏ ¶§¸¦ ±âÁØÀ¸·Î message formatÀÌ Á¤ÀÇµÇ¾î ÀÖÀ¸¹Ç·Î ±× ¼ö°¡ ¸ðÀÚ¶ó¸é ±×¸¸Å­ ÁÙÀÓ
+	// meterê°€ 3ê°œì¼ ë•Œë¥¼ ê¸°ì¤€ìœ¼ë¡œ message formatì´ ì •ì˜ë˜ì–´ ìžˆìœ¼ë¯€ë¡œ ê·¸ ìˆ˜ê°€ ëª¨ìžë¼ë©´ ê·¸ë§Œí¼ ì¤„ìž„
 	int msgLen = sizeof(NfcConfReportV1_t) - (3 - p->nMeter) * 2;
 
 	send(msg, msgLen);
@@ -419,11 +419,11 @@ void sendMeterReport()
 				p->meterState = NFC_RC_SERVER_ACCESS;
 			} else {
 				if (METER_needNewMetering(10) ==
-				    0) { // Áï½Ã °ËÄ§ÀÇ °æ¿ì¿¡´Â 10ÃÊ ÀÌÇÏÀÌ¸é Àç °ËÄ§ÇÏÁö ¾ÊÀ½.
+				    0) { // ì¦‰ì‹œ ê²€ì¹¨ì˜ ê²½ìš°ì—ëŠ” 10ì´ˆ ì´í•˜ì´ë©´ ìž¬ ê²€ì¹¨í•˜ì§€ ì•ŠìŒ.
 					p->meterState = NFC_RC_METERING_COMPLETED;
 				} else {
 					needNewMetering = 1;
-					p->meterState = NFC_RC_IN_METERING; //0: °ËÄ§Áß 1: °ËÄ§¿Ï·á
+					p->meterState = NFC_RC_IN_METERING; //0: ê²€ì¹¨ì¤‘ 1: ê²€ì¹¨ì™„ë£Œ
 				}
 			}
 		} else {
@@ -436,15 +436,15 @@ void sendMeterReport()
 		p->meterState = NFC_RC_IN_METERING;
 	}
 #else // #if defined(AUX_REPEATER)
-	if (Metering.inProcess) { // ÇöÀç °ËÄ§ÁßÀÌ¸é Àç °ËÄ§ÇÏÁö ¾ÊÀ½
-		p->meterState = NFC_RC_IN_METERING; //0: °ËÄ§Áß 1: °ËÄ§¿Ï·á
+	if (Metering.inProcess) { // í˜„ìž¬ ê²€ì¹¨ì¤‘ì´ë©´ ìž¬ ê²€ì¹¨í•˜ì§€ ì•ŠìŒ
+		p->meterState = NFC_RC_IN_METERING; //0: ê²€ì¹¨ì¤‘ 1: ê²€ì¹¨ì™„ë£Œ
 	} else {
 		if (METER_needNewMetering(10) ==
-		    0) { // Áï½Ã °ËÄ§ÀÇ °æ¿ì¿¡´Â 10ÃÊ ÀÌÇÏÀÌ¸é Àç °ËÄ§ÇÏÁö ¾ÊÀ½.
+		    0) { // ì¦‰ì‹œ ê²€ì¹¨ì˜ ê²½ìš°ì—ëŠ” 10ì´ˆ ì´í•˜ì´ë©´ ìž¬ ê²€ì¹¨í•˜ì§€ ì•ŠìŒ.
 			p->meterState = NFC_RC_METERING_COMPLETED;
 		} else {
 			needNewMetering = 1;
-			p->meterState = NFC_RC_IN_METERING; //0: °ËÄ§Áß 1: °ËÄ§¿Ï·á
+			p->meterState = NFC_RC_IN_METERING; //0: ê²€ì¹¨ì¤‘ 1: ê²€ì¹¨ì™„ë£Œ
 		}
 	}
 #endif // #if defined(AUX_REPEATER)
@@ -455,18 +455,18 @@ void sendMeterReport()
 	p->oneMeter[0].port = 1;
 
 #if defined(AUX_REPEATER)
-	// TODO - M-S °£ Åë½ÅºÒ·® Ãß°¡
+	// TODO - M-S ê°„ í†µì‹ ë¶ˆëŸ‰ ì¶”ê°€
 	if (TempMeterData.noResponseFromSlave) {
-		p->oneMeter[0].flag = 2; // Åë½Å ºÒ·®
+		p->oneMeter[0].flag = 2; // í†µì‹  ë¶ˆëŸ‰
 		TempMeterData.noResponseFromSlave = 0;
 	} else
 #endif
 		if (TempMeterData.unit.meterData[0] == 0xff &&
 		    TempMeterData.unit.meterData[1] == 0xff) {
 		// previous metering failed
-		p->oneMeter[0].flag = 1; // °ËÄ§ºÒ·®
+		p->oneMeter[0].flag = 1; // ê²€ì¹¨ë¶ˆëŸ‰
 	} else {
-		p->oneMeter[0].flag = 0; // Á¤»ó °ËÄ§
+		p->oneMeter[0].flag = 0; // ì •ìƒ ê²€ì¹¨
 		memcpy(p->oneMeter[0].serial, TempMeterData.meterSerial, 4);
 		memcpy(p->oneMeter[0].value, TempMeterData.unit.meterData, 4);
 		if (conf.meterType == W_STANDARD_D) {
@@ -481,7 +481,7 @@ void sendMeterReport()
 	send(msg, msgLen);
 
 	if (needNewMetering) {
-		// ÇöÀç °ËÄ§ÁßÀÌ ¾Æ´Ï°í ÀÌÀü °ËÄ§À¸·ÎºÎÅÍ Àç°ËÄ§ÀÌ ÇÊ¿äÇÑ ½Ã°£¸¸Å­ Èê·¶À¸¸é °ËÄ§ ½ÃÀÛ
+		// í˜„ìž¬ ê²€ì¹¨ì¤‘ì´ ì•„ë‹ˆê³  ì´ì „ ê²€ì¹¨ìœ¼ë¡œë¶€í„° ìž¬ê²€ì¹¨ì´ í•„ìš”í•œ ì‹œê°„ë§Œí¼ í˜ë €ìœ¼ë©´ ê²€ì¹¨ ì‹œìž‘
 		OSAL_startEventTimer(AppTaskId, APP_EVENT_IMMEDIATE_METERING, (uint32)500);
 	} else {
 	}
@@ -554,9 +554,9 @@ void sendServerConnectReport(int reqType)
 	send(msg, sizeof(NfcServerConnReportV1_t));
 #endif
 
-	if (reqType == 1) { // Á¢¼Ó ½ÃÀÛ ¸í·É
+	if (reqType == 1) { // ì ‘ì† ì‹œìž‘ ëª…ë ¹
 		if (p->serverAccessState == ACCESS_STATE_IDLE) {
-			// ¸ðµ©ÀÌ º¸°í ÁßÀÌ¸é »õ·Î¿î º¸°í¸¦ Áö½ÃÇÏÁö ¾ÊÀ½
+			// ëª¨ëŽ€ì´ ë³´ê³  ì¤‘ì´ë©´ ìƒˆë¡œìš´ ë³´ê³ ë¥¼ ì§€ì‹œí•˜ì§€ ì•ŠìŒ
 			OSAL_stopEventTimer(AppTaskId, APP_EVENT_IMMEDIATE_REPORT);
 			OSAL_startEventTimer(AppTaskId, APP_EVENT_IMMEDIATE_REPORT, (uint32)500);
 			//            printf("server access started\n");
@@ -605,7 +605,7 @@ void sendSlaveCheckReport()
 				p->checkState = NFC_RC_IN_METERING;
 			}
 		} else {
-			// Á¤ÇØÁø Interval³» ¹ÞÀº Slave info°¡ ÀÖÀ» °æ¿ì ÇØ´ç µ¥ÀÌÅÍ Àü¼Û.
+			// ì •í•´ì§„ Intervalë‚´ ë°›ì€ Slave infoê°€ ìžˆì„ ê²½ìš° í•´ë‹¹ ë°ì´í„° ì „ì†¡.
 			SlaveAccessInfo_t pStatus;
 			memset(&pStatus, 0, sizeof(SlaveAccessInfo_t));
 
@@ -642,9 +642,9 @@ void recvNodeConfSetV3(byte *data, uint8 len)
 {
 	NfcConfSetV3_t *p = (NfcConfSetV3_t *)data;
 
-/* #define NB_CONF_SET_V1 0 // ´Ü¸»±â U316 ÀÌÈÄ »ç¿ë ¾ÈÇÔ*/
+/* #define NB_CONF_SET_V1 0 // ë‹¨ë§ê¸° U316 ì´í›„ ì‚¬ìš© ì•ˆí•¨*/
 /* #define NB_CONF_SET_V2 1 // Repeater */
-#define NB_CONF_SET_V3 2 // Service Code Ãß°¡
+#define NB_CONF_SET_V3 2 // Service Code ì¶”ê°€
 	printf_ts("protocol ver : %d\n", p->mversion);
 	setRtcV1(p->year);
 
@@ -654,7 +654,7 @@ void recvNodeConfSetV3(byte *data, uint8 len)
 	int error = 0;
 	int changed = 0;
 	do {
-		// p->serialNum --> checkÇÏ¿© ¿¡·¯ Ã³¸®ÇÒ ÇÊ¿ä°¡ ÀÖ´Â°¡?
+		// p->serialNum --> checkí•˜ì—¬ ì—ëŸ¬ ì²˜ë¦¬í•  í•„ìš”ê°€ ìžˆëŠ”ê°€?
 		if (memcmp(p->serialNum, tconfig.serialNum, SERIAL_NUM_LEN) != 0) {
 			error = CONFIG_ERR_SERIAL_NUM;
 			break;
@@ -702,7 +702,7 @@ void recvNodeConfSetV3(byte *data, uint8 len)
 		if (needChangeCode) {
 			if (memcmp(tconfig.serviceCode, p->serviceCode, 4) != 0) {
 				memcpy(tconfig.serviceCode, p->serviceCode, 4);
-				// ¼³Á¤ º¯°æ ½Ã Global context¿¡ º¹»ç ÈÄ ÀÌº¥Æ® µî·Ï
+				// ì„¤ì • ë³€ê²½ ì‹œ Global contextì— ë³µì‚¬ í›„ ì´ë²¤íŠ¸ ë“±ë¡
 				memcpy(&conf, &tconfig, sizeof(Config_t));
 				changed = 1;
 			}
@@ -744,7 +744,7 @@ void recvNodeConfSetV3(byte *data, uint8 len)
 	} while (0);
 
 	if (error == 0 && changed) {
-		// error°¡ ¾ø°í ÆÄ¶ó¹ÌÅÍ°¡ ¹Ù²ï °æ¿ì¿¡¸¸ ÀúÀåÇÔ.
+		// errorê°€ ì—†ê³  íŒŒë¼ë¯¸í„°ê°€ ë°”ë€ ê²½ìš°ì—ë§Œ ì €ìž¥í•¨.
 		memcpy(&conf, &tconfig, sizeof(Config_t));
 		OSAL_setEvent(AppTaskId, APP_EVENT_CHANGE_CONFIG);
 	}
@@ -766,7 +766,7 @@ void recvNodeConfSetV4(byte *data, uint8 len)
 	int error = 0;
 	int changed = 0;
 	do {
-		// p->serialNum --> checkÇÏ¿© ¿¡·¯ Ã³¸®ÇÒ ÇÊ¿ä°¡ ÀÖ´Â°¡?
+		// p->serialNum --> checkí•˜ì—¬ ì—ëŸ¬ ì²˜ë¦¬í•  í•„ìš”ê°€ ìžˆëŠ”ê°€?
 		if (memcmp(p->serialNum, tconfig.serialNum, SERIAL_NUM_LEN) != 0) {
 			error = CONFIG_ERR_SERIAL_NUM;
 			break;
@@ -814,7 +814,7 @@ void recvNodeConfSetV4(byte *data, uint8 len)
 		if (needChangeCode) {
 			if (memcmp(tconfig.serviceCode, p->serviceCode, 4) != 0) {
 				memcpy(tconfig.serviceCode, p->serviceCode, 4);
-				// ¼³Á¤ º¯°æ ½Ã Global context¿¡ º¹»ç ÈÄ ÀÌº¥Æ® µî·Ï
+				// ì„¤ì • ë³€ê²½ ì‹œ Global contextì— ë³µì‚¬ í›„ ì´ë²¤íŠ¸ ë“±ë¡
 				memcpy(&conf, &tconfig, sizeof(Config_t));
 				changed = 1;
 			}
@@ -849,7 +849,7 @@ void recvNodeConfSetV4(byte *data, uint8 len)
 
 		if (tconfig.nwk_addr != nwkAddr) {
 			tconfig.nwk_addr = nwkAddr;
-			// Master NWKº¯°æ ½Ã Slaveµµ º¯°æµÇ¾ß ÇÏ¹Ç·Î »õ·Î¿î NWK·Î º¯°æ.
+			// Master NWKë³€ê²½ ì‹œ Slaveë„ ë³€ê²½ë˜ì•¼ í•˜ë¯€ë¡œ ìƒˆë¡œìš´ NWKë¡œ ë³€ê²½.
 			tconfig.slaveNwk = tconfig.nwk_addr;
 			changed = 1;
 		}
@@ -865,7 +865,7 @@ void recvNodeConfSetV4(byte *data, uint8 len)
 	} while (0);
 
 	if (error == 0 && changed) {
-		// error°¡ ¾ø°í ÆÄ¶ó¹ÌÅÍ°¡ ¹Ù²ï °æ¿ì¿¡¸¸ ÀúÀåÇÔ.
+		// errorê°€ ì—†ê³  íŒŒë¼ë¯¸í„°ê°€ ë°”ë€ ê²½ìš°ì—ë§Œ ì €ìž¥í•¨.
 		memcpy(&conf, &tconfig, sizeof(Config_t));
 		OSAL_setEvent(AppTaskId, APP_EVENT_CHANGE_CONFIG);
 	}
@@ -1069,15 +1069,15 @@ void NFCAPP_meterAdjustReq()
 		}
 	}
 
-	// ¹ÌÅÍ Á¶Á¤À» À§ÇÑ ¿äÃ»ÀÌ¶ó´Â °É ±â·ÏÇÏ°í, ÀçÀü¼ÛÀº ¾øÀ½
+	// ë¯¸í„° ì¡°ì •ì„ ìœ„í•œ ìš”ì²­ì´ë¼ëŠ” ê±¸ ê¸°ë¡í•˜ê³ , ìž¬ì „ì†¡ì€ ì—†ìŒ
 	Metering.forMeterAdjust = 1;
 	Metering.nRetry = 1;
 	Metering.meterType = conf.meterType;
 
 	METER_bypassReq(p->body, p->bodyLen);
 
-	// nfc·Î µ¹·Á ÁÙ È¸½ÅÀ» meter·ÎºÎÅÍ ¼ö½ÅÇÒ ¶§±îÁö ´Ù¼Ò ½Ã°£ÀÌ °É¸²
-	//  ±× ½Ã°£ µ¿¾È vcc¸¦ °è¼Ó À¯ÁöÇÏ±â À§ÇØ timeoutÀ» ±æ°Ô ¼³Á¤
+	// nfcë¡œ ëŒë ¤ ì¤„ íšŒì‹ ì„ meterë¡œë¶€í„° ìˆ˜ì‹ í•  ë•Œê¹Œì§€ ë‹¤ì†Œ ì‹œê°„ì´ ê±¸ë¦¼
+	//  ê·¸ ì‹œê°„ ë™ì•ˆ vccë¥¼ ê³„ì† ìœ ì§€í•˜ê¸° ìœ„í•´ timeoutì„ ê¸¸ê²Œ ì„¤ì •
 	OSAL_stopEventTimer(AppTaskId, APP_EVENT_NFC_WAIT);
 	OSAL_startEventTimer(AppTaskId, APP_EVENT_NFC_WAIT, (uint32)1500);
 
@@ -1087,7 +1087,7 @@ void NFCAPP_meterAdjustReq()
 void NFCAPP_meterAdjustResp(uint8 *body, int bodyLen)
 {
 	if (SMART_WATER_METER(conf.termModel) == 0) {
-		// ½º¸¶Æ®¹ÌÅÍ°¡ ¾Æ´Ï¸é ¹«½Ã
+		// ìŠ¤ë§ˆíŠ¸ë¯¸í„°ê°€ ì•„ë‹ˆë©´ ë¬´ì‹œ
 		return;
 	}
 
@@ -1124,7 +1124,7 @@ void NFCAPP_meterAdjustResp(uint8 *body, int bodyLen)
 void recvMeterAdjustRequest(byte *data, uint8 len)
 {
 	if (SMART_WATER_METER(conf.termModel) == 0) {
-		// ½º¸¶Æ®¹ÌÅÍ°¡ ¾Æ´Ï¸é ¹«½Ã
+		// ìŠ¤ë§ˆíŠ¸ë¯¸í„°ê°€ ì•„ë‹ˆë©´ ë¬´ì‹œ
 		return;
 	}
 
@@ -1177,7 +1177,7 @@ void recvNbiotIdSet(byte *data, uint8 len)
 		memcpy(&tconfig, &conf, sizeof(Config_t));
 		if (memcmp(tconfig.serviceCode, p->serviceCode, 4) != 0) {
 			memcpy(tconfig.serviceCode, p->serviceCode, 4);
-			// ¼³Á¤ º¯°æ ½Ã Global context¿¡ º¹»ç ÈÄ ÀÌº¥Æ® µî·Ï
+			// ì„¤ì • ë³€ê²½ ì‹œ Global contextì— ë³µì‚¬ í›„ ì´ë²¤íŠ¸ ë“±ë¡
 			memcpy(&conf, &tconfig, sizeof(Config_t));
 			OSAL_setEvent(AppTaskId, APP_EVENT_CHANGE_CONFIG);
 		}
@@ -1203,7 +1203,7 @@ void sendLoRaAppEuiKeyReport(uint8 reportType, int result, int error)
 	p->result = result;
 	p->errorCode = error;
 	if (result == NFC_RC_METERING_COMPLETED && error == CONFIG_ERR_NONE) {
-		// Á¤»ó¿Ï·áÀÎ °æ¿ì¿¡¸¸ ¼³Á¤
+		// ì •ìƒì™„ë£Œì¸ ê²½ìš°ì—ë§Œ ì„¤ì •
 		MODEM_copyAppEui(p->appEui);
 		MODEM_copyAppKey(p->appKey);
 	}
@@ -1220,12 +1220,12 @@ void recvLoRaAppEuiKeySet(byte *data, uint8 len)
 
 	int result, error;
 	if (memcmp(p->serialNum, conf.serialNum, SERIAL_NUM_LEN) != 0) {
-		//  Serial number ºÒÀÏÄ¡ ¾Ö·¯
+		//  Serial number ë¶ˆì¼ì¹˜ ì• ëŸ¬
 		result = NFC_RC_FAIL;
 		error = CONFIG_ERR_SERIAL_NUM;
 	} else {
 		if (MODEM_getAccessState() == ACCESS_STATE_IN_SETTING) {
-			// ¸ðµ© ¼³Á¤ Áß
+			// ëª¨ëŽ€ ì„¤ì • ì¤‘
 			result = NFC_RC_IN_METERING;
 			error = CONFIG_ERR_NONE;
 		} else {
@@ -1233,11 +1233,11 @@ void recvLoRaAppEuiKeySet(byte *data, uint8 len)
 						      LORA_SEUDO_JOIN :
 							    LORA_REAL_JOIN;
 			if (MODEM_setUserNwk(p->appEui, p->appKey, joinMode)) {
-				// ÇöÀç AppKey or AppEUI ÀÌ ºÒÀÏÄ¡ ÇÒ °æ¿ì TRUE·Î ¼³Á¤ ½ÃÀÛ.
+				// í˜„ìž¬ AppKey or AppEUI ì´ ë¶ˆì¼ì¹˜ í•  ê²½ìš° TRUEë¡œ ì„¤ì • ì‹œìž‘.
 				result = NFC_RC_IN_METERING;
 				error = CONFIG_ERR_NONE;
 			} else {
-				// ¸ðµ© AppKey and AppEUI ÀÌ ¿äÃ»¹ÞÀº °ª°ú µ¿ÀÏÇÒ °æ¿ì ¿Ï·á ¹× º¸°í.
+				// ëª¨ëŽ€ AppKey and AppEUI ì´ ìš”ì²­ë°›ì€ ê°’ê³¼ ë™ì¼í•  ê²½ìš° ì™„ë£Œ ë° ë³´ê³ .
 				result = NFC_RC_METERING_COMPLETED;
 				error = CONFIG_ERR_NONE;
 			}
@@ -1302,8 +1302,8 @@ void NFCAPP_runMessage(byte *data, uint8 len)
 		recvBdControlReq(data, len);
 		break;
 
-	// ¸ÞÀÎ ÇÃ·¡½¬ ¸Þ¸ð¸®¸¦ »ç¿ëÇÏ´Â ¹öÀü¿¡¼­ ÀÌÀü ±â°£°ËÄ§ ¿äÃ» ¸Þ½ÃÁö°¡
-	// ¼ö½ÅµÇ¸é ³¯ÀÚ ¸ñ·ÏÀ» ¿äÃ»ÇÑ °Í°ú µ¿ÀÏÇÏ°Ô Ã³¸®ÇÏ±â·Î ÇÔ.
+	// ë©”ì¸ í”Œëž˜ì‰¬ ë©”ëª¨ë¦¬ë¥¼ ì‚¬ìš©í•˜ëŠ” ë²„ì „ì—ì„œ ì´ì „ ê¸°ê°„ê²€ì¹¨ ìš”ì²­ ë©”ì‹œì§€ê°€
+	// ìˆ˜ì‹ ë˜ë©´ ë‚ ìž ëª©ë¡ì„ ìš”ì²­í•œ ê²ƒê³¼ ë™ì¼í•˜ê²Œ ì²˜ë¦¬í•˜ê¸°ë¡œ í•¨.
 	case FLASH_DATE_LIST_REQ:
 	case PERIOD_METER_REQ:
 		recvFlashDateListReq(data, len);
@@ -1387,7 +1387,7 @@ void recvBdControlReq(byte *data, uint8 len)
 	Config_t tconfig;
 	memcpy(&tconfig, &conf, sizeof(Config_t));
 
-	// Protocol version °ü°è¾ø´Â °øÅëºÎºÐ ¼³Á¤ È®ÀÎ.
+	// Protocol version ê´€ê³„ì—†ëŠ” ê³µí†µë¶€ë¶„ ì„¤ì • í™•ì¸.
 	if (p->sleepMode == SLEEP_MODE_SLEEP) {
 		if (tconfig.sleepMode == 0) {
 			tconfig.sleepMode = 1;
@@ -1402,7 +1402,7 @@ void recvBdControlReq(byte *data, uint8 len)
 
 	int mVersion = p->mversion;
 
-	// Protocol version 2¿¡ ´ëÇÑ ¼³Á¤ È®ÀÎ.
+	// Protocol version 2ì— ëŒ€í•œ ì„¤ì • í™•ì¸.
 	if (mVersion >= NFC_PROTOCOL_VER_2) {
 		NfcBdCtrlReqV2_t *pMsg = (NfcBdCtrlReqV2_t *)data;
 		if (pMsg->reportMode == REPORT_MODE_SERVER) {
@@ -1422,7 +1422,7 @@ void recvBdControlReq(byte *data, uint8 len)
 		}
 	}
 
-	// Protocol version 3¿¡ ´ëÇÑ ¼³Á¤ È®ÀÎ.
+	// Protocol version 3ì— ëŒ€í•œ ì„¤ì • í™•ì¸.
 	if (mVersion >= NFC_PROTOCOL_VER_3) {
 		NfcBdCtrlReqV3_t *pMsg = (NfcBdCtrlReqV3_t *)data;
 
@@ -1467,7 +1467,7 @@ void recvBdControlReq(byte *data, uint8 len)
 
 	if (sleepModeChanged || reportModeChanged || periodModeChanged || debugModeChanged ||
 	    dataSkipModeChanged) {
-		// ¼³Á¤ º¯°æ ½Ã Global context¿¡ º¹»ç ÈÄ ÀÌº¥Æ® µî·Ï
+		// ì„¤ì • ë³€ê²½ ì‹œ Global contextì— ë³µì‚¬ í›„ ì´ë²¤íŠ¸ ë“±ë¡
 		memcpy(&conf, &tconfig, sizeof(Config_t));
 		OSAL_setEvent(AppTaskId, APP_EVENT_CHANGE_CONFIG);
 	} else {
@@ -1484,7 +1484,7 @@ void sendBdControlAck(uint8 mversion, uint8 reset)
 	byte msg[64];
 	memset(msg, 0, sizeof(msg));
 
-	// Protocol version °ü°è¾øÀÌ µ¿ÀÏÇÑ Data ¸ÕÀú Ã³¸®.
+	// Protocol version ê´€ê³„ì—†ì´ ë™ì¼í•œ Data ë¨¼ì € ì²˜ë¦¬.
 	NfcBdCtrlAckV1_t *p = (NfcBdCtrlAckV1_t *)msg;
 
 	p->mtype = BD_CONTROL_ACK;
@@ -1497,7 +1497,7 @@ void sendBdControlAck(uint8 mversion, uint8 reset)
 		p->sleepMode = SLEEP_MODE_NORMAL;
 	}
 
-	// Protocol version¿¡ µû¶ó ´Ù¸¥ ºÎºÐ Ã³¸®.
+	// Protocol versionì— ë”°ë¼ ë‹¤ë¥¸ ë¶€ë¶„ ì²˜ë¦¬.
 	int messageLen = sizeof(NfcBdCtrlAckV1_t);
 
 	if (mversion >= NFC_PROTOCOL_VER_2) {

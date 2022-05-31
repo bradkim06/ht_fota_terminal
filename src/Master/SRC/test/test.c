@@ -731,7 +731,7 @@ void TEST_pwmeter(int numMeter, int type1, int port1, int type2, int port2, int 
 	conf.meterType = type1;
 	FLASH_saveConfigInfo(&conf);
 
-	MISC_delayMs(1000); // »ı»ê°øÁ¤¿¡¼­ ¸ğµ© BIP¿Ï·á ¸Ş¼¼Áö ´ë±â¸¦ À§ÇÑ µô·¹ÀÌ
+	MISC_delayMs(1000); // ìƒì‚°ê³µì •ì—ì„œ ëª¨ë€ BIPì™„ë£Œ ë©”ì„¸ì§€ ëŒ€ê¸°ë¥¼ ìœ„í•œ ë”œë ˆì´
 	printf("trmeter %d %d %d %d %d %d %d\n", numMeter, type1, port1, type2, port2, type3,
 	       port3);
 }
@@ -808,7 +808,7 @@ void TEST_pmwsn(char *sn, int ri, int mi, int caliber, int q3, int qt, int q2, i
 				recv_qt = result.qt[0] | result.qt[1] << 8;
 				recv_q2 = result.q2[0] | result.q2[1] << 8;
 				recv_q1 = result.q1[0] | result.q1[1] << 8;
-				// »ç½Ç 40, 50mmÀº ¼ÒÇü/´ëÇüÀÌ È¥ÀçÇÏÁö¸¸ µû·Î ±¸ºĞÇÒ ¹æ¹ıÀÌ ¾ø¾î 50mm±îÁø ¼ÒÇüÀ¸·Î °í·ÁÇÑ´Ù.
+				// ì‚¬ì‹¤ 40, 50mmì€ ì†Œí˜•/ëŒ€í˜•ì´ í˜¼ì¬í•˜ì§€ë§Œ ë”°ë¡œ êµ¬ë¶„í•  ë°©ë²•ì´ ì—†ì–´ 50mmê¹Œì§„ ì†Œí˜•ìœ¼ë¡œ ê³ ë ¤í•œë‹¤.
 				if (caliber > MT_50mm) {
 					printf("%d %d %d %d %d %d %d %d\n", result.caliber, recv_q3,
 					       recv_qt, recv_q2, recv_q1, result.maker,
@@ -860,7 +860,7 @@ void TEST_pmrsn(BOOL isJigTest)
 
 					printf("tmrsn %s %s %d %d ", serial, FIRMWARE_VER,
 					       conf.reportInterval, conf.meterInterval);
-					// »ç½Ç 40, 50mmÀº ¼ÒÇü/´ëÇüÀÌ È¥ÀçÇÏÁö¸¸ µû·Î ±¸ºĞÇÒ ¹æ¹ıÀÌ ¾ø¾î 50mm±îÁø ¼ÒÇüÀ¸·Î °í·ÁÇÑ´Ù.
+					// ì‚¬ì‹¤ 40, 50mmì€ ì†Œí˜•/ëŒ€í˜•ì´ í˜¼ì¬í•˜ì§€ë§Œ ë”°ë¡œ êµ¬ë¶„í•  ë°©ë²•ì´ ì—†ì–´ 50mmê¹Œì§„ ì†Œí˜•ìœ¼ë¡œ ê³ ë ¤í•œë‹¤.
 					if (result.caliber > MT_50mm) {
 						printf("%d %d %d %d %d %d %d %d\n", result.caliber,
 						       recv_q3, recv_qt, recv_q2, recv_q1,
@@ -909,18 +909,18 @@ void TEST_resetNFC()
 	NFC_tagDisable();
 	NFC_fdDisable();
 
-	//VCC control »ç¿ëÀü º¸µå => ÃßÈÄ »èÁ¦
+	//VCC control ì‚¬ìš©ì „ ë³´ë“œ => ì¶”í›„ ì‚­ì œ
 	PORT1_DIR |= BM(PORT_NFC_TAG);
 	PORT1_OUT |= BM(PORT_NFC_TAG);
 
-	MISC_delayMs(1000); // »ı»ê°øÁ¤¿¡¼­ ¸ğµ© BIP¿Ï·á ¸Ş¼¼Áö ´ë±â¸¦ À§ÇÑ µô·¹ÀÌ
+	MISC_delayMs(1000); // ìƒì‚°ê³µì •ì—ì„œ ëª¨ë€ BIPì™„ë£Œ ë©”ì„¸ì§€ ëŒ€ê¸°ë¥¼ ìœ„í•œ ë”œë ˆì´
 	if (NFC_factoryResetTag() == TRUE) {
 		printf("tnfc OK\n");
 	} else {
 		printf("tnfc ERR\n");
 	}
 
-	//VCC control »ç¿ëÀü º¸µå => ÃßÈÄ »èÁ¦
+	//VCC control ì‚¬ìš©ì „ ë³´ë“œ => ì¶”í›„ ì‚­ì œ
 	PORT1_DIR &= ~BM(PORT_NFC_TAG);
 	NFC_init();
 }
@@ -1002,7 +1002,7 @@ void TEST_runTasks()
 			TasksEvents[idx] = 0;
 			HAL_EXIT_CRITICAL_SECTION(intState);
 
-			//yikim 2017.09.06 NFC TESTÁß ¹ß»ıÇÏ¿© Ã³¸®
+			//yikim 2017.09.06 NFC TESTì¤‘ ë°œìƒí•˜ì—¬ ì²˜ë¦¬
 			if (events == 0xFFFFFFFF) {
 				__no_operation();
 			} else {
@@ -1033,10 +1033,10 @@ void TEST_run()
 	LCD_init();
 	LCD_displayString("TEST");
 
-	//task ÃÊ±âÈ­
+	//task ì´ˆê¸°í™”
 	AppTaskId = TEST_TASK_ID;
 #if defined(AUX_REPEATER)
-	// Å×½ºÆ®¸¦ À§ÇÑ Radio task µ¿ÀÛÀÌ ÇÊ¿äÇÏ¹Ç·Î ÃÊ±âÈ­.
+	// í…ŒìŠ¤íŠ¸ë¥¼ ìœ„í•œ Radio task ë™ì‘ì´ í•„ìš”í•˜ë¯€ë¡œ ì´ˆê¸°í™”.
 	CC1200_init(TestTaskId + 1);
 #endif
 
