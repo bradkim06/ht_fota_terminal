@@ -20,6 +20,7 @@ add_compile_definitions(NBIOT_MODEM_BC95G)
 add_compile_definitions(NDEBUG)
 add_compile_definitions(NBIOT_DEVICE)
 add_compile_definitions(NBIOT_LG_TYPE)
+add_compile_definitions(FOTA_DEBUG)
 
 
 # add_compile_definitions(AUX_REPEATER)
@@ -32,7 +33,16 @@ set(PROJECT_ROOT /Users/bradkim06/study/hitec/ht_terminal/src/Master/SRC)
 set(TEST_CODE /Users/bradkim06/study/hitec/ht_terminal/test)
 project(terminalV1)
 
-file(GLOB_RECURSE SRC ${PROJECT_ROOT}/*.c ${TEST_CODE}/*.c)
+file(GLOB_RECURSE SRC 
+    ${PROJECT_ROOT}/app/*.c 
+    ${PROJECT_ROOT}/dev/*.c 
+    ${PROJECT_ROOT}/misc/*.c 
+    ${PROJECT_ROOT}/modem/nbiot_lg/*.c 
+    ${PROJECT_ROOT}/osal/*.c 
+    ${PROJECT_ROOT}/slave/*.c 
+    ${PROJECT_ROOT}/test/*.c 
+    # ${TEST_CODE}/*.c
+)
 # list(FILTER ENDF6_SRC EXCLUDE REGEX "${PROJECT_SOURCE_DIR}/Test/.*" )
 set(App ${SRC})
 add_executable(App ${SRC})
