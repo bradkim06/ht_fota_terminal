@@ -201,10 +201,22 @@ static void setModemData()
 		memcpy(model, "HAT-124Q", TERM_MODEL_STRING_LEN + 1);
 	}
 
-	char devSn[11];
+	// 3가지 형식 존재
+	// 1. NL7121500001 이전 버전 (imei 앞2개, 뒤 1개 제외)
+	// EX : IMEI=359689090501559 >> devSn=968909050155
+	// char devSn[13];
+	// memcpy(devSn, &modem.imeiStr[2], 12);
+	// devSn[12] = 0; // Last char is set string end
+
+	// 2. NL7121500001 ~ NL7121601798, NL7121705401 ~ NL7121705402 (생산년도(21) + 3번 케이스)
 	// Bootstrap 상의 serial number 는 ICCID의 10자리 사용.
+	// char devSn[13];
+	// snprintf(devSn, 12, "21%s", &modem.iccidStr[LEN_MODEM_ICCID - 11]);
+
+	// 3. NL7121601801 이후 (ICCID의 마지막 1자리 제외한 10자리)
 	// USIM Model num 4 + Usim S/N num 6
 	// EX : ICCID = 8982068086002814399 >> devSn = 8600281439
+	char devSn[11];
 	memcpy(devSn, &modem.iccidStr[LEN_MODEM_ICCID - 11], 10);
 	devSn[10] = 0; // Last char is set string end
 
@@ -532,7 +544,7 @@ static ModemStep_t init()
 		StepFlowIndex.init++;
 	} break;
 
-#define STEP_RESET_MODEM 19
+#define STEP_RESET_MODEM 18
 	case 6: {
 		static const AtCmd_t AtCmdGetFwRev = { AT_CMD_IDX_GET_FW_REV, "AT+QGMR" };
 		sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, AT_CMD_DEFAULT_RETRY, &AtCmdGetFwRev, NULL);
@@ -603,11 +615,6 @@ static ModemStep_t init()
 	} break;
 
 	case 17: {
-		sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, AT_CMD_DEFAULT_RETRY, &AtCmdSetFOTA, "=1");
-		StepFlowIndex.init++;
-	} break;
-
-	case 18: {
 		static const AtCmd_t AtCmdSwtLWM2M = { AT_CMD_IDX_SWITCH_LWM2M, "AT+QREGSWT" };
 		sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, AT_CMD_DEFAULT_RETRY, &AtCmdSwtLWM2M, "=1");
 		StepFlowIndex.init++;
@@ -615,6 +622,11 @@ static ModemStep_t init()
 
 	case STEP_RESET_MODEM: {
 		sendAtCommand(AT_CMD_RESET_TIMEOUT, AT_CMD_RESET_RETRY, &AtCmdSwReset, NULL);
+		StepFlowIndex.init++;
+	} break;
+
+	case 19: {
+		sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, AT_CMD_DEFAULT_RETRY, &AtCmdSetFOTA, "=1");
 		StepFlowIndex.init++;
 	} break;
 
@@ -744,8 +756,9 @@ static ModemStep_t updateQa()
 		int len;
 		char *data = getQaReportMessage(&len);
 
-		sendNoRespAtCommand(AT_CMD_LGU_QA_TIMEOUT, &AtCmdSocketSendUL, "=%d,%s,%ld,%d,%s",
-				    modemCtx.socket, LG_QA_SERVER_IP, LG_QA_SERVER_PORT, len, data);
+		sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, AT_CMD_DEFAULT_RETRY, &AtCmdSocketSendUL,
+			      "=%d,%s,%ld,%d,%s", modemCtx.socket, LG_QA_SERVER_IP,
+			      LG_QA_SERVER_PORT, len, data);
 		StepFlowIndex.updateQa++;
 	} break;
 
@@ -753,9 +766,9 @@ static ModemStep_t updateQa()
 		int len;
 		char *data = getErrorReportMessage(&len);
 
-		sendNoRespAtCommand(AT_CMD_LGU_QA_TIMEOUT, &AtCmdSocketSendUL, "=%d,%s,%ld,%d,%s",
-				    modemCtx.socket, LG_ERR_SERVER_IP, LG_ERR_SERVER_PORT, len,
-				    data);
+		sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, AT_CMD_DEFAULT_RETRY, &AtCmdSocketSendUL,
+			      "=%d,%s,%ld,%d,%s", modemCtx.socket, LG_ERR_SERVER_IP,
+			      LG_ERR_SERVER_PORT, len, data);
 		StepFlowIndex.updateQa++;
 	} break;
 
