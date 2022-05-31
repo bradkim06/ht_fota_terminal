@@ -383,21 +383,28 @@ void MODEM_timeout()
 
 		// INIT/RETRY 단계가 아니면서 현재 재시도 횟수가 MAX미만인 경우 재시도.
 		// 그 외 INIT/RETRY 단계이거나 현재 재시도 횟수가 MAX이상인 경우 종료.
-		static int maxRetryCount = 2;
+#define NB_MAX_RETRY 2
+		static int maxRetryCount = NB_MAX_RETRY;
 		if (modemCtx.retryStep == MODEM_STEP_UNKNOWN) {
 			switch (modemCtx.step) {
-			case MODEM_STEP_ATTACH_NW:
-				maxRetryCount = NBIOT_ATTACH_RETRY;
+			case MODEM_STEP_ATTACH_NW: {
+				maxRetryCount = NB_MAX_RETRY;
+			} break;
+			case MODEM_STEP_UPDATE_QA: {
+				maxRetryCount = NB_MAX_RETRY;
+			} break;
+			case MODEM_STEP_CERTIFY: {
+				maxRetryCount = NB_MAX_RETRY;
 				break;
-			case MODEM_STEP_CERTIFY:
-				maxRetryCount = NBIOT_ONEM2M_RETRY;
+			}
+			case MODEM_STEP_TRANSFER: {
+				maxRetryCount = NB_MAX_RETRY;
 				break;
-			case MODEM_STEP_TRANSFER:
-				maxRetryCount = NBIOT_TRANSFER_RETRY;
-				break;
-			default:
+			}
+			default: {
 				maxRetryCount = 0;
 				break;
+			}
 			}
 		}
 
