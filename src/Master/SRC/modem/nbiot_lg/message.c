@@ -537,8 +537,9 @@ static int MODEM_recvAckString(uchar *buf, int len)
 
 int MODEM_recvFotaReq(uchar *buf, int len)
 {
-	NbiotCmdChgServer_t *pCmd = (NbiotCmdChgServer_t *)buf;
-#define FOTA_REQ 0x32
+	printf_ts("fota req\n");
+	NbiotCmdFotaReq_t *pCmd = (NbiotCmdFotaReq_t *)buf;
+#define FOTA_REQ 60
 	if (buf[0] == FOTA_REQ) {
 		// Copy requested IP & Port
 		sprintf(Fota.Info.ip, "%d.%d.%d.%d", pCmd->ip[3], pCmd->ip[2], pCmd->ip[1],

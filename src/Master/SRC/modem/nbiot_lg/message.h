@@ -187,7 +187,7 @@ typedef struct {
 	uchar port[2];
 	uchar fwVer[4];
 	uchar checksum;
-} NbiotCmdChgServer_t;
+} NbiotCmdFotaReq_t;
 
 typedef struct {
 	uchar protocol; // 1 -  1
