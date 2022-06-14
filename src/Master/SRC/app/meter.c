@@ -46,7 +46,7 @@
 MeterTempData_t TempMeterData = { 0 };
 
 //주기 검침 데이터 저장 영역
-static MeterStoredData_t StoredMeterData = { 0 };
+MeterStoredData_t StoredMeterData = { 0 };
 
 void insertDateToData(Date_t *pDate, MeterUnitData_t *pData, BOOL isIgnoreSec)
 {

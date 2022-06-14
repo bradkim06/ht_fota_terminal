@@ -318,7 +318,7 @@ static void METER_clearIntervalDataResult(uint8 nData, int value)
 	}
 }
 
-static void test_METER_clearIntervalData(int reportInterval, uint8 nData)
+static void test_METER_clearIntervalData(unsigned int reportInterval, uint8 nData)
 {
 	printf("========input reportInterval(%d) nData(%d)========\n", reportInterval, nData);
 	conf.reportInterval = reportInterval;
