@@ -180,6 +180,7 @@ __interrupt void TIMER0_A0_ISR(void)
 	} else {
 		sendNextData();
 	}
+	TA0IV = 0;
 }
 #endif
 

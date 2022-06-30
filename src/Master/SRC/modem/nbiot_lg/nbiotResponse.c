@@ -474,7 +474,7 @@ void MODEM_response(char *pHead, int len)
 #define PATTERN_ERROR "ERROR"
 	if (strstr(pHead, PATTERN_ERROR)) {
 		modemCtx.status.error = 1;
-		OSAL_startEventTimer(AppTaskId, APP_EVENT_MODEM_TIMEOUT, 1000);
+		OSAL_startEventTimer(AppTaskId, APP_EVENT_MODEM_TIMEOUT, 3000);
 	}
 
 #define PATTERN_FOTA_RESET "REBOOT_CAUSE_SECURITY_FOTA_UPGRADE"
@@ -624,24 +624,6 @@ void MODEM_response(char *pHead, int len)
 		}
 	} break;
 
-	case AT_CMD_IDX_GET_CDP: {
-		if (modemCtx.status.error) {
-			// In this case that first read when is not set
-			isRleaseBusy = TRUE;
-		} else {
-#define PATTERN_READ_NCDP "+NCDP:"
-			if ((p = strstr(pHead, PATTERN_READ_NCDP))) {
-				if (!parse_ncdp(p + strlen(PATTERN_READ_NCDP))) {
-					modemCtx.proc.runInit = 1;
-				}
-			}
-
-			if (isAckOk) {
-				isRleaseBusy = TRUE;
-			}
-		}
-	} break;
-
 	case AT_CMD_IDX_GET_LWM2M_SERVER: {
 		if (modemCtx.status.error) {
 			// In this case that first read when is not set
@@ -739,12 +721,12 @@ void MODEM_response(char *pHead, int len)
 		}
 	} break;
 
-	case AT_CMD_IDX_CHECK_BIPST: {
-#define PATTERN_BIPST_FINISH "+MBIPST:0"
-		if (strstr(pHead, PATTERN_BIPST_FINISH)) {
-			isRleaseBusy = TRUE;
-		}
-	} break;
+		// case AT_CMD_IDX_CHECK_BIPST: {
+		// #define PATTERN_BIPST_FINISH "+MBIPST:0"
+		// 	if (strstr(pHead, PATTERN_BIPST_FINISH)) {
+		// 		isRleaseBusy = TRUE;
+		// 	}
+		// } break;
 
 	case AT_CMD_IDX_GET_SWITCH_LWM2M: {
 #define PATTERN_SWT_LWM2M "+QREGSWT:"
@@ -802,7 +784,6 @@ void MODEM_response(char *pHead, int len)
 	case AT_CMD_IDX_SET_PSM:
 	case AT_CMD_IDX_SET_BAND:
 	case AT_CMD_IDX_SET_RESELECT:
-	case AT_CMD_IDX_SET_CDP:
 	case AT_CMD_IDX_SET_EPN:
 	case AT_CMD_IDX_SET_BSPS:
 	case AT_CMD_IDX_SET_LWM2M:
@@ -813,8 +794,6 @@ void MODEM_response(char *pHead, int len)
 	case AT_CMD_IDX_SET_REPORT_PSM:
 	case AT_CMD_IDX_SET_LWM2M_SERVER:
 	case AT_CMD_IDX_SWITCH_LWM2M:
-	case AT_CMD_IDX_GET_NM_STATUS:
-	case AT_CMD_IDX_GET_DATA_STATUS:
 	case AT_CMD_IDX_SET_FOTA: {
 		if (isAckOk) {
 			isRleaseBusy = TRUE;

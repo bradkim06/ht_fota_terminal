@@ -15,4 +15,4 @@
 # #   of as a new-line separated list of *many* file names!
 # clang-format --verbose -i --style=file $FILE_LIST
 
-cp ./NB_PF_BC95G/Release/U326.txt ~/go/src/fota/firmware/origin/
+cp ./NB_PF_BC95G/Release/U326.txt ~/go/src/fota/firmware/origin/U328.txt

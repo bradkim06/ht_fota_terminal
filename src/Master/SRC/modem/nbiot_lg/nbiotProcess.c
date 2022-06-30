@@ -545,7 +545,7 @@ static ModemStep_t init()
 		StepFlowIndex.init++;
 	} break;
 
-#define STEP_RESET_MODEM 18
+#define STEP_RESET_MODEM 20
 	case 6: {
 		static const AtCmd_t AtCmdGetFwRev = { AT_CMD_IDX_GET_FW_REV, "AT+QGMR" };
 		sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, AT_CMD_DEFAULT_RETRY, &AtCmdGetFwRev, NULL);
@@ -621,13 +621,18 @@ static ModemStep_t init()
 		StepFlowIndex.init++;
 	} break;
 
-	case STEP_RESET_MODEM: {
+	case 18: {
 		sendAtCommand(AT_CMD_RESET_TIMEOUT, AT_CMD_RESET_RETRY, &AtCmdSwReset, NULL);
 		StepFlowIndex.init++;
 	} break;
 
 	case 19: {
 		sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, AT_CMD_DEFAULT_RETRY, &AtCmdSetFOTA, "=1");
+		StepFlowIndex.init = END_STEP_FLOW_INDEX;
+	} break;
+
+	case STEP_RESET_MODEM: {
+		sendAtCommand(AT_CMD_RESET_TIMEOUT, AT_CMD_RESET_RETRY, &AtCmdSwReset, NULL);
 		StepFlowIndex.init++;
 	} break;
 

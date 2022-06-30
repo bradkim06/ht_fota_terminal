@@ -1,3 +1,4 @@
+#include "msp430f5419a.h"
 #ifndef TDD_TEST
 #include <msp430.h>
 #include <ctype.h>
@@ -101,7 +102,7 @@ void APP_showConfig(Config_t *p)
 	(((x) == DEBUG_OFF)   ? "OFF" :                                                            \
 	 ((x) == DEBUG_JTAG)  ? "JTAG" :                                                           \
 	 ((x) == DEBUG_METER) ? "METER" :                                                          \
-				      "UNKNOWN")
+				"UNKNOWN")
 	printf(" [ Debug Out  ] %s(%s)\n", p->debugPrint ? "On" : "Off",
 	       DEBUG_STATUS_STR(p->debugPrint));
 	printf(" [ Dataskip   ] %d, (0:24hour), (1:4day)\n", p->dataSkipMode);
@@ -144,6 +145,7 @@ __interrupt void RTC_ISR(void)
 			return;
 		}
 
+		RTCCTL01 &= ~RTCAIFG;
 		WAKEUP_DEVICE();
 		OSAL_setEvent(AppTaskId, APP_EVENT_RTC_ALARM);
 	}
@@ -157,6 +159,8 @@ __interrupt void Port_1(void)
 		PORT1_IFG &= ~BM(PORT_NFC_TAG);
 		NFC_tagDetect();
 		OSAL_startEventTimer(AppTaskId, APP_EVENT_NFC_WAIT, (uint32)700);
+		WAKEUP_DEVICE();
+
 		NFCAPP_clearAsyncCmd();
 	}
 
@@ -179,31 +183,36 @@ __interrupt void Port_1(void)
 		}
 	}
 #endif
-	WAKEUP_DEVICE();
+	PORT1_IFG = 0;
 }
 
 // Port 2 interrupt service routine - Reed, Tamper, Flood
 #pragma vector = PORT2_VECTOR
 __interrupt void Port_2(void)
 {
+#if defined(AUX_REPEATER)
 	if (PORT_SENSOR_IFG & BM(PORT_LCD_SWITCH)) {
 		// lora 단말기에는 push button switch가 달려있지 않음
 		PORT_SENSOR_IFG &= ~BM(PORT_LCD_SWITCH);
 	}
+#endif
 
 	if (PORT_SENSOR_IFG & BM(PORT_SENSOR_REED)) {
+		PORT_SENSOR_IFG &= ~BM(PORT_SENSOR_REED); // P1.2 IFG cleared
 		OSAL_stopEventTimer(AppTaskId, APP_EVENT_SENSOR_REED);
 		if (TEST_isTestMode() == TRUE) {
 			OSAL_startEventTimer(AppTaskId, APP_EVENT_SENSOR_REED, (uint32)10);
 		} else {
 			OSAL_startEventTimer(AppTaskId, APP_EVENT_SENSOR_REED, (uint32)500);
 		}
+		WAKEUP_DEVICE();
 	}
 
 #if defined(AUX_REPEATER)
 	// CC1200 tx/rx interrupt
 	if (PORT_SENSOR_IFG & BM(PORT_CC1200_GPIO0)) {
 		PORT_SENSOR_IFG &= ~BM(PORT_CC1200_GPIO0);
+
 		if (SLAVE_getAccessState() == SLAVE_ACCESS_IDLE &&
 		    CC1200_getRfMode() == RF_MODE_RX) {
 			// Rx 동작은 Slave operating이 아닌 경우 쓰레기 값으로 간주하고 그 외에는 모두 처리.
@@ -218,38 +227,46 @@ __interrupt void Port_2(void)
 		if (CC1200_getRfMode() == RF_MODE_TX) {
 			//PORT_SENSOR_IES &= ~BM(PORT_CC1200_GPIO0);   // P2.7 Low/Hi edge
 			CC1200_isr();
+			WAKEUP_DEVICE();
 		} else { // RF_MODE_RX
 			if (PORT_SENSOR_IES & BM(PORT_CC1200_GPIO0)) {
 				PORT_SENSOR_IES &= ~BM(PORT_CC1200_GPIO0); // P2.7 Low/Hi edge
 				CC1200_isr();
+				WAKEUP_DEVICE();
 				CC1200_worDuty(WOR_SHORT_DUTY);
 				CC1200_wor();
 			} else { // Change Len
 				PORT_SENSOR_IES |= BM(PORT_CC1200_GPIO0); // P2.7 Hi/Low edge
 				CC1200_read_rxByte();
+				WAKEUP_DEVICE();
 			}
 			SLAVE_activeStart(10);
 		}
 	}
 #endif
-	WAKEUP_DEVICE();
+	PORT_SENSOR_IFG = 0;
 }
 
 #pragma vector = UNMI_VECTOR
 __interrupt void UNMI_ISR(void)
 {
 	if (SFRIFG1 & OFIFG) { // OSC fault interrupt flag
-		// UCSCTL7 &= ~(XT1LFOFFG + DCOFFG); // Clear XT1 & DCO fault flags
+		SFRIFG1 &= ~OFIFG; // Clear OSC Fault flag
+		UCSCTL7 &= ~(XT1LFOFFG + DCOFFG); // Clear XT1 & DCO fault flags
 		SYSTEM_RESET();
 	}
 
 	if (SFRIFG1 & NMIIFG) { // NMI pin interrupt flag
+		SFRIFG1 &= ~NMIIFG;
 		SYSTEM_RESET();
 	}
 
 	if (SFRIFG1 & VMAIFG) { // Vacant memory access interrupt flag
+		SFRIFG1 &= ~VMAIFG;
 		SYSTEM_RESET();
 	}
+
+	SFRIFG1 = 0;
 }
 
 #if !defined(AUX_REPEATER)

@@ -45,7 +45,7 @@
 	 (x) == TERM_MODEL_HTM_115W ? "HTM-115W" :                                                 \
 	 (x) == TERM_MODEL_HAT_314W ? "HAT-314W" :                                                 \
 	 (x) == TERM_MODEL_HAT_435W ? "HAT-435W" :                                                 \
-					    "UNKNOWN")
+				      "UNKNOWN")
 
 #define TERM_HAS_LCD(x) ((x) == TERM_MODEL_HAT_114W)
 #define SMART_WATER_METER(x) ((x) == TERM_MODEL_HTM_115W)
@@ -242,9 +242,12 @@ extern void MODEM_disable();
 	do {                                                                                       \
 		WDTCTL = WDT_ARST_16SEC;                                                           \
 		if (device_sleep_state == TRUE) {                                                  \
+			PRINT_enable();                                                            \
+			TIMER_start();                                                             \
 			device_sleep_state = FALSE;                                                \
 			__bic_SR_register_on_exit(POWER_MODE);                                     \
 		}                                                                                  \
+		__no_operation();                                                                  \
 	} while (0)
 
 #ifndef ABS

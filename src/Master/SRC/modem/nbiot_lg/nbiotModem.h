@@ -14,14 +14,12 @@
 #define AT_CMD_IDX_GET_RADIO_QUALITY 7
 #define AT_CMD_IDX_GET_NW_ALARM 8
 #define AT_CMD_IDX_GET_TIME 9
-#define AT_CMD_IDX_GET_CDP 10
 #define AT_CMD_IDX_GET_EPN 11
 #define AT_CMD_IDX_GET_BSPS 12
 #define AT_CMD_IDX_SET_RF_CTRL 13
 #define AT_CMD_IDX_SET_PSM 14
 #define AT_CMD_IDX_SET_BAND 15
 #define AT_CMD_IDX_SET_RESELECT 16
-#define AT_CMD_IDX_SET_CDP 17
 #define AT_CMD_IDX_SET_EPN 18
 #define AT_CMD_IDX_SET_BSPS 19
 #define AT_CMD_IDX_SET_FOTA 20
@@ -29,20 +27,19 @@
 #define AT_CMD_IDX_SET_NW_ALARM 22
 #define AT_CMD_IDX_RUN_BOOTSTRAP 23
 #define AT_CMD_IDX_QLWULDATAEX 24
-#define AT_CMD_IDX_RUN_DATA_NOTI 25
 #define AT_CMD_IDX_SOCKET_CREATE 26
 #define AT_CMD_IDX_SOCKET_SEND_UL 27
 #define AT_CMD_IDX_SOCKET_RECV_DL 28
 #define AT_CMD_IDX_SOCKET_CLOSE 29
 #define AT_CMD_IDX_GET_FW_REV 30
-#define AT_CMD_IDX_CHECK_BIPST 31
+// #define AT_CMD_IDX_CHECK_BIPST 31
 #define AT_CMD_IDX_SET_REPORT_PSM 32
 #define AT_CMD_IDX_SET_LWM2M_SERVER 33 // >> AT_CMD_IDX_SET_CDP
 #define AT_CMD_IDX_GET_LWM2M_SERVER 34 // >> AT_CMD_IDX_GET_CDP
 #define AT_CMD_IDX_SWITCH_LWM2M 35
 #define AT_CMD_IDX_GET_SWITCH_LWM2M 36
-#define AT_CMD_IDX_GET_NM_STATUS 37
-#define AT_CMD_IDX_GET_DATA_STATUS 38
+// #define AT_CMD_IDX_GET_NM_STATUS 37
+// #define AT_CMD_IDX_GET_DATA_STATUS 38
 #define AT_CMD_IDX_GET_REPORT_PSM 39
 #define AT_CMD_IDX_TCP_CONNECT 40
 
@@ -174,7 +171,7 @@ extern ModemContext_t modemCtx;
 	 ((x) == MODEM_STEP_CERTIFY)   ? "CERTIFY" :                                               \
 	 ((x) == MODEM_STEP_TRANSFER)  ? "TRANSFER" :                                              \
 	 ((x) == MODEM_STEP_RETRY)     ? "RETRY" :                                                 \
-					       "UNKNOWN")
+					 "UNKNOWN")
 
 void MODEM_detach();
 BOOL MODEM_process();

@@ -180,6 +180,7 @@ __interrupt void USCI_B3_ISR(void)
 	case 8:
 		break; // Vector  8: STPIFG
 	case 10: // Vector 10: RXIFG
+		UCB3IV &= ~USCI_UCRXIFG;
 		if (I2cRxPos < I2cRxByteLen) {
 			RxBuffer[I2cRxPos] = UCB3RXBUF;
 			I2cRxPos++;
@@ -193,6 +194,7 @@ __interrupt void USCI_B3_ISR(void)
 		}
 		break;
 	case 12: // Vector 12: TXIFG
+		UCB3IV &= ~USCI_UCTXIFG;
 		if (I2cTxByteCtr) // Check TX byte counter
 		{
 			UCB3TXBUF = *I2cTxData++; // Load TX buffer

@@ -408,7 +408,7 @@ int printf(const char *format, ...)
 
 		va_list arg;
 		va_start(arg, format);
-		// Console Ãâ·Â ½Ã New lineÀ» À§ÇÑ 1byte °í·Á.
+		// Console ì¶œë ¥ ì‹œ New lineì„ ìœ„í•œ 1byte ê³ ë ¤.
 		len += vsnprintf(buf + len, BUF_SIZE - 1, format, arg);
 		va_end(arg);
 
@@ -442,7 +442,7 @@ int printf_ts(const char *format, ...)
 
 		va_list arg;
 		va_start(arg, format);
-		// Console Ãâ·Â ½Ã New lineÀ» À§ÇÑ 1byte °í·Á.
+		// Console ì¶œë ¥ ì‹œ New lineì„ ìœ„í•œ 1byte ê³ ë ¤.
 		len += vsnprintf(buf + len, BUF_SIZE - 1, format, arg);
 		va_end(arg);
 
@@ -674,17 +674,19 @@ void set_meterPortForBSL()
 __interrupt void USCI_A0_ISR(void)
 {
 	if (Fota.Status == 1) {
+		UCA0IFG = 0;
 		return;
 	}
 
 	if (UCA0IFG & UCTXIFG) {
 		if (uartA0->txBuf == NULL) {
+			UCA0IE &= ~UCTXIE; // txbuf empty --> disable tx interrupt
 			return;
 		}
 
 		UartBuf_t *p = uartA0->txBuf;
 		if (p->rpos == p->wpos) {
-			UCA0IE &= ~UCTXIE; // ´õ ÀÌ»ó º¸³¾ µ¥ÀÌÅÍ°¡ ¾øÀ¸¸é tx interrupt¸¦ disable
+			UCA0IE &= ~UCTXIE; // ë” ì´ìƒ ë³´ë‚¼ ë°ì´í„°ê°€ ì—†ìœ¼ë©´ tx interruptë¥¼ disable
 		} else {
 			UCA0TXBUF = p->buf[p->rpos++]; // send the data
 			if (p->rpos >= p->len) {
@@ -693,8 +695,9 @@ __interrupt void USCI_A0_ISR(void)
 		}
 	}
 
-	// rx interrupt¸¦ »ç¿ëÇÏÁö ¾ÊÀ½ - È¤½Ã ¹ß»ýÇÏ¸é Áï½Ã disable
+	// rx interruptë¥¼ ì‚¬ìš©í•˜ì§€ ì•ŠìŒ - í˜¹ì‹œ ë°œìƒí•˜ë©´ ì¦‰ì‹œ disable
 	if (UCA0IFG & UCRXIFG) {
+		UCA0IFG &= ~UCRXIFG;
 		if (uartA0->rxBuf == NULL) {
 			return;
 		}
@@ -709,20 +712,21 @@ __interrupt void USCI_A0_ISR(void)
 			}
 		}
 	}
-	WAKEUP_DEVICE();
 }
 #endif
 
-// UART_1 interrupt - ÄÜ¼Ö
+// UART_1 interrupt - ì½˜ì†”
 #pragma vector = USCI_A1_VECTOR
 __interrupt void USCI_A1_ISR(void)
 {
 	if (Fota.Status == 1) {
+		UCA1IFG = 0;
 		return;
 	}
 
 	if (UCA1IFG & UCTXIFG) { // USCI_A1 TX
 		if (uartA1->txBuf == NULL) {
+			UCA1IE &= ~UCTXIE; // txbuf empty --> disable tx interrupt
 			return;
 		}
 
@@ -738,6 +742,7 @@ __interrupt void USCI_A1_ISR(void)
 	}
 
 	if (UCA1IFG & UCRXIFG) { // USCI_A1 RX
+		UCA1IFG &= ~UCRXIFG;
 		if (uartA1->rxBuf == NULL) {
 			return;
 		}
@@ -752,7 +757,6 @@ __interrupt void USCI_A1_ISR(void)
 			}
 		}
 	}
-	WAKEUP_DEVICE();
 }
 
 // UART_2 interrupt - SMT/SKT/NB-IoT Modem
@@ -761,56 +765,61 @@ __interrupt void USCI_A2_ISR(void)
 {
 	if (Fota.Status == 1) {
 		if (UCA2IFG & UCRXIFG) {
+			UCA2IFG &= ~UCRXIFG;
 			rxBuf[rxLen++] = UCA2RXBUF;
 		}
-	} else {
-		if (UCA2IFG & UCTXIFG) { // USCI_A2 TX
-			if (uartA2->txBuf == NULL) {
-				return;
-			}
+		return;
+	}
 
-			UartBuf_t *p = uartA2->txBuf;
-			if (p->rpos == p->wpos) {
-				UCA2IE &= ~UCTXIE; // txbuf empty --> disable tx interrupt
-			} else {
-				UCA2TXBUF = p->buf[p->rpos++]; // send the data
-				if (p->rpos >= p->len) {
-					p->rpos = 0;
-				}
-			}
+	if (UCA2IFG & UCTXIFG) { // USCI_A2 TX
+		if (uartA2->txBuf == NULL) {
+			UCA2IE &= ~UCTXIE; // txbuf empty --> disable tx interrupt
+			return;
 		}
 
-		if (UCA2IFG & UCRXIFG) { // USCI_A2 RX
-			if (uartA2->rxBuf == NULL) {
-				return;
-			}
-
-			UartBuf_t *p = uartA2->rxBuf;
-			if (((p->wpos + 1) % p->len) == p->rpos) {
-				p->wpos = p->rpos = 0;
-			} else {
-				p->buf[p->wpos] = UCA2RXBUF;
-				if (++p->wpos >= p->len) {
-					p->wpos = 0;
-				}
-				OSAL_startEventTimer(AppTaskId, APP_EVENT_MODEM_RX, (uint32)200);
+		UartBuf_t *p = uartA2->txBuf;
+		if (p->rpos == p->wpos) {
+			UCA2IE &= ~UCTXIE; // txbuf empty --> disable tx interrupt
+		} else {
+			UCA2TXBUF = p->buf[p->rpos++]; // send the data
+			if (p->rpos >= p->len) {
+				p->rpos = 0;
 			}
 		}
 	}
-	WAKEUP_DEVICE();
+
+	if (UCA2IFG & UCRXIFG) { // USCI_A2 RX
+		UCA2IFG &= ~UCRXIFG;
+		if (uartA2->rxBuf == NULL) {
+			return;
+		}
+
+		UartBuf_t *p = uartA2->rxBuf;
+		if (((p->wpos + 1) % p->len) == p->rpos) {
+			p->wpos = p->rpos = 0;
+		} else {
+			p->buf[p->wpos] = UCA2RXBUF;
+			if (++p->wpos >= p->len) {
+				p->wpos = 0;
+			}
+			OSAL_startEventTimer(AppTaskId, APP_EVENT_MODEM_RX, (uint32)200);
+		}
+	}
 }
 
-// UART_3 interrupt - Rx´Â °è·®±â µ¥ÀÌÅÍ ¼ö½Å¿ë, Tx´Â ½ÅÇÑ ÀÌ¿ÜÀÇ °è·®±â¿¡ ¸í·É Àü¼Û¿ëÀ¸·Î »ç¿ë
+// UART_3 interrupt - RxëŠ” ê³„ëŸ‰ê¸° ë°ì´í„° ìˆ˜ì‹ ìš©, TxëŠ” ì‹ í•œ ì´ì™¸ì˜ ê³„ëŸ‰ê¸°ì— ëª…ë ¹ ì „ì†¡ìš©ìœ¼ë¡œ ì‚¬ìš©
 #if !defined(AUX_REPEATER)
 #pragma vector = USCI_A3_VECTOR
 __interrupt void USCI_A3_ISR(void)
 {
 	if (Fota.Status == 1) {
+		UCA3IFG = 0;
 		return;
 	}
 
 	if (UCA3IFG & UCTXIFG) {
 		if (uartA3->txBuf == NULL) {
+			UCA3IE &= ~UCTXIE; // txbuf empty --> disable tx interrupt
 			return;
 		}
 
@@ -826,6 +835,7 @@ __interrupt void USCI_A3_ISR(void)
 	}
 
 	if (UCA3IFG & UCRXIFG) { // USCI_A3 RX
+		UCA3IFG &= ~UCRXIFG;
 		if (uartA3->rxBuf == NULL) {
 			return;
 		}
@@ -841,6 +851,5 @@ __interrupt void USCI_A3_ISR(void)
 			OSAL_startEventTimer(AppTaskId, APP_EVENT_METER_RX, (uint32)50);
 		}
 	}
-	WAKEUP_DEVICE();
 }
 #endif // #if !defined(AUX_REPEATER)

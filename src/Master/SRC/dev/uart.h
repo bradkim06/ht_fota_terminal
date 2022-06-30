@@ -3,21 +3,21 @@
  * @author ytkim (ytkim@hitecepc.com)
  * @brief
  *  [UART 0]
- *   - TxD (P3.4) : 5438(5419)¿¡¼­ 413À¸·Î LCD Á¦¾î ¸Þ½ÃÁö¸¦ Àü´Þ
- *   - RxD (P3.5) : GPIO mode(5438(5419)ÀÌ UART0 TxD pinÀ¸·Î ¸Þ½ÃÁö¸¦ °ð º¸³¾ °Å¶ó´Â Á¡À» 413¿¡ ¾Ë¸²
- *   - txBuf¸¸ ÇÊ¿ä
+ *   - TxD (P3.4) : 5438(5419)ì—ì„œ 413ìœ¼ë¡œ LCD ì œì–´ ë©”ì‹œì§€ë¥¼ ì „ë‹¬
+ *   - RxD (P3.5) : GPIO mode(5438(5419)ì´ UART0 TxD pinìœ¼ë¡œ ë©”ì‹œì§€ë¥¼ ê³§ ë³´ë‚¼ ê±°ë¼ëŠ” ì ì„ 413ì— ì•Œë¦¼
+ *   - txBufë§Œ í•„ìš”
  *  [UART 1]
  *   - TxD (P5.6) : console TX
  *   - RxD (P5.7) : console RX
- *   - txBuf, rxBuf ¸ðµÎ ÇÊ¿ä
+ *   - txBuf, rxBuf ëª¨ë‘ í•„ìš”
  *  [UART 2]
  *   - TxD (P9.4) : TxD to SMT RF Module
  *   - RxD (P9.5) : RxD from SMT RF Module
- *   - txBuf ¸¸ ÇÊ¿ä(rxÀÇ °æ¿ì shell¿¡ Á¤ÀÇµÈ commandBuffer¸¦ Á÷Á¢ ÀÌ¿ë
+ *   - txBuf ë§Œ í•„ìš”(rxì˜ ê²½ìš° shellì— ì •ì˜ëœ commandBufferë¥¼ ì§ì ‘ ì´ìš©
  *  [UART 3]
- *   - TxD (P10.4) : ½ÅÇÑ/MNS °è·®±âÀÇ °æ¿ì GPIO, ´Ù¸¥ °è·®±â´Â UART Mode
+ *   - TxD (P10.4) : ì‹ í•œ/MNS ê³„ëŸ‰ê¸°ì˜ ê²½ìš° GPIO, ë‹¤ë¥¸ ê³„ëŸ‰ê¸°ëŠ” UART Mode
  *   - RxD (P10.5) : RxD from meter
- *   - ½ÅÇÑ/MNSÀÇ °æ¿ì rxBuf¸¸ ÇÊ¿ä, ´Ù¸¥ °è·®±â´Â TxBuf/RxBuf ¸ðµÎ ÇÊ¿ä
+ *   - ì‹ í•œ/MNSì˜ ê²½ìš° rxBufë§Œ í•„ìš”, ë‹¤ë¥¸ ê³„ëŸ‰ê¸°ëŠ” TxBuf/RxBuf ëª¨ë‘ í•„ìš”
  *
  * @version 0.1
  * @date 2020-04-02

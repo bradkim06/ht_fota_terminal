@@ -314,4 +314,5 @@ __interrupt void TIMER1_A0_ISR(void)
 	}
 
 	HAL_EXIT_CRITICAL_SECTION(intState); // Release interrupts
+	TA1IV = 0;
 }
