@@ -1244,7 +1244,8 @@ static ModemStep_t retry()
 	switch (StepFlowIndex.retry) {
 	case 0: {
 		if (modemCtx.status.cellreg == MODEM_CELLREG_ATTACHED) {
-			sendNoRespAtCommand(DEREGISTER_DELAY, &AtCmdDetachNw, "=0");
+			sendAtCommand(AT_CMD_COMM_TIMEOUT, AT_CMD_COMM_DETACH_RETRY, &AtCmdDetachNw,
+				      "=0");
 		} else {
 			OSAL_setEvent(AppTaskId, APP_EVENT_MODEM_PROCESS);
 		}
@@ -1252,6 +1253,20 @@ static ModemStep_t retry()
 	} break;
 
 	case 1: {
+		// wait detach time
+		if (TIMER_getMsecDiff(startEventTimeMsec) >= DETACH_DELAY_TIME) {
+			OSAL_setEvent(AppTaskId, APP_EVENT_MODEM_PROCESS);
+			StepFlowIndex.retry++;
+		} else if (modemCtx.status.cellreg != MODEM_CELLREG_ATTACHED) {
+			OSAL_setEvent(AppTaskId, APP_EVENT_MODEM_PROCESS);
+			StepFlowIndex.retry++;
+		} else {
+			OSAL_startEventTimer(AppTaskId, APP_EVENT_MODEM_PROCESS,
+					     MODEM_EVENT_INTERVAL);
+		}
+	} break;
+
+	case 2: {
 		if (modemCtx.proc.hwRstRetry) {
 			MODEM_turnOff();
 		}
@@ -1259,7 +1274,7 @@ static ModemStep_t retry()
 		OSAL_setEvent(AppTaskId, APP_EVENT_MODEM_PROCESS);
 	} break;
 
-	case 2: {
+	case 3: {
 		if (modemCtx.proc.hwRstRetry) {
 			MODEM_turnOn();
 		} else {
@@ -1271,7 +1286,7 @@ static ModemStep_t retry()
 		OSAL_setEvent(AppTaskId, APP_EVENT_MODEM_PROCESS);
 	} break;
 
-	case 3: {
+	case 4: {
 		if (TIMER_getMsecDiff(startEventTimeMsec) >= MODEM_BOOTUP_INTERVAL) {
 			StepFlowIndex.retry++;
 		}
