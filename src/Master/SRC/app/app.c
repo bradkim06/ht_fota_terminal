@@ -155,6 +155,11 @@ __interrupt void RTC_ISR(void)
 #pragma vector = PORT1_VECTOR
 __interrupt void Port_1(void)
 {
+	if (Fota.Status == 1) {
+		PORT1_IFG = 0;
+		return;
+	}
+
 	if (PORT1_IFG & BM(PORT_NFC_TAG)) {
 		PORT1_IFG &= ~BM(PORT_NFC_TAG);
 		NFC_tagDetect();
@@ -190,6 +195,11 @@ __interrupt void Port_1(void)
 #pragma vector = PORT2_VECTOR
 __interrupt void Port_2(void)
 {
+	if (Fota.Status == 1) {
+		PORT_SENSOR_IFG = 0;
+		return;
+	}
+
 #if defined(AUX_REPEATER)
 	if (PORT_SENSOR_IFG & BM(PORT_LCD_SWITCH)) {
 		// lora 단말기에는 push button switch가 달려있지 않음
