@@ -13,6 +13,7 @@
 #include "uart.h"
 #include "check_meter_misc.h"
 
+#include "fota.h"
 #include "app.h"
 #include "meter.h"
 #include "lcdDriver.h"
@@ -395,12 +396,14 @@ void MODEM_timeout()
 			} break;
 			case MODEM_STEP_CERTIFY: {
 				maxRetryCount = NB_MAX_RETRY;
-				break;
-			}
+			} break;
 			case MODEM_STEP_TRANSFER: {
 				maxRetryCount = NB_MAX_RETRY;
-				break;
-			}
+			} break;
+			case MODEM_STEP_DFOTA: {
+				maxRetryCount = 0;
+				memset(&Fota, 0, sizeof(FotaStatus_t));
+			} break;
 			default: {
 				maxRetryCount = 0;
 				break;
