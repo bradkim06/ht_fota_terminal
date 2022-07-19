@@ -178,7 +178,7 @@ void MODEM_wakeup()
 	P2DIR |= BM(0);
 	P2OUT |= BM(0); // make high
 
-	MISC_delayMs(100);
+	MISC_delayMs(1000);
 #endif
 }
 
