@@ -548,7 +548,7 @@ void MODEM_response(char *pHead, int len)
 	BOOL isRleaseBusy = FALSE;
 	switch (modemComm.atCmd->index) {
 	case AT_CMD_IDX_SW_RESET: {
-#define PATTERN_REBOOT_REPORT "REBOOT_CAUSE_APPLICATION_AT"
+#define PATTERN_REBOOT_REPORT "REBOOT_CAUSE_"
 		if (strstr(pHead, PATTERN_REBOOT_REPORT)) {
 			modemCtx.status.cellreg = 0;
 			modemCtx.lwm2m.value = 0;
@@ -763,6 +763,10 @@ void MODEM_response(char *pHead, int len)
 
 	case AT_CMD_IDX_DETACH_NW: {
 		if (isAckOk) {
+			isRleaseBusy = TRUE;
+		} else if (modemCtx.status.error) {
+			// cgatt response error is ok
+			modemCtx.status.error = 0;
 			isRleaseBusy = TRUE;
 		}
 	} break;
