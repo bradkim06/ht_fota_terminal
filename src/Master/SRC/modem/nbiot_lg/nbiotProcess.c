@@ -1188,7 +1188,8 @@ static ModemStep_t dFota()
 static ModemStep_t detachNw()
 {
 	ModemStep_t nextStep = modemCtx.step;
-	modemCtx.errCode = MODEM_ERROR_AT_CMD_NO_RESP;
+	// detach fail none error
+	modemCtx.errCode = MODEM_ERROR_NONE;
 
 	if (modemCtx.stepReset) {
 		StepFlowIndex.detach = 0;
