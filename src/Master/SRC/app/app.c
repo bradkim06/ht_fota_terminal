@@ -67,10 +67,11 @@ void APP_showConfig(Config_t *p)
 	printf(" [ FOTA       ] %s : %d, %dday\n", p->fotaIp, p->fotaPort, p->fotaInterval);
 #endif
 #endif
-	if (p->isShortInterval) {
+	if (p->isShortInterval == 1) {
 		printf(" [ MI & RI    ] %d (minutes)\n", p->reportInterval);
 		printf(" [ Base Min   ] %d min\n", p->reportMin);
 	} else {
+		p->isShortInterval = 0;
 		printf(" [ MI/RI/SI   ] %d/%d/%d (hours)\n", p->meterInterval, p->reportInterval,
 		       METER_DATA_SAVE_INTERVAL);
 		printf(" [ Report Hour] ");
