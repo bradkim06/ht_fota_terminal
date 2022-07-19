@@ -457,6 +457,12 @@ static ModemStep_t bip()
 	} break;
 
 	case 2: {
+		static const AtCmd_t AtCmdCheckAlive = { AT_CMD_IDX_CHECK_ALIVE, "AT" };
+		sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, AT_CMD_DEFAULT_RETRY, &AtCmdCheckAlive, NULL);
+		StepFlowIndex.bip++;
+	} break;
+
+	case 3: {
 		static const AtCmd_t AtCmdGetIMSI = { AT_CMD_IDX_GET_IMSI, "AT+CIMI" };
 		sendAtCommand(MODEM_CHECK_ALIVE_TIMEOUT, MODEM_CHECK_ALIVE_RETRY, &AtCmdGetIMSI,
 			      NULL);
