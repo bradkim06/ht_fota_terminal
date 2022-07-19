@@ -38,7 +38,7 @@
 
 // AT command default timeout/retry
 #define AT_CMD_DEFAULT_TIMEOUT 3000
-#define AT_CMD_DEFAULT_RETRY 6
+#define AT_CMD_DEFAULT_RETRY 5
 
 // QLWULDATA timeout/retry
 #define AT_CMD_DATA_SEND_TIMEOUT 60000
@@ -674,8 +674,8 @@ static ModemStep_t attachNw()
 	} break;
 
 	case 1: {
-		sendAtCommand(AT_CMD_CHECK_PSM_TIMEOUT, AT_CMD_CHECK_PSM_RETRY, &AtCmdDetachNw,
-			      "=1");
+		// CGATT possible return error(means now attach trying)
+		sendNoRespAtCommand(AT_CMD_DEFAULT_TIMEOUT, &AtCmdDetachNw, "=1", NULL);
 		StepFlowIndex.attach++;
 	} break;
 
