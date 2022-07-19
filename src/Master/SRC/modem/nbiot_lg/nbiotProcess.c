@@ -670,7 +670,7 @@ static ModemStep_t attachNw()
 
 	case 1: {
 		// CGATT possible return error(means now attach trying)
-		sendNoRespAtCommand(AT_CMD_DEFAULT_TIMEOUT, &AtCmdDetachNw, "=1", NULL);
+		sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, AT_CMD_DEFAULT_RETRY, &AtCmdDetachNw, "=1");
 		StepFlowIndex.attach++;
 	} break;
 
