@@ -110,21 +110,6 @@ static int parse_iccid(char *p)
 	return valid;
 }
 
-static int parse_ncdp(char *p)
-{
-	char addr[22];
-	snprintf(addr, sizeof(addr), "%s,%d", conf.serverIp, conf.serverPort);
-
-	int matched = 0;
-	if (strncmp((const char *)p, (const char *)addr, strlen(addr)) != 0) {
-		printf_ts("LWM2M : server address is not matched \n");
-	} else {
-		matched = 1;
-	}
-
-	return matched;
-}
-
 static int parse_lwm2m_server(char *p)
 {
 	char addr[22];

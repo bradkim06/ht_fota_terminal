@@ -712,7 +712,6 @@ SECTIONS
         nbiotResponse.obj (.text:parse_bs_param)
         nbiotResponse.obj (.text:parseQGMR)
         nbiotResponse.obj (.text:parse_lwm2m_server)
-        nbiotResponse.obj (.text:parse_ncdp)
         nbiotResponse.obj (.text:parse_cereg)
         nbiotResponse.obj (.text:parseQLWULDATAEX)
         nbiotResponse.obj (.text:MODEM_response)
