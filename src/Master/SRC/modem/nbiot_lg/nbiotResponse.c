@@ -612,7 +612,9 @@ void MODEM_response(char *pHead, int len)
 	case AT_CMD_IDX_GET_LWM2M_SERVER: {
 		if (modemCtx.status.error) {
 			// In this case that first read when is not set
+			modemCtx.status.error = 0;
 			isRleaseBusy = TRUE;
+			OSAL_stopEventTimer(AppTaskId, APP_EVENT_MODEM_TIMEOUT);
 		} else {
 #define PATTERN_READ_BS_SERVER "+QLWSERVERIP:BS,"
 			if ((p = strstr(pHead, PATTERN_READ_BS_SERVER))) {
@@ -633,7 +635,9 @@ void MODEM_response(char *pHead, int len)
 	case AT_CMD_IDX_GET_EPN: {
 		if (modemCtx.status.error) {
 			// In this case that first read when is not set
+			modemCtx.status.error = 0;
 			isRleaseBusy = TRUE;
+			OSAL_stopEventTimer(AppTaskId, APP_EVENT_MODEM_TIMEOUT);
 		} else {
 #define PATTERN_READ_EPN "+QLWEPNS: "
 			if ((p = strstr(pHead, PATTERN_READ_EPN))) {
@@ -652,7 +656,9 @@ void MODEM_response(char *pHead, int len)
 	case AT_CMD_IDX_GET_BSPS: {
 		if (modemCtx.status.error) {
 			// In this case that first read when is not set
+			modemCtx.status.error = 0;
 			isRleaseBusy = TRUE;
+			OSAL_stopEventTimer(AppTaskId, APP_EVENT_MODEM_TIMEOUT);
 		} else {
 #define PATTERN_READ_BS_PARAM "+QLWMBSPS: "
 			if ((p = strstr(pHead, PATTERN_READ_BS_PARAM))) {
@@ -753,6 +759,7 @@ void MODEM_response(char *pHead, int len)
 			// cgatt response error is ok
 			modemCtx.status.error = 0;
 			isRleaseBusy = TRUE;
+			OSAL_stopEventTimer(AppTaskId, APP_EVENT_MODEM_TIMEOUT);
 		}
 	} break;
 
