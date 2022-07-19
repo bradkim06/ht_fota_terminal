@@ -29,11 +29,12 @@
 #define SEND_REPEAT 3
 #define SEND_FINISH 4
 
-#define FOTA_DELAY 20
-#define FOTA_5SEC 250
-#define FOTA_10SEC 500
-#define FOTA_30SEC 1500
-#define FOTA_60SEC 3000
+#define FOTA_DELAY 50
+#define FOTA_5SEC 100
+#define FOTA_10SEC 200
+#define FOTA_30SEC 600
+#define FOTA_60SEC 1200
+#define FOTA_90SEC 1800
 
 #define TX_FAIL -1
 #define TX_OK 0
@@ -218,7 +219,7 @@ static void fotaRecv()
 	while (1) {
 		volatile int len = 0;
 		volatile int count = 0;
-		for (; count < 3000; count++) {
+		for (; count < FOTA_90SEC; count++) {
 			if (waitRx(&len)) {
 				break;
 			}
@@ -430,9 +431,10 @@ RETRY:
 	if (repeatCmd("at+cfun=1\n\r", "OK", FOTA_5SEC, 3)) {
 		goto RETRY;
 	}
-	if (repeatCmd("at+cgatt=1\n\r", "OK", FOTA_5SEC, 3)) {
-		goto RETRY;
-	}
+
+	// no response
+	fotaSend("AT+CGATT=1\n\r");
+
 	if (repeatCmd("at+cereg=5\n\r", "OK", FOTA_5SEC, 3)) {
 		goto RETRY;
 	}
@@ -450,7 +452,7 @@ RETRY:
 	fotaSend(Fota.Info.ip);
 	fotaSend(",");
 	fotaSend(fotaPort);
-	if (recvModem("\n\r", "+NSONMI", FOTA_60SEC)) {
+	if (recvModem("\n\r", "+NSONMI", FOTA_90SEC)) {
 		goto RETRY;
 	}
 
@@ -467,7 +469,7 @@ RETRY:
 	fotaSend(",");
 	fotaSend(initialMsgSize);
 	fotaSend(Fota.reqMsg);
-	if (recvModem("\n\r", "+NSONMI", FOTA_60SEC)) {
+	if (recvModem("\n\r", "+NSONMI", FOTA_90SEC)) {
 		goto RETRY;
 	}
 

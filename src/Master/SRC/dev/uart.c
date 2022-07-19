@@ -1,3 +1,4 @@
+#include "msp430f5419a.h"
 #include <msp430.h>
 #include <stdarg.h> // va_list, va_start, va_end
 #include "common_header.h"

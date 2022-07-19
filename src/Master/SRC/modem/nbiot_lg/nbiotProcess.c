@@ -30,7 +30,7 @@
 #define DEREGISTER_DELAY 5000
 
 // FOTA timeout
-#define FOTA_TIMEOUT 60000
+#define FOTA_TIMEOUT 90000
 #define FOTA_RETRY 0
 
 // QA report timeout
