@@ -802,7 +802,7 @@ __interrupt void USCI_A2_ISR(void)
 			if (++p->wpos >= p->len) {
 				p->wpos = 0;
 			}
-			OSAL_startEventTimer(AppTaskId, APP_EVENT_MODEM_RX, (uint32)200);
+			OSAL_startEventTimer(AppTaskId, APP_EVENT_MODEM_RX, (uint32)300);
 		}
 	}
 }
