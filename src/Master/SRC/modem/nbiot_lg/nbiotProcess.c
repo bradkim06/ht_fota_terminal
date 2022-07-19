@@ -50,7 +50,7 @@
 
 // Attach, Detach, No ack UDP timeout/retry
 #define AT_CMD_ATTACH_TIMEOUT 10000
-#define AT_CMD_ATTACH_RETRY 11
+#define AT_CMD_ATTACH_RETRY 14
 
 #define DETACH_DELAY_TIME 30000
 
