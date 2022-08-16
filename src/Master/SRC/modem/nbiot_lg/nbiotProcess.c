@@ -41,7 +41,7 @@
 #define AT_CMD_DEFAULT_RETRY 5
 
 // QLWULDATA timeout/retry
-#define AT_CMD_DATA_SEND_TIMEOUT 60000
+#define AT_CMD_DATA_SEND_TIMEOUT 30000
 #define AT_CMD_DATA_SEND_RETRY 1
 
 // NPSMR timeout/retry
@@ -857,18 +857,10 @@ static ModemStep_t transfer()
 			METER_clearStoredData();
 			modemCtx.waitDl = FALSE;
 			MODEM_checkDlMessage((void *)modemComm.dlData, modemComm.dlDataLen);
-			OSAL_setEvent(AppTaskId, APP_EVENT_MODEM_PROCESS);
-			StepFlowIndex.transfer = END_STEP_FLOW_INDEX;
-		} else {
-			if (TIMER_getMsecDiff(startEventTimeMsec) >= AT_CMD_LWM2M_DL_WAIT) {
-				// 다운링크 Timeout
-				OSAL_setEvent(AppTaskId, APP_EVENT_MODEM_PROCESS);
-				StepFlowIndex.transfer = END_STEP_FLOW_INDEX;
-			} else {
-				OSAL_startEventTimer(AppTaskId, APP_EVENT_MODEM_PROCESS,
-						     MODEM_EVENT_INTERVAL);
-			}
 		}
+
+		OSAL_setEvent(AppTaskId, APP_EVENT_MODEM_PROCESS);
+		StepFlowIndex.transfer = END_STEP_FLOW_INDEX;
 	} break;
 
 	case END_STEP_FLOW_INDEX:

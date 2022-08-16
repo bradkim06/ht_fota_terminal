@@ -480,12 +480,6 @@ void MODEM_response(char *pHead, int len)
 		}
 	} while (p);
 
-#define PATTERN_PF_DL "+NNMI:"
-	if ((p = strstr(pHead, PATTERN_PF_DL))) {
-		parse_pf_downlink(p + strlen(PATTERN_PF_DL));
-		modemCtx.pfDlCnt++;
-	}
-
 #define PATTERN_CHK_PSM_PREFIX "+NPSMR:"
 #define PATTERN_CHK_PSM_PREFIX2 "+NPSMR:1,"
 #define PATTERN_ENTER_PSM 1
@@ -735,6 +729,12 @@ void MODEM_response(char *pHead, int len)
 	case AT_CMD_IDX_QLWULDATAEX: {
 		if (parseQLWULDATAEX(pHead, &modemCtx)) {
 			modemCtx.pfUlCnt++;
+		}
+
+#define PATTERN_PF_DL "+NNMI:"
+		if ((p = strstr(pHead, PATTERN_PF_DL))) {
+			parse_pf_downlink(p + strlen(PATTERN_PF_DL));
+			modemCtx.pfDlCnt++;
 			isRleaseBusy = TRUE;
 		}
 	} break;
