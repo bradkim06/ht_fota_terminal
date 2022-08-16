@@ -756,7 +756,7 @@ void MODEM_response(char *pHead, int len)
 		if (isAckOk) {
 			isRleaseBusy = TRUE;
 		} else if (modemCtx.status.error) {
-			// cgatt response error is ok
+			// cgatt response error ignore, it mean already running, not error
 			modemCtx.status.error = 0;
 			isRleaseBusy = TRUE;
 			OSAL_stopEventTimer(AppTaskId, APP_EVENT_MODEM_TIMEOUT);

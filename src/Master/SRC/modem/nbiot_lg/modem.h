@@ -51,13 +51,6 @@ typedef enum {
 	MODEM_TYPE_UNKNOWN = 99,
 } ModemType_t;
 
-// modem type definition
-typedef enum {
-	MODEM_NW_STATUS_NORMAL = 0,
-	MODEM_NW_STATUS_PAUSED = 1,
-	MODEM_NW_STATUS_REJECTED = 2,
-} ModemNwStatus_t;
-
 typedef struct {
 	int lastRSSI;
 	int cid; // Physical Cell ID
@@ -80,7 +73,6 @@ typedef struct {
 	Date_t lastCertifyTime;
 	Date_t lastAccessTime;
 	Date_t lastAttachTime;
-	ModemNwStatus_t lastAttachStatus;
 	ModemType_t modemType;
 	char FwVer[LEN_MODEM_FW_VER + 1];
 } Modem_t;

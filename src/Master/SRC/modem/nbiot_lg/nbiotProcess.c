@@ -477,14 +477,8 @@ static ModemStep_t bip()
 			memcpy(conf.imsi, imsi, 8);
 			saveConfChecksum();
 			printf_ts("MODEM : changed USIM\n");
-			modem.lastAttachStatus = MODEM_NW_STATUS_NORMAL;
 		}
 
-		if (modem.lastAttachStatus == MODEM_NW_STATUS_PAUSED) {
-			printf_ts("MODEM : lastAttach cellreg paused - try attach\n");
-		} else if (modem.lastAttachStatus == MODEM_NW_STATUS_REJECTED) {
-			printf_ts("MODEM : lastAttach cellreg rejected - try attach\n");
-		}
 		nextStep = MODEM_STEP_INIT;
 	} break;
 	}
