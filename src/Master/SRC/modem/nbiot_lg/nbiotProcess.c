@@ -1299,11 +1299,7 @@ static ModemStep_t retry()
 			// H/W reset 시 Idle 바로 다음 Step인 BIP 부터 수행.
 			nextStep = MODEM_STEP_BIP;
 		} else {
-			if (modemCtx.lwm2m.bsFinish == 1) {
-				nextStep = modemCtx.retryStep;
-			} else {
-				nextStep = MODEM_STEP_ATTACH_NW;
-			}
+			nextStep = MODEM_STEP_ATTACH_NW;
 		}
 	} break;
 	}
