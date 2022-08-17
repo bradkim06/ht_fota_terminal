@@ -669,25 +669,9 @@ void MODEM_response(char *pHead, int len)
 	} break;
 
 	case AT_CMD_IDX_SOCKET_SEND_UL: {
-		if (modemCtx.step == MODEM_STEP_UPDATE_QA) {
-			if (isAckOk) {
-				isRleaseBusy = TRUE;
-			}
-		} else {
-			if (isAckOk) {
-				modemCtx.ulCnt++;
-			}
-
-#define PATTERN_RECV_DL "+NSONMI:"
-			if ((p = strstr(pHead, PATTERN_RECV_DL))) {
-				if (modemCtx.socket == atoi(p + strlen(PATTERN_RECV_DL))) {
-					if ((p = strstr(p, ","))) {
-						modemComm.dlDataLen = atoi(++p);
-						isRleaseBusy = TRUE;
-						modemCtx.dlCnt++;
-					}
-				}
-			}
+		// flatform version udp socket send only using qa report
+		if (isAckOk) {
+			isRleaseBusy = TRUE;
 		}
 	} break;
 
