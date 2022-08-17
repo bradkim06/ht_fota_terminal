@@ -41,7 +41,7 @@
 #define AT_CMD_DEFAULT_RETRY 5
 
 // QLWULDATA timeout/retry
-#define AT_CMD_DATA_SEND_TIMEOUT 30000
+#define AT_CMD_DATA_SEND_TIMEOUT 60000
 #define AT_CMD_DATA_SEND_RETRY 1
 
 // NPSMR timeout/retry
