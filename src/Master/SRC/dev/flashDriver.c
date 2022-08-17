@@ -315,15 +315,17 @@ void FLASH_readConfigInfo(Config_t *config)
 	// read others
 	FlashConfig_t flashConfig;
 	uint8 checksum = calChecksum((uint8 *)config, offsetof(Config_t, checksum));
+	char isRamChecksumOk = TRUE;
 
 	if (checksum != config->checksum) {
 		printf("config ram checksum fail\n");
 		memset(config, 0, sizeof(Config_t));
+		isRamChecksumOk = FALSE;
 	}
 
 	BOOL result_conf = readConfig(&flashConfig);
 
-	if (result_conf == TRUE) {
+	if (result_conf == TRUE || isRamChecksumOk == FALSE) {
 #if NBIOT_DEVICE
 		sprintf(config->serverIp, "%d.%d.%d.%d", flashConfig.serverIp[0],
 			flashConfig.serverIp[1], flashConfig.serverIp[2], flashConfig.serverIp[3]);
@@ -332,32 +334,31 @@ void FLASH_readConfigInfo(Config_t *config)
 		config->serviceCode[4] = 0;
 		config->meterType = flashConfig.meterType;
 #endif
-	}
+		config->termModel = MISC_getDeviceType();
+		config->bslModel = MISC_getBslType();
 
-	config->termModel = MISC_getDeviceType();
-	config->bslModel = MISC_getBslType();
-
-	config->meterInterval = flashConfig.meterInterval;
-	config->reportInterval = flashConfig.reportInterval;
-	config->reportRange = flashConfig.reportRange;
-	config->sleepMode = flashConfig.sleepMode;
-	config->riCtrlMode = flashConfig.riCtrlMode;
-	config->periodMode = flashConfig.periodMode;
-	config->isShortInterval = flashConfig.isShortInterval;
-	config->debugPrint = flashConfig.debugPrint;
-	config->dataSkipMode = flashConfig.dataSkipMode;
+		config->meterInterval = flashConfig.meterInterval;
+		config->reportInterval = flashConfig.reportInterval;
+		config->reportRange = flashConfig.reportRange;
+		config->sleepMode = flashConfig.sleepMode;
+		config->riCtrlMode = flashConfig.riCtrlMode;
+		config->periodMode = flashConfig.periodMode;
+		config->isShortInterval = flashConfig.isShortInterval;
+		config->debugPrint = flashConfig.debugPrint;
+		config->dataSkipMode = flashConfig.dataSkipMode;
 #if NBIOT_DEVICE
-	sprintf(config->fotaIp, "%d.%d.%d.%d", flashConfig.fotaIp[0], flashConfig.fotaIp[1],
-		flashConfig.fotaIp[2], flashConfig.fotaIp[3]);
-	memcpy(&config->fotaPort, flashConfig.fotaPort, 2);
-	config->fotaInterval = flashConfig.fotaInterval;
-	config->isModemInit = flashConfig.isModemInit;
+		sprintf(config->fotaIp, "%d.%d.%d.%d", flashConfig.fotaIp[0], flashConfig.fotaIp[1],
+			flashConfig.fotaIp[2], flashConfig.fotaIp[3]);
+		memcpy(&config->fotaPort, flashConfig.fotaPort, 2);
+		config->fotaInterval = flashConfig.fotaInterval;
+		config->isModemInit = flashConfig.isModemInit;
 #endif
+	}
 
 	// read serial number
 	FlashId_t flashID;
 	BOOL result_id = readID(&flashID);
-	if (result_id) {
+	if (result_id || isRamChecksumOk == FALSE) {
 #if defined(AUX_REPEATER)
 		memcpy(&config->pan_id, &flashID.pan_id, 2);
 		memcpy(&config->nwk_addr, &flashID.nwk_addr, 4);
@@ -376,6 +377,7 @@ void FLASH_readConfigInfo(Config_t *config)
 #endif
 		memcpy(config->serialNum, flashID.serialNum, SERIAL_NUM_LEN);
 	}
+
 #if defined(AUX_REPEATER)
 	config->havePushButton = MISC_findPushButton();
 #endif
