@@ -2,6 +2,7 @@
 #include "common_header.h"
 #include "string.h"
 #include "tdd.h"
+#include "uart.h"
 #if NBIOT_DEVICE
 #include "modem.h"
 #endif

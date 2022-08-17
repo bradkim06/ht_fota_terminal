@@ -143,13 +143,15 @@ __interrupt void RTC_ISR(void)
 	if (RTCIV & RTCAIFG) {
 		if (Fota.Status == 1) {
 			LPM3_EXIT;
+			RTCIV = 0;
 			return;
 		}
 
-		RTCCTL01 &= ~RTCAIFG;
 		WAKEUP_DEVICE();
 		OSAL_setEvent(AppTaskId, APP_EVENT_RTC_ALARM);
 	}
+
+	RTCIV = 0;
 }
 
 // Port 1 interrupt service routine - NFC
@@ -162,23 +164,22 @@ __interrupt void Port_1(void)
 	}
 
 	if (PORT1_IFG & BM(PORT_NFC_TAG)) {
-		PORT1_IFG &= ~BM(PORT_NFC_TAG);
 		NFC_tagDetect();
 		OSAL_startEventTimer(AppTaskId, APP_EVENT_NFC_WAIT, (uint32)700);
 		WAKEUP_DEVICE();
 
 		NFCAPP_clearAsyncCmd();
+		PORT1_IFG &= ~BM(PORT_NFC_TAG);
 	}
 
 	if (PORT1_IFG & BM(PORT_NFC_FD_IN)) {
-		PORT1_IFG &= ~BM(PORT_NFC_FD_IN);
 		NFC_recvMessage();
 		OSAL_startEventTimer(AppTaskId, APP_EVENT_NFC_WAIT, (uint32)700);
+		PORT1_IFG &= ~BM(PORT_NFC_FD_IN);
 	}
 
 #if defined(AUX_REPEATER)
 	if (PORT1_IFG & BM(PORT_LCD_SWITCH)) {
-		PORT1_IFG &= ~BM(PORT_LCD_SWITCH);
 		if (conf.havePushButton) {
 			OSAL_stopEventTimer(AppTaskId, APP_EVENT_SENSOR_REED);
 			if (TEST_isTestMode() == TRUE) {
@@ -187,6 +188,7 @@ __interrupt void Port_1(void)
 				OSAL_startEventTimer(AppTaskId, APP_EVENT_SENSOR_REED, (uint32)500);
 			}
 		}
+		PORT1_IFG &= ~BM(PORT_LCD_SWITCH);
 	}
 #endif
 	PORT1_IFG = 0;
@@ -209,7 +211,6 @@ __interrupt void Port_2(void)
 #endif
 
 	if (PORT_SENSOR_IFG & BM(PORT_SENSOR_REED)) {
-		PORT_SENSOR_IFG &= ~BM(PORT_SENSOR_REED); // P1.2 IFG cleared
 		OSAL_stopEventTimer(AppTaskId, APP_EVENT_SENSOR_REED);
 		if (TEST_isTestMode() == TRUE) {
 			OSAL_startEventTimer(AppTaskId, APP_EVENT_SENSOR_REED, (uint32)10);
@@ -217,13 +218,12 @@ __interrupt void Port_2(void)
 			OSAL_startEventTimer(AppTaskId, APP_EVENT_SENSOR_REED, (uint32)500);
 		}
 		WAKEUP_DEVICE();
+		PORT_SENSOR_IFG &= ~BM(PORT_SENSOR_REED); // P1.2 IFG cleared
 	}
 
 #if defined(AUX_REPEATER)
 	// CC1200 tx/rx interrupt
 	if (PORT_SENSOR_IFG & BM(PORT_CC1200_GPIO0)) {
-		PORT_SENSOR_IFG &= ~BM(PORT_CC1200_GPIO0);
-
 		if (SLAVE_getAccessState() == SLAVE_ACCESS_IDLE &&
 		    CC1200_getRfMode() == RF_MODE_RX) {
 			// Rx 동작은 Slave operating이 아닌 경우 쓰레기 값으로 간주하고 그 외에는 모두 처리.
@@ -231,6 +231,7 @@ __interrupt void Port_2(void)
 			//  Slave operating이 아니더라도 ISR에 의한 처리가 필요.)
 			if (TEST_isTestMode() == FALSE) {
 				// Test mode인 경우 모두 처리.
+				PORT_SENSOR_IFG &= ~BM(PORT_CC1200_GPIO0);
 				return;
 			}
 		}
@@ -253,6 +254,7 @@ __interrupt void Port_2(void)
 			}
 			SLAVE_activeStart(10);
 		}
+		PORT_SENSOR_IFG &= ~BM(PORT_CC1200_GPIO0);
 	}
 #endif
 	PORT_SENSOR_IFG = 0;

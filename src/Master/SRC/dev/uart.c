@@ -675,7 +675,8 @@ void set_meterPortForBSL()
 __interrupt void USCI_A0_ISR(void)
 {
 	if (Fota.Status == 1) {
-		UCA0IFG = 0;
+		UCA0IE &= ~UCTXIE;
+		UCA0IFG &= ~UCRXIFG;
 		return;
 	}
 
@@ -698,8 +699,8 @@ __interrupt void USCI_A0_ISR(void)
 
 	// rx interrupt를 사용하지 않음 - 혹시 발생하면 즉시 disable
 	if (UCA0IFG & UCRXIFG) {
-		UCA0IFG &= ~UCRXIFG;
 		if (uartA0->rxBuf == NULL) {
+			UCA0IFG &= ~UCRXIFG;
 			return;
 		}
 
@@ -712,6 +713,7 @@ __interrupt void USCI_A0_ISR(void)
 				p->wpos = 0;
 			}
 		}
+		UCA0IFG &= ~UCRXIFG;
 	}
 }
 #endif
@@ -721,7 +723,8 @@ __interrupt void USCI_A0_ISR(void)
 __interrupt void USCI_A1_ISR(void)
 {
 	if (Fota.Status == 1) {
-		UCA1IFG = 0;
+		UCA1IE &= ~UCTXIE;
+		UCA1IFG &= ~UCRXIFG;
 		return;
 	}
 
@@ -743,8 +746,8 @@ __interrupt void USCI_A1_ISR(void)
 	}
 
 	if (UCA1IFG & UCRXIFG) { // USCI_A1 RX
-		UCA1IFG &= ~UCRXIFG;
 		if (uartA1->rxBuf == NULL) {
+			UCA1IFG &= ~UCRXIFG;
 			return;
 		}
 
@@ -757,6 +760,7 @@ __interrupt void USCI_A1_ISR(void)
 				p->wpos = 0;
 			}
 		}
+		UCA1IFG &= ~UCRXIFG;
 	}
 }
 
@@ -766,6 +770,7 @@ __interrupt void USCI_A2_ISR(void)
 {
 	if (Fota.Status == 1) {
 		if (UCA2IFG & UCRXIFG) {
+			UCA2IE &= ~UCTXIE;
 			UCA2IFG &= ~UCRXIFG;
 			rxBuf[rxLen++] = UCA2RXBUF;
 		}
@@ -790,8 +795,8 @@ __interrupt void USCI_A2_ISR(void)
 	}
 
 	if (UCA2IFG & UCRXIFG) { // USCI_A2 RX
-		UCA2IFG &= ~UCRXIFG;
 		if (uartA2->rxBuf == NULL) {
+			UCA2IFG &= ~UCRXIFG;
 			return;
 		}
 
@@ -805,6 +810,7 @@ __interrupt void USCI_A2_ISR(void)
 			}
 			OSAL_startEventTimer(AppTaskId, APP_EVENT_MODEM_RX, (uint32)300);
 		}
+		UCA2IFG &= ~UCRXIFG;
 	}
 }
 
@@ -814,7 +820,8 @@ __interrupt void USCI_A2_ISR(void)
 __interrupt void USCI_A3_ISR(void)
 {
 	if (Fota.Status == 1) {
-		UCA3IFG = 0;
+		UCA3IE &= ~UCTXIE;
+		UCA3IFG &= ~UCRXIFG;
 		return;
 	}
 
@@ -836,8 +843,8 @@ __interrupt void USCI_A3_ISR(void)
 	}
 
 	if (UCA3IFG & UCRXIFG) { // USCI_A3 RX
-		UCA3IFG &= ~UCRXIFG;
 		if (uartA3->rxBuf == NULL) {
+			UCA3IFG &= ~UCRXIFG;
 			return;
 		}
 
@@ -851,6 +858,7 @@ __interrupt void USCI_A3_ISR(void)
 			}
 			OSAL_startEventTimer(AppTaskId, APP_EVENT_METER_RX, (uint32)50);
 		}
+		UCA3IFG &= ~UCRXIFG;
 	}
 }
 #endif // #if !defined(AUX_REPEATER)
