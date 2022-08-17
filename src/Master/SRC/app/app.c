@@ -1,5 +1,5 @@
-#include "msp430f5419a.h"
 #ifndef TDD_TEST
+#include "msp430f5419a.h"
 #include <msp430.h>
 #include <ctype.h>
 

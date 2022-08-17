@@ -696,13 +696,6 @@ void MODEM_response(char *pHead, int len)
 		}
 	} break;
 
-		// case AT_CMD_IDX_CHECK_BIPST: {
-		// #define PATTERN_BIPST_FINISH "+MBIPST:0"
-		// 	if (strstr(pHead, PATTERN_BIPST_FINISH)) {
-		// 		isRleaseBusy = TRUE;
-		// 	}
-		// } break;
-
 	case AT_CMD_IDX_GET_SWITCH_LWM2M: {
 #define PATTERN_SWT_LWM2M "+QREGSWT:"
 #define FLAG_MANUAL_LWM2M 0

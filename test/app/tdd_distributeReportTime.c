@@ -55,9 +55,9 @@ static void testFunction(inputData_t *data)
 
 void test_distributeReportTime()
 {
-	inputData_t testData[5] = {
+	inputData_t testData[6] = {
 		{ 7034, 6, 6, 2, 39, 45 }, { 2634, 6, 6, 4, 39, 0 },  { 6234, 3, 6, 1, 39, 15 },
-		{ 4891, 1, 6, 0, 46, 15 }, { 1143, 6, 6, 4, 48, 45 },
+		{ 4891, 1, 6, 0, 46, 15 }, { 1143, 6, 6, 4, 48, 45 }, { 1143, 0, 6, 4, 48, 45 },
 	};
 	for (int i = 0; i < sizeof(testData) / sizeof(inputData_t); i++) {
 		testFunction(&testData[i]);
