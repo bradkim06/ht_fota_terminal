@@ -81,7 +81,6 @@ void TASKMGR_run(void)
 			TasksEvents[idx] |=
 				events; // Add back unprocessed events to the current task.
 			HAL_EXIT_CRITICAL_SECTION(intState); // Hold off interrupts
-
 		} else {
 			if (OsalTimerHead == NULL) {
 				unsigned int taskIdx = 0;
@@ -97,9 +96,6 @@ void TASKMGR_run(void)
 					printf("--sleep--\n\n");
 					MISC_delayMs(100);
 					SLEEP_DEVICE();
-					__no_operation();
-					PRINT_enable();
-					TIMER_start();
 				}
 			}
 		}
