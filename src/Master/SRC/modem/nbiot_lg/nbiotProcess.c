@@ -834,21 +834,35 @@ static ModemStep_t transfer()
 	} break;
 
 	case 1: {
-		int nData = METER_getNumberOfStoredData();
-		if ((nData == NUM_NBIOT_STORED_DATA) && (modemCtx.waitDl)) {
-			// Uplink Ok
-			METER_clearIntervalData();
-		}
+		startEventTimeMsec = TIMER_getMsec();
+		OSAL_setEvent(AppTaskId, APP_EVENT_MODEM_PROCESS);
+		StepFlowIndex.transfer++;
+	} break;
 
+	case 2: {
 		if (modemComm.dlDataLen > 0) {
 			// Ack Ok
 			METER_clearStoredData();
 			modemCtx.waitDl = FALSE;
 			MODEM_checkDlMessage((void *)modemComm.dlData, modemComm.dlDataLen);
-		}
 
-		OSAL_setEvent(AppTaskId, APP_EVENT_MODEM_PROCESS);
-		StepFlowIndex.transfer = END_STEP_FLOW_INDEX;
+			StepFlowIndex.transfer = END_STEP_FLOW_INDEX;
+			OSAL_setEvent(AppTaskId, APP_EVENT_MODEM_PROCESS);
+		} else if (TIMER_getMsecDiff(startEventTimeMsec) >= AT_CMD_LWM2M_DL_WAIT) {
+			printf_ts("DL : LWM2M downlink req timeout\n");
+
+			int nData = METER_getNumberOfStoredData();
+			if ((nData >= NUM_NBIOT_STORED_DATA) && (modemCtx.waitDl)) {
+				// Uplink Ok
+				METER_clearIntervalData();
+			}
+
+			StepFlowIndex.transfer = END_STEP_FLOW_INDEX;
+			OSAL_setEvent(AppTaskId, APP_EVENT_MODEM_PROCESS);
+		} else {
+			OSAL_startEventTimer(AppTaskId, APP_EVENT_MODEM_PROCESS,
+					     MODEM_EVENT_INTERVAL);
+		}
 	} break;
 
 	case END_STEP_FLOW_INDEX:
