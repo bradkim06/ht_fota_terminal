@@ -834,12 +834,6 @@ static ModemStep_t transfer()
 	} break;
 
 	case 1: {
-		startEventTimeMsec = TIMER_getMsec();
-		OSAL_setEvent(AppTaskId, APP_EVENT_MODEM_PROCESS);
-		StepFlowIndex.transfer++;
-	} break;
-
-	case 2: {
 		int nData = METER_getNumberOfStoredData();
 		if ((nData == NUM_NBIOT_STORED_DATA) && (modemCtx.waitDl)) {
 			// Uplink Ok
@@ -894,27 +888,6 @@ static ModemStep_t certify()
 	} break;
 
 	case 1: {
-		if (modemCtx.lwm2m.bsFinish) {
-			OSAL_setEvent(AppTaskId, APP_EVENT_MODEM_PROCESS);
-			StepFlowIndex.certify++;
-		} else {
-			if (TIMER_getMsecDiff(startEventTimeMsec) >= AT_CMD_LWM2M_TIMEOUT) {
-				OSAL_setEvent(AppTaskId, APP_EVENT_MODEM_PROCESS);
-				StepFlowIndex.certify = END_STEP_FLOW_INDEX;
-			} else {
-				OSAL_startEventTimer(AppTaskId, APP_EVENT_MODEM_PROCESS,
-						     MODEM_EVENT_INTERVAL);
-			}
-		}
-	} break;
-
-	case 2: {
-		startEventTimeMsec = TIMER_getMsec();
-		OSAL_setEvent(AppTaskId, APP_EVENT_MODEM_PROCESS);
-		StepFlowIndex.certify++;
-	} break;
-
-	case 3: {
 		if (modemCtx.lwm2m.obsObj10250 || modemCtx.lwm2m.obsObj16241) {
 			OSAL_setEvent(AppTaskId, APP_EVENT_MODEM_PROCESS);
 			StepFlowIndex.certify++;
@@ -931,20 +904,13 @@ static ModemStep_t certify()
 
 	case END_STEP_FLOW_INDEX:
 	default: {
-		if (!modemCtx.lwm2m.bsFinish) {
-			printf_ts("PF : Fail to bootstrap\n");
+		if (modemCtx.lwm2m.obsObj10250 || modemCtx.lwm2m.obsObj16241) {
+			nextStep = MODEM_STEP_TRANSFER;
+		} else {
+			printf_ts("PF : Fail to register\n");
 			// 이전 command retry 방지
 			memset(&modemComm, 0, sizeof(modemComm));
 			OSAL_setEvent(AppTaskId, APP_EVENT_MODEM_TIMEOUT);
-		} else {
-			if (modemCtx.lwm2m.obsObj10250 || modemCtx.lwm2m.obsObj16241) {
-				nextStep = MODEM_STEP_TRANSFER;
-			} else {
-				printf_ts("PF : Fail to register\n");
-				// 이전 command retry 방지
-				memset(&modemComm, 0, sizeof(modemComm));
-				OSAL_setEvent(AppTaskId, APP_EVENT_MODEM_TIMEOUT);
-			}
 		}
 	} break;
 	}
