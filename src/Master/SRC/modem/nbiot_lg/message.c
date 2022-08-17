@@ -453,6 +453,7 @@ unsigned int MODEM_sendPeriodicData(uchar *buf)
 
 int MODEM_recvRepRange(uchar *buf, int len)
 {
+	char isChange = FALSE;
 	NbiotRepRange_t *p = (NbiotRepRange_t *)buf;
 
 	if (p->range == conf.reportRange) {
@@ -467,16 +468,21 @@ int MODEM_recvRepRange(uchar *buf, int len)
 
 	printf_ts("DL : report range changed (%d --> %d)\n", conf.reportRange, p->range);
 
-	conf.reportRange = p->range;
+	if (conf.reportRange != p->range) {
+		conf.reportRange = p->range;
+		isChange = TRUE;
+	}
 
-	FLASH_saveConfigInfo(&conf);
-	FLASH_readConfigInfo(&conf);
+	if (isChange) {
+		FLASH_saveConfigInfo(&conf);
+	}
 
 	return 1;
 }
 
 int MODEM_recvIntervalReq(uchar *buf, int len)
 {
+	char isChange = FALSE;
 	NbiotIntervalReq_t *p = (NbiotIntervalReq_t *)buf;
 
 	uchar mi = p->mi;
@@ -503,11 +509,19 @@ int MODEM_recvIntervalReq(uchar *buf, int len)
 	printf_ts("DL : meteringParameter changed. mi(%d-->%d) ri(%d->%d)\n", conf.meterInterval,
 		  mi, conf.reportInterval, ri);
 
-	conf.meterInterval = mi;
-	conf.reportInterval = ri;
+	if (conf.meterInterval != mi) {
+		conf.meterInterval = mi;
+		isChange = TRUE;
+	}
 
-	FLASH_saveConfigInfo(&conf);
-	FLASH_readConfigInfo(&conf);
+	if (conf.reportInterval != ri) {
+		conf.reportInterval = ri;
+		isChange = TRUE;
+	}
+
+	if (isChange) {
+		FLASH_saveConfigInfo(&conf);
+	}
 
 	return 1;
 }

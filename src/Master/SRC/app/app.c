@@ -642,7 +642,6 @@ void meteringUpdateData(BOOL isSuccess, MeterUnitData_t *unit)
 
 				conf.meterType = Metering.meterType;
 				FLASH_saveConfigInfo(&conf);
-				FLASH_readConfigInfo(&conf);
 			}
 		}
 	}
