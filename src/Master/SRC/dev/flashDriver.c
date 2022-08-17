@@ -389,7 +389,9 @@ void FLASH_readConfigInfo(Config_t *config)
 
 	if ((result_id & result_conf) == FALSE) {
 		FLASH_saveConfigInfo(config);
-	} else {
+	}
+
+	if (isRamChecksumOk == FALSE) {
 		saveConfChecksum();
 	}
 }
