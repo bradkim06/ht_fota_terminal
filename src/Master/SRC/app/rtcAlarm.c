@@ -34,7 +34,7 @@
 	(((x) == RTC_ALARM_METERING)   ? "metering" :                                              \
 	 ((x) == RTC_ALARM_REPORT)     ? "report" :                                                \
 	 ((x) == RTC_ALARM_METER_SAVE) ? "meter save" :                                            \
-					       "unknown")
+					 "unknown")
 
 static int TimeSyncFlag = 0;
 static Date_t TimeSyncDate = { 0 };
@@ -94,7 +94,7 @@ void RTC_init()
 
 	// 보조중계기 및 분단위 검침 시 alaram은 1개만 metering type 및 report min으로 등록.
 	// report min에 맞춰 검침 및 보고를 수행. (분단위 동작은 RTC_Alarm_Scheduler_short() 참조)
-	if (conf.isShortInterval) {
+	if (conf.isShortInterval == 1) {
 		AlarmList[0].type = RTC_ALARM_METERING;
 		AlarmList[0].minute = conf.reportMin;
 #if !defined(AUX_REPEATER)
@@ -392,7 +392,7 @@ void RTC_Alarm_Scheduler_normal()
 
 void RTC_alarmSchedule()
 {
-	if (conf.isShortInterval) {
+	if (conf.isShortInterval == 1) {
 		RTC_Alarm_Scheduler_short();
 	} else {
 		RTC_Alarm_Scheduler_normal();
@@ -412,7 +412,7 @@ void RTC_runAlarm()
 		return;
 	}
 
-	if (conf.isShortInterval) {
+	if (conf.isShortInterval == 1) {
 		APP_runMetering(PERIODIC_METERING);
 		return;
 	}
