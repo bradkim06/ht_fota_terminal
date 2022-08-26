@@ -292,23 +292,6 @@ MeterUnitData_t *METER_getStoredData(int index)
 	return NULL;
 }
 
-/**
- * @brief Save meter data in Flash with date
- *
- * @param pDate meter data time
- * @param pUnit meter data
- */
-void METER_saveInFlash(Date_t *pDate, MeterUnitData_t *pUnit)
-{
-	// If RTC is not synchronized, do not save meter data in flash
-	if (RTC_isTimeSync()) {
-		printf("Meter Data Store in Flash : %04d-%02d-%02d %02dH\n", pDate->year,
-		       pDate->mon, pDate->day, pDate->hour);
-	} else {
-		printf("Meter Data Store in Flash : Not synchronized RTC Time\n");
-	}
-}
-
 void METER_collectStoredData()
 {
 #ifndef AUX_REPEATER

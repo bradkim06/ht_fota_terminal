@@ -47,11 +47,10 @@ typedef struct {
 	uint8 fotaPort[2]; // 21, 22
 	uint8 fotaInterval; // 23
 	uint8 riCtrlMode; // 24
-	uint8 periodMode; // 25
-	uint8 reportRange; // 26
-	uint8 dataSkipMode; // 27
-	uint8 reserved[3]; // 28, 29, 30
-	uint8 checksum; // 31
+	uint8 reportRange; // 25
+	uint8 dataSkipMode; // 26
+	uint8 reserved[3]; // 27, 28, 29
+	uint8 checksum; // 30
 } FlashConfig_t;
 
 #endif

@@ -267,7 +267,6 @@ enum {
 	NOT_ACIVE_METERING = 0,
 	INITIAL_METERING,
 	PERIODIC_METERING,
-	PERIODIC_METERING_FOR_SAVE,
 	IMMEDIATE_METERING,
 	IMMEDIATE_METERING_FOR_REPORT,
 };
@@ -636,7 +635,6 @@ void METER_clearStoredData();
 void METER_clearIntervalData();
 uint8 METER_getNumberOfStoredData();
 int METER_fillSendData(uint8 *pData);
-void METER_saveInFlash(Date_t *pDate, MeterUnitData_t *pUnit);
 void METER_displayStoredData();
 BOOL METER_addStoredData(Date_t *pDate, MeterUnitData_t *pUnit);
 void METER_collectStoredData();

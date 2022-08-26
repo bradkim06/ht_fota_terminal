@@ -116,7 +116,6 @@ static BOOL readConfig(FlashConfig_t *pInfo)
 		pInfo->reportRange = 6;
 		pInfo->sleepMode = 0;
 		pInfo->riCtrlMode = 0;
-		pInfo->periodMode = 0;
 		pInfo->isShortInterval = 0;
 		pInfo->debugPrint = 0;
 		pInfo->isModemInit = 0;
@@ -285,7 +284,6 @@ void FLASH_saveConfigInfo(Config_t *config)
 	flashConfig.meterType = config->meterType;
 	flashConfig.sleepMode = config->sleepMode;
 	flashConfig.riCtrlMode = config->riCtrlMode;
-	flashConfig.periodMode = config->periodMode;
 	flashConfig.meterInterval = config->meterInterval;
 	flashConfig.reportInterval = config->reportInterval;
 	flashConfig.reportRange = config->reportRange;
@@ -343,7 +341,6 @@ void FLASH_readConfigInfo(Config_t *config)
 		config->reportRange = flashConfig.reportRange;
 		config->sleepMode = flashConfig.sleepMode;
 		config->riCtrlMode = flashConfig.riCtrlMode;
-		config->periodMode = flashConfig.periodMode;
 		config->isShortInterval = flashConfig.isShortInterval;
 		config->debugPrint = flashConfig.debugPrint;
 		config->dataSkipMode = flashConfig.dataSkipMode;

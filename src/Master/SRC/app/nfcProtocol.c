@@ -613,7 +613,7 @@ void sendSlaveCheckReport()
 
 			p->checkState = (pStatus.lastError == SLAVE_SUCCESS) ?
 						NFC_RC_METERING_COMPLETED :
-						      NFC_RC_FAIL;
+						NFC_RC_FAIL;
 			memcpy(p->slaveSerialNum, pStatus.slaveSerial, LEN_SLAVE_SERIAL_NUM);
 			p->slaveBatt = pStatus.slaveBatt;
 			p->slaveRssi = pStatus.slaveRssi;
@@ -1231,7 +1231,7 @@ void recvLoRaAppEuiKeySet(byte *data, uint8 len)
 		} else {
 			JoinMode_t joinMode = (p->joinMode == JOIN_MODE_SEUDO_JOIN) ?
 						      LORA_SEUDO_JOIN :
-							    LORA_REAL_JOIN;
+						      LORA_REAL_JOIN;
 			if (MODEM_setUserNwk(p->appEui, p->appKey, joinMode)) {
 				// 현재 AppKey or AppEUI 이 불일치 할 경우 TRUE로 설정 시작.
 				result = NFC_RC_IN_METERING;
@@ -1380,7 +1380,6 @@ void recvBdControlReq(byte *data, uint8 len)
 
 	int sleepModeChanged = 0;
 	int reportModeChanged = 0;
-	int periodModeChanged = 0;
 	int debugModeChanged = 0;
 	int dataSkipModeChanged = 0;
 
@@ -1426,12 +1425,9 @@ void recvBdControlReq(byte *data, uint8 len)
 	if (mVersion >= NFC_PROTOCOL_VER_3) {
 		NfcBdCtrlReqV3_t *pMsg = (NfcBdCtrlReqV3_t *)data;
 
+		// no use period mode
 		if (pMsg->periodMode == PERIOD_MODE_USE) {
-			tconfig.periodMode = 1;
-			periodModeChanged = 1;
 		} else if (pMsg->periodMode == PERIOD_MODE_NO_USE) {
-			tconfig.periodMode = 0;
-			periodModeChanged = 1;
 		}
 	}
 
@@ -1465,8 +1461,7 @@ void recvBdControlReq(byte *data, uint8 len)
 		}
 	}
 
-	if (sleepModeChanged || reportModeChanged || periodModeChanged || debugModeChanged ||
-	    dataSkipModeChanged) {
+	if (sleepModeChanged || reportModeChanged || debugModeChanged || dataSkipModeChanged) {
 		// 설정 변경 시 Global context에 복사 후 이벤트 등록
 		memcpy(&conf, &tconfig, sizeof(Config_t));
 		OSAL_setEvent(AppTaskId, APP_EVENT_CHANGE_CONFIG);
@@ -1517,11 +1512,8 @@ void sendBdControlAck(uint8 mversion, uint8 reset)
 
 		NfcBdCtrlAckV3_t *p = (NfcBdCtrlAckV3_t *)msg;
 
-		if (conf.periodMode) {
-			p->periodMode = PERIOD_MODE_USE;
-		} else {
-			p->periodMode = PERIOD_MODE_NO_USE;
-		}
+		// always no use
+		p->periodMode = PERIOD_MODE_NO_USE;
 	}
 
 	if (mversion >= NFC_PROTOCOL_VER_4) {

@@ -437,14 +437,7 @@ void RTC_runAlarm()
 			APP_runMetering(PERIODIC_METERING);
 		}
 	} else if (alarmType == RTC_ALARM_METER_SAVE) {
-		if (conf.periodMode && RTC_isTimeSync()) {
-			// 기간검침 데이터 저장 Base Time을 "통신 Base Time + 1시간" 으로 설정.
-			// 해당 이유는 LoRa 통신 문제 발생 시 Join시도를 1시간동안 하므로
-			// 경우에 따라 0시에 기간검침 데이터를 저장하지 않는 문제가 발생하므로 수정.
-			if ((date.hour % METER_DATA_SAVE_INTERVAL) == (conf.intervalBaseTime + 1)) {
-				APP_runMetering(PERIODIC_METERING_FOR_SAVE);
-			}
-		}
+		// 기간검침은 더이상 사용하지 않으나 장기간 sleep 방지를 위해 rtc만 남겨놓음
 	}
 #endif
 	else {

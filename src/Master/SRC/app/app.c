@@ -89,7 +89,6 @@ void APP_showConfig(Config_t *p)
 		printf(" [ Report Min ] %d (%d sec)\n", p->reportMin, p->reportSec);
 	}
 	printf(" [ RI Control ] %s \n", (p->riCtrlMode > 0) ? "On" : "Off");
-	printf(" [ PeriodMode ] %s \n", (p->periodMode > 0) ? "On" : "Off");
 	printf(" [ Meter Type ] %s\n", METER_getMeterName(p->meterType));
 	printf(" [ Operating  ] %s\n", p->sleepMode ? "Sleep" : "Active");
 	uint8 batt = BATT_getLastVoltage();
@@ -621,11 +620,6 @@ void meteringUpdateData(BOOL isSuccess, MeterUnitData_t *unit)
 		unit->sec = 0; // 주기검침의 경우 초단위는 0으로 설정한다.
 		METER_addStoredData(&date, unit);
 		METER_displayStoredData();
-		break;
-	case PERIODIC_METERING_FOR_SAVE:
-		if (conf.periodMode) {
-			METER_saveInFlash(&date, unit);
-		}
 		break;
 	default:
 		METER_addTempData(&date, unit);

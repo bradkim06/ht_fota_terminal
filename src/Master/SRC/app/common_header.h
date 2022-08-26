@@ -173,7 +173,6 @@ typedef struct {
 	uint16 resetCount;
 	uint8 debugPrint;
 	uint8 termModel;
-	uint8 periodMode;
 	uint8 bslModel;
 	uint8 checksum;
 } Config_t;

@@ -31,9 +31,9 @@ static void test_dataSkipMode(bdReqInput_t bdReqInput, int i)
 	// run function
 	recvBdControlReq((byte *)&bdReqInput.data, sizeof(NfcBdCtrlReqV5_t));
 	TEST_ASSERT_EQUAL_HEX(bdReqInput.expect.osalEvent, result.osalEvent);
-	printf("Config Result - sleep(%d) riMode(%d) riChgCount(%d) riCtrlValue(%d) period(%d) debug(%d) dataSkip(%d)\n",
+	printf("Config Result - sleep(%d) riMode(%d) riChgCount(%d) riCtrlValue(%d) debug(%d) dataSkip(%d)\n",
 	       conf.sleepMode, conf.riCtrlMode, conf.riCtrlChgCount, conf.riCtrlValue,
-	       conf.periodMode, conf.debugPrint, conf.dataSkipMode);
+	       conf.debugPrint, conf.dataSkipMode);
 
 	// result test BD_CONTROL_REQ
 	uint8 *pExpect = (uint8 *)&bdReqInput.expect.conf;

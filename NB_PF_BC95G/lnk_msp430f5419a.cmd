@@ -463,7 +463,6 @@ SECTIONS
         meter.obj (.text:METER_std_lcdTestReq)
         meter.obj (.text:METER_std_configRequest)
         meter.obj (.text:METER_std_sendRequest)
-        meter.obj (.text:METER_saveInFlash)
         meter.obj (.text:METER_sendRequest)
         meter.obj (.text:METER_shinhan_sendRequest)
         meter.obj (.text:METER_saveMeterInfo)
