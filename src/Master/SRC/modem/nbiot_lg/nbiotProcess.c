@@ -852,8 +852,10 @@ static ModemStep_t transfer()
 			printf_ts("DL : LWM2M downlink req timeout\n");
 
 			int nData = METER_getNumberOfStoredData();
-			if ((nData >= NUM_NBIOT_STORED_DATA) && (modemCtx.waitDl)) {
+			if ((nData > (NUM_NBIOT_STORED_DATA - conf.reportInterval)) &&
+			    (modemCtx.waitDl)) {
 				// Uplink Ok
+				printf_ts("Meter Clear Interval Data\n");
 				METER_clearIntervalData();
 			}
 
