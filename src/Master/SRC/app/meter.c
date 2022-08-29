@@ -1217,17 +1217,18 @@ void METER_clearIntervalData()
 	if (conf.reportInterval < 1 || conf.reportInterval > 24) {
 		conf.reportInterval = 6;
 	}
+
 	if (p->nData > nMaxData) {
 		p->nData = nMaxData;
 	}
 
-	if (p->nData == nMaxData) {
-		uint8 interval = conf.reportInterval;
-		for (int i = p->nData - 1; i >= p->nData - interval; i--) {
+	if (p->nData > (nMaxData - conf.reportInterval)) {
+		printf_ts("Meter Clear Interval Data\n");
+		for (int i = p->nData - 1; i >= p->nData - conf.reportInterval; i--) {
 			memset(&p->unit[i], 0, sizeof(MeterUnitData_t));
 		}
 
-		p->nData -= interval;
+		p->nData -= conf.reportInterval;
 	}
 }
 
