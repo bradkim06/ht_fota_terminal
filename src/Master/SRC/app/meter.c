@@ -1223,7 +1223,7 @@ void METER_clearIntervalData()
 	}
 
 	if (p->nData > (nMaxData - conf.reportInterval)) {
-		printf_ts("Meter Clear Interval Data\n");
+		// printf_ts("Meter Clear Interval Data\n");
 		for (int i = p->nData - 1; i >= p->nData - conf.reportInterval; i--) {
 			memset(&p->unit[i], 0, sizeof(MeterUnitData_t));
 		}

@@ -17,6 +17,7 @@ typedef struct {
 	char version[FOTA_FW_VER_LEN + 1];
 } FotaReqInfo_t;
 
+// fota information from server
 typedef struct {
 	char Req;
 	char Status;

@@ -29,6 +29,9 @@
 #define SEND_REPEAT 3
 #define SEND_FINISH 4
 
+#define RECV_BINARY 0xB1
+#define RECV_FINISH 0xB3
+
 #define FOTA_DELAY 50
 #define FOTA_5SEC 100
 #define FOTA_10SEC 200
@@ -214,6 +217,16 @@ static int recvModem(char *sendMsg, char *recvMsg, int t)
 	return -1;
 }
 
+/**
+ * @brief Fota Process
+ * - receive & parse binary data
+packet struct {
+    header uint8 // 0xB1:Binary Data, 0xB3:Finish Msg
+    address [3]uint8 // msp430f5419a memory 0xNNNN ~ 0xNNNNN
+    payload [1~512]uint8 // flash memory sect erase minimum 512byte
+    checksum uint8
+}
+*/
 static void fotaRecv()
 {
 	while (1) {
@@ -261,13 +274,14 @@ static void fotaRecv()
 						address |= rxData[i];
 					}
 
-					if (rxData[0] == 0xB1) {
+					if (rxData[0] == RECV_BINARY) {
 						eraseCode(address, SECT_ERASE);
+						// binary payload data
 						writeCode(address, &rxData[4], payloadLen - 5);
 						if (tcpSend(SEND_ACK) == TX_FAIL) {
 							break;
 						}
-					} else if (rxData[0] == 0xB3) {
+					} else if (rxData[0] == RECV_FINISH) {
 						// last update
 						if (tcpSend(SEND_FINISH) == TX_FAIL) {
 							tcpSend(SEND_FINISH);
@@ -298,12 +312,12 @@ static void fotaRecv()
 		}
 	}
 
+	// fota fail, detach sequence
 	fotaPrint("socket closed\n\r");
 	fotaSend("at+nsocl=");
 	fotaSend(socket);
 	fotaSend("\n\r");
 	recvModem("at+cgatt=0\n\r", "+NPSMR:1", FOTA_10SEC);
-	fotaPrint("sleep\n\r");
 }
 
 static void reboot()
@@ -334,18 +348,21 @@ void startFota()
 	WDTCTL = WDT_ARST_16SEC;
 	fota_uart();
 
+	// fota modem rx memory alloc
 	rxBuf = (char *)malloc(RX_MAX_LEN);
 	if (rxBuf == NULL) {
 		fotaPrint("malloc(Fota rxBuf) failed\n\r");
 		reboot();
 	}
+	// fota repeat information string save for repeat sequence
 	snprintf(socket, sizeof(socket), "%1d", modemCtx.socket);
 	snprintf(fotaPort, sizeof(fotaPort), "%d", Fota.Info.port);
 	snprintf(initialMsgSize, sizeof(initialMsgSize), "%d,", FOTA_REQMSG_SIZE);
-	//+NSOSTR:1,101,1
+	// +NSOSTR:1,101,1
 	snprintf(confirmTxSTr, sizeof(confirmTxSTr), "+NSOSTR:%1d,101,1", modemCtx.socket);
 
 	fotaPrint("fota start, send Ready\n\r");
+	// modem baudrate change
 	if (recvModem("at+natspeed=57600,30,0,0,1\n\r", "OK", FOTA_10SEC)) {
 		reboot();
 	}
@@ -398,20 +415,25 @@ static void fotaAlarmSet()
 {
 	uint16 alarm_minhr = 0x0000;
 
-	//clearing and disable alarm
+	// clearing and disable alarm
 	RTCCTL01 &= ~(RTCAIE + RTCAIFG);
 	RTCAMINHR = 0x0000;
 	RTCADOWDAY = 0x0000;
 
-	alarm_minhr |= (0x0080 | 41);
+	// every hour alarm
+	alarm_minhr |= (0x0080 | conf.reportMin);
 
 	RTCCTL01 |= RTCAIE;
 	RTCAMINHR = alarm_minhr;
 	RTCADOWDAY = 0x0000;
 }
 
+/**
+ * @brief fota repeat sequence
+ */
 static void retryFota()
 {
+	fotaPrint("sleep\n\r");
 RETRY:
 	// LDO work
 	P2SEL &= ~BM(0);
