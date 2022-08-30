@@ -112,14 +112,14 @@ void RTC_init()
 		AlarmList[0].minute = 0;
 		if (conf.reportMin > 30) {
 			AlarmList[1].type = RTC_ALARM_METER_SAVE;
-			AlarmList[1].minute = 15;
+			AlarmList[1].minute = 20;
 			AlarmList[2].type = RTC_ALARM_REPORT;
 			AlarmList[2].minute = conf.reportMin;
 		} else {
 			AlarmList[1].type = RTC_ALARM_REPORT;
 			AlarmList[1].minute = conf.reportMin;
 			AlarmList[2].type = RTC_ALARM_METER_SAVE;
-			AlarmList[2].minute = 45;
+			AlarmList[2].minute = 40;
 		}
 #endif
 	}
