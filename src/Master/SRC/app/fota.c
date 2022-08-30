@@ -32,12 +32,13 @@
 #define RECV_BINARY 0xB1
 #define RECV_FINISH 0xB3
 
-#define FOTA_DELAY 50
-#define FOTA_5SEC 100
-#define FOTA_10SEC 200
-#define FOTA_30SEC 600
-#define FOTA_60SEC 1200
-#define FOTA_90SEC 1800
+#define FOTA_DELAY 200
+#define FOTA_5SEC 25
+#define FOTA_10SEC 50
+#define FOTA_30SEC 150
+#define FOTA_60SEC 300
+#define FOTA_90SEC 450
+#define FOTA_120SEC 600
 
 #define TX_FAIL -1
 #define TX_OK 0
@@ -229,18 +230,15 @@ packet struct {
 */
 static void fotaRecv()
 {
+	static int prevLen = 0;
+	static int count = 0;
 	while (1) {
 		volatile int len = 0;
-		volatile int count = 0;
-		for (; count < FOTA_90SEC; count++) {
-			if (waitRx(&len)) {
-				break;
-			}
-		}
+		waitRx(&len);
 
-		if (len > 1) {
-			char *p = NULL;
+		char *p = NULL;
 
+		if (prevLen != len) {
 			if ((p = strstr(rxBuf, AT_MODEM_RX))) {
 				fotaModemPrint(rxBuf, rxLen);
 				fotaSend("AT+NSORF=1,1024\n\r");
@@ -304,11 +302,14 @@ static void fotaRecv()
 				break;
 			} else {
 				fotaModemPrint(rxBuf, rxLen);
-				modemRxClear();
 			}
+			prevLen = len;
+			count = 0;
 		} else {
-			fotaPrint("server no response");
-			break;
+			if (count++ > FOTA_120SEC) {
+				// time over
+				break;
+			}
 		}
 	}
 
@@ -395,7 +396,9 @@ static int txData(char *msg)
 	fotaSend("AT+NSOSD=");
 	fotaSend(socket);
 	fotaSend(",");
-	return recvModem(msg, confirmTxSTr, FOTA_60SEC);
+	fotaSend(msg);
+	return 0;
+	// return recvModem(msg, confirmTxSTr, FOTA_60SEC);
 }
 
 static int repeatCmd(char *sendMsg, char *recvMsg, int t, int retry)

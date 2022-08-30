@@ -18,8 +18,8 @@
 #define FW_VER_MAIN "7"
 #define FIRMWARE_VER "U" FW_VER_MAIN "01"
 #else
-#define FW_VER_MAIN "3"
-#define FIRMWARE_VER "U" FW_VER_MAIN "28"
+#define FW_VER_MAIN "9"
+#define FIRMWARE_VER "U" FW_VER_MAIN "11"
 #endif
 #else
 #error "NB-IoT Modem model is not defined. please define V120 or V150."
