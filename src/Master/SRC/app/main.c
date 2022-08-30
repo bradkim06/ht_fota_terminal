@@ -193,6 +193,10 @@ void initPort()
 			PORT1_IFG &= ~BM(PORT_LCD_SWITCH); // IFG cleared
 		}
 #endif
+	} else {
+		// reed switch
+		PORT_SENSOR_DIR &= ~BM(PORT_SENSOR_REED); // Set to Input
+		P2REN &= ~BM(PORT_SENSOR_REED);
 	}
 
 #if (DEVICE_REVISION == DEV_REV_PWRCTRL_MOSFET_LDO)
