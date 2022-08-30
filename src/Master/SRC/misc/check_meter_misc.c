@@ -4,61 +4,76 @@
 
 int MISC_getBslType()
 {
-	int type = TERM_BSL_ENABLE;
+	static int type = TERM_BSL_ENABLE;
+	static uint8 getBslType = 0;
 
-	// check BSL board
-	P8DIR &= ~0x10;
-	P8REN |= 0x10;
-	P8OUT |= 0x10;
+	if (getBslType == 0) {
+		getBslType = 1;
+		// check BSL board
+		P8DIR &= ~0x10;
+		P8REN |= 0x10;
+		P8OUT |= 0x10;
 
-	MISC_delayUs(10);
-	if (P8IN & 0x10) {
-		type = TERM_BSL_DISABLE;
+		MISC_delayUs(10);
+		if (P8IN & 0x10) {
+			type = TERM_BSL_DISABLE;
+		}
+
+		P8REN &= ~0x10;
+		P8OUT &= ~0x10;
 	}
-
-	P8REN &= ~0x10;
-	P8OUT &= ~0x10;
 
 	return type;
 }
 
 int MISC_findPushButton()
 {
-	int found = 1;
+	static int found = 1;
+	static uint8 findPushButton = 0;
 
-	// check push button
-	P8DIR &= ~0x08;
-	P8REN |= 0x08;
-	P8OUT |= 0x08;
+	if (findPushButton == 0) {
+		findPushButton = 1;
 
-	MISC_delayUs(10);
-	if (P8IN & 0x08) {
-		found = 0;
+		// check push button
+		P8DIR &= ~0x08;
+		P8REN |= 0x08;
+		P8OUT |= 0x08;
+
+		MISC_delayUs(10);
+		if (P8IN & 0x08) {
+			found = 0;
+		}
+
+		P8REN &= ~0x08;
+		P8DIR |= 0x08;
+		P8OUT &= ~0x08;
 	}
-
-	P8REN &= ~0x08;
-	P8DIR |= 0x08;
-	P8OUT &= ~0x08;
 
 	return found;
 }
 
 int MISC_NfcPortSelect(void)
 {
-	int port = 7;
-	// check BSL board
-	P8DIR &= ~0x10;
-	P8REN |= 0x10;
-	P8OUT |= 0x10;
+	static int port = 7;
+	static uint8 nfcPortSelect = 0;
 
-	MISC_delayUs(10);
+	if (nfcPortSelect == 0) {
+		nfcPortSelect = 1;
 
-	if (P8IN & 0x10) {
-		port = 2;
+		// check BSL board
+		P8DIR &= ~0x10;
+		P8REN |= 0x10;
+		P8OUT |= 0x10;
+
+		MISC_delayUs(10);
+
+		if (P8IN & 0x10) {
+			port = 2;
+		}
+
+		P8REN &= ~0x10;
+		P8OUT &= ~0x10;
 	}
-
-	P8REN &= ~0x10;
-	P8OUT &= ~0x10;
 
 	return port;
 }
@@ -68,24 +83,31 @@ int MISC_getDeviceType()
 #if defined(AUX_REPEATER)
 	return TERM_MODEL_HAT_435W;
 #else
-	int type = TERM_MODEL_UNKNOWN;
-	if (LCD_Exist()) {
-		type = TERM_MODEL_HAT_114W;
-	} else {
-		P8DIR &= ~0x02;
-		P8REN |= 0x02;
-		P8OUT |= 0x02;
+	static int type = TERM_MODEL_UNKNOWN;
+	static uint8 getDeviceType = 0;
 
-		MISC_delayUs(10);
-		if (P8IN & 0x02) {
-			type = TERM_MODEL_HAT_124W;
+	if (getDeviceType == 0) {
+		getDeviceType = 1;
+
+		if (LCD_Exist()) {
+			type = TERM_MODEL_HAT_114W;
 		} else {
-			type = TERM_MODEL_HTM_115W;
-		}
+			P8DIR &= ~0x02;
+			P8REN |= 0x02;
+			P8OUT |= 0x02;
 
-		P8REN &= ~0x02;
-		P8OUT &= ~0x02;
+			MISC_delayUs(10);
+			if (P8IN & 0x02) {
+				type = TERM_MODEL_HAT_124W;
+			} else {
+				type = TERM_MODEL_HTM_115W;
+			}
+
+			P8REN &= ~0x02;
+			P8OUT &= ~0x02;
+		}
 	}
+
 	return type;
 #endif
 }
