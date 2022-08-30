@@ -33,6 +33,8 @@ static uint16 readBatteryADC(void)
 	PORT_ADC_DIR &= ~BM(BATTERY_ADC_IN);
 	PORT_ADC_REN &= ~BM(BATTERY_ADC_IN);
 
+	PORT_ADC_SEL |= BM(BATTERY_ADC_IN);
+
 	MISC_delayMs(40);
 
 	for (int loop = 0; loop < ADC_LOOP_CNT; loop++) {
@@ -82,8 +84,8 @@ static uint16 readBatteryADC(void)
 
 	//4096 = 1.5V
 
-	PORT_ADC_DIR |= BM(BATTERY_ADC_IN);
-	PORT_ADC_REN |= BM(BATTERY_ADC_IN);
+	// ADC always input
+	PORT_ADC_OUT &= ~BM(BATTERY_ADC_IN);
 
 	return (value);
 }
