@@ -1215,6 +1215,7 @@ static ModemStep_t retry()
 		} else {
 			OSAL_setEvent(AppTaskId, APP_EVENT_MODEM_PROCESS);
 		}
+		startEventTimeMsec = TIMER_getMsec();
 		StepFlowIndex.retry++;
 	} break;
 
