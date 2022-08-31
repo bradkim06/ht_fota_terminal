@@ -19,7 +19,7 @@ Date_t testDate;
 static uint32 testMeterData = 0;
 #endif
 
-static void waitIdle()
+static int waitIdle()
 {
 	int idle = 0;
 	for (int i = 0; i < 10000; i++) {
@@ -28,9 +28,8 @@ static void waitIdle()
 			break;
 		}
 	}
-	if (idle == 0) {
-		REBOOT_SYSTEM();
-	}
+
+	return idle;
 }
 
 static int isValidDate(uint8 year, uint8 mon, uint8 day)
@@ -122,7 +121,9 @@ static void writeSector(int sector, uint8 *buf)
 		halIntState_t intState;
 		HAL_ENTER_CRITICAL_SECTION(intState);
 
-		waitIdle();
+		if (waitIdle() == 0) {
+			return;
+		}
 
 		FCTL3 = FWKEY; // clear lock
 		FCTL1 = FWKEY + ERASE; // Set Erase bit
@@ -137,14 +138,18 @@ static void writeSector(int sector, uint8 *buf)
 		FCTL1 = FWKEY;
 		FCTL3 = FWKEY + LOCK;
 
-		waitIdle();
+		if (waitIdle() == 0) {
+			return;
+		}
 
 		FCTL3 = FWKEY; // clear lock
 		FCTL1 = FWKEY + WRT; // Set Write bit
 
 		for (int i = 0; i < SECTOR_SIZE / 4; i++) {
 			__data20_write_long(address + i * 4, *(p32 + i));
-			waitIdle();
+			if (waitIdle() == 0) {
+				return;
+			}
 		}
 
 		FCTL1 = FWKEY;
@@ -164,7 +169,9 @@ static void eraseSector(int sector)
 		halIntState_t intState;
 		HAL_ENTER_CRITICAL_SECTION(intState);
 
-		waitIdle();
+		if (waitIdle() == 0) {
+			return;
+		}
 
 		FCTL3 = FWKEY;
 		FCTL1 = FWKEY + ERASE; // Set Erase bit
@@ -175,7 +182,9 @@ static void eraseSector(int sector)
 		asm(" bis.w #0,R3 "); // Flash contents: 0x03 0xd3
 		asm(" bis.w #0,R3 "); // Flash contents: 0x03 0xd3
 
-		waitIdle();
+		if (waitIdle() == 0) {
+			return;
+		}
 
 		FCTL1 = FWKEY; // Set Erase bit
 		FCTL3 = FWKEY + LOCK;
