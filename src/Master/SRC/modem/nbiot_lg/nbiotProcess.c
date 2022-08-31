@@ -30,7 +30,7 @@
 #define DEREGISTER_DELAY 5000
 
 // FOTA timeout
-#define FOTA_TIMEOUT 90000
+#define FOTA_TIMEOUT 60000
 #define FOTA_RETRY 0
 
 // QA report timeout
@@ -41,7 +41,7 @@
 #define AT_CMD_DEFAULT_RETRY 5
 
 // QLWULDATA timeout/retry
-#define AT_CMD_DATA_SEND_TIMEOUT 60000
+#define AT_CMD_DATA_SEND_TIMEOUT 30000
 #define AT_CMD_DATA_SEND_RETRY 1
 
 // NPSMR timeout/retry
@@ -68,7 +68,7 @@
 
 // MODEM remote open timeout/retry
 #define MODEM_CHECK_ALIVE_TIMEOUT 5000
-#define MODEM_CHECK_ALIVE_RETRY 8
+#define MODEM_CHECK_ALIVE_RETRY 11
 
 #define MODEM_ENTER_PSM_TIMEOUT 30000
 #define MODEM_FW_DOWN_REQ_TIMEOUT 40000
