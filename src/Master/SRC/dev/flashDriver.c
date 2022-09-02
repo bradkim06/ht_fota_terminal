@@ -109,7 +109,7 @@ static BOOL readConfig(FlashConfig_t *pInfo)
 		saveConfig(pInfo);
 	} else {
 		printf("Config: both side are false\n");
-		memcpy((uint8 *)pInfo, (uint8 *)&info_a, sizeof(FlashConfig_t));
+		memset((uint8 *)pInfo, 0, sizeof(FlashConfig_t));
 		pInfo->meterType = W_STANDARD_D;
 		pInfo->meterInterval = 1;
 		pInfo->reportInterval = 6;
@@ -324,7 +324,7 @@ void FLASH_readConfigInfo(Config_t *config)
 
 	BOOL result_conf = readConfig(&flashConfig);
 
-	if (result_conf == TRUE || isRamChecksumOk == FALSE) {
+	if ((result_conf == TRUE) || (isRamChecksumOk == FALSE)) {
 #if NBIOT_DEVICE
 		sprintf(config->serverIp, "%d.%d.%d.%d", flashConfig.serverIp[0],
 			flashConfig.serverIp[1], flashConfig.serverIp[2], flashConfig.serverIp[3]);
@@ -356,7 +356,7 @@ void FLASH_readConfigInfo(Config_t *config)
 	// read serial number
 	FlashId_t flashID;
 	BOOL result_id = readID(&flashID);
-	if (result_id || isRamChecksumOk == FALSE) {
+	if ((result_id == TRUE) || (isRamChecksumOk == FALSE)) {
 #if defined(AUX_REPEATER)
 		memcpy(&config->pan_id, &flashID.pan_id, 2);
 		memcpy(&config->nwk_addr, &flashID.nwk_addr, 4);
