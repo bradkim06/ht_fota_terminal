@@ -41,7 +41,7 @@
 #define AT_CMD_DEFAULT_RETRY 5
 
 // QLWULDATA timeout/retry
-#define AT_CMD_DATA_SEND_TIMEOUT 30000
+#define AT_CMD_DATA_SEND_TIMEOUT 60000
 #define AT_CMD_DATA_SEND_RETRY 1
 
 // NPSMR timeout/retry
@@ -62,7 +62,7 @@
 #define AT_CMD_RESET_RETRY 0
 
 // LWM2M data transfer timeout/retry
-#define AT_CMD_LWM2M_TIMEOUT 90000
+#define AT_CMD_LWM2M_TIMEOUT 120000
 #define AT_CMD_LWM2M_DL_WAIT 60000
 #define AT_CMD_LWM2M_RETRY 0
 
