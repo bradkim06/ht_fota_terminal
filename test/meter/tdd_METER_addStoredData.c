@@ -308,12 +308,25 @@ static void METER_clearIntervalDataResult(uint8 nData, int value)
 {
 	TEST_ASSERT_EQUAL_INT_MESSAGE(nData, StoredMeterData.nData, "nData - reportInterval");
 
+	// print debug
+	for (int i = nMaxData - 1; i >= 0; i--) {
+		uint8 *pData = (uint8 *)&StoredMeterData.unit[i];
+		MeterUnitData_t *p = &StoredMeterData.unit[i];
+		printf("%02d data ", i);
+
+		for (int k = 0; k < sizeof(MeterUnitData_t); k++) {
+			printf("%02X ", *(pData + k));
+		}
+		printf("\n");
+	}
+
 	for (int i = nMaxData - 1; i >= nData; i--) {
 		uint8 *pData = (uint8 *)&StoredMeterData.unit[i];
 		MeterUnitData_t *p = &StoredMeterData.unit[i];
 
 		for (int k = 0; k < sizeof(MeterUnitData_t); k++) {
-			TEST_ASSERT_EQUAL_UINT8_MESSAGE(value, *(pData + k), "unit data must be 0");
+			TEST_ASSERT_EQUAL_UINT8_MESSAGE(value, *(pData + k),
+							"unit data must be clear 0");
 		}
 	}
 }
@@ -335,7 +348,7 @@ static void test_METER_clearIntervalData(unsigned int reportInterval, uint8 nDat
 	TEST_ASSERT_EQUAL_UINT8_MESSAGE(expectInterval, conf.reportInterval,
 					"reportInterval Check");
 	tddPrint("input nData(%d) expect(%d)\n", nData, StoredMeterData.nData);
-	if (nData >= 24) {
+	if (nData > nMaxData - expectInterval) {
 		METER_clearIntervalDataResult(nMaxData - expectInterval, 0);
 	} else {
 		METER_clearIntervalDataResult(nData, 0xff);
@@ -381,6 +394,7 @@ void test_METER()
 	TEST_MESSAGE("METER_clearIntervalData");
 	test_METER_clearIntervalData(6, NUM_NBIOT_STORED_DATA);
 	test_METER_clearIntervalData(24, NUM_NBIOT_STORED_DATA);
+	test_METER_clearIntervalData(6, 23);
 	test_METER_clearIntervalData(6, NUM_NBIOT_STORED_DATA);
 	test_METER_clearIntervalData(1, NUM_NBIOT_STORED_DATA);
 	test_METER_clearIntervalData(0, NUM_NBIOT_STORED_DATA);
