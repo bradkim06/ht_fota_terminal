@@ -1,0 +1,24 @@
+tdd_MODEM_qaData.c:194:test_tdd_MODEM_qaData:INFO: Test Case 0
+ctn test  0x01222991234
+batt test  0x1360
+cgi test  0x3151582
+rsrp test  0x095
+sinr test  0x012
+model Test  len : 8 HAT-124W
+fwVer Test  len : 19 U326/BC95GJBR02A02_
+txPower Test  0x112
+ueInfo : 42
+portInfo Test  0x000
+reserved Test  0xf1f1f1
+tdd_MODEM_qaData.c:194:test_tdd_MODEM_qaData:INFO: Test Case 1
+ctn test  0x01234567890
+batt test  0x1360
+cgi test  0x1234567
+rsrp test  0x112
+sinr test  0x15
+model Test  len : 8 HAT-435W
+fwVer Test  len : 19 U326/BC95GJBR
+txPower Test  0x05
+ueInfo : 43
+portInfo Test  0x000
+reserved Test  0xf1f1f1
