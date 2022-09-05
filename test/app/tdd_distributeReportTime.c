@@ -24,12 +24,9 @@ typedef struct {
 	uint8 reportInterval;
 	uint8 resultHour;
 	uint8 resultMin;
+	uint8 resultSec;
 } inputData_t;
 
-inputData_t inputData[4] = { { 7034, 6, 6, 2, 39 },
-			     { 2634, 6, 6, 4, 39 },
-			     { 6234, 3, 6, 1, 39 },
-			     { 4891, 1, 6, 0, 46 } };
 Config_t config;
 
 void setUp()
@@ -47,20 +44,22 @@ static void testFunction(inputData_t *data)
 
 	config.reportRange = data->reportRange;
 	config.reportInterval = data->reportInterval;
-	sprintf(msg, "s/n : %d reportRange : %d Interval : %d expectHour : %d expectMin : %d",
-		data->serialNum, config.reportRange, config.reportInterval, data->resultHour,
-		data->resultMin);
-
-	printf("%s\n", msg);
 
 	distributingReportTime(data->serialNum, &config);
+	sprintf(msg, "s/n:%d reportRange:%d Interval:%d", data->serialNum, config.reportRange,
+		config.reportInterval);
 	TEST_ASSERT_EQUAL_INT_MESSAGE(data->resultHour, config.intervalBaseTime, msg);
 	TEST_ASSERT_EQUAL_INT_MESSAGE(data->resultMin, config.reportMin, msg);
+	TEST_ASSERT_EQUAL_INT_MESSAGE(data->resultSec, config.reportSec, msg);
 }
 
 void test_distributeReportTime()
 {
-	for (int i = 0; i < sizeof(inputData) / sizeof(inputData_t); i++) {
-		testFunction(&inputData[i]);
+	inputData_t testData[6] = {
+		{ 7034, 6, 6, 2, 39, 45 }, { 2634, 6, 6, 4, 39, 0 },  { 6234, 3, 6, 1, 39, 15 },
+		{ 4891, 1, 6, 0, 46, 15 }, { 1143, 6, 6, 4, 48, 45 }, { 1143, 0, 6, 4, 48, 45 },
+	};
+	for (int i = 0; i < sizeof(testData) / sizeof(inputData_t); i++) {
+		testFunction(&testData[i]);
 	}
 }

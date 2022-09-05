@@ -27,7 +27,7 @@ typedef struct {
 	NbiotQaReportToLg_t expect;
 } inputData_t;
 
-inputData_t inputData[2] = {
+inputData_t testData[2] = {
 	{ .modem = { .ctnStr = "01222991234",
 		     .modemQuality = { .cgi = 0x3151582,
 				       .rsrp = -950,
@@ -43,7 +43,7 @@ inputData_t inputData[2] = {
 		      .rsrp = { 0x00, 0x95 },
 		      .sinr = { 0x00, 0x12 },
 		      .model = { 8, 'H', 'A', 'T', '-', '1', '2', '4', 'W' },
-		      .fwVer = { 19,  'U', '3', '2', '5', '/', 'B', 'C', '9', '5',
+		      .fwVer = { 19,  ' ', ' ', ' ', ' ', '/', 'B', 'C', '9', '5',
 				 'G', 'J', 'B', 'R', '0', '2', 'A', '0', '2', '_' },
 		      .txPower = { 0x01, 0x12 },
 		      .ueInfo = 0x42,
@@ -61,7 +61,7 @@ inputData_t inputData[2] = {
 		      .rsrp = { 0x01, 0x12 },
 		      .sinr = { 0x01, 0x05 },
 		      .model = { 8, 'H', 'A', 'T', '-', '4', '3', '5', 'W' },
-		      .fwVer = { 19, 'U', '3', '2', '5', '/', 'B', 'C', '9', '5', 'G', 'J', 'B',
+		      .fwVer = { 19, ' ', ' ', ' ', ' ', '/', 'B', 'C', '9', '5', 'G', 'J', 'B',
 				 'R' },
 		      .txPower = { 0x00, 0x05 },
 		      .ueInfo = 0x43,
@@ -85,8 +85,16 @@ Config_t conf;
 Modem_t modem;
 ModemContext_t modemCtx;
 
+static void getTestFWVer()
+{
+	for (int i = 0; i < sizeof(testData) / sizeof(inputData_t); i++) {
+		memcpy(&testData[i].expect.fwVer[1], FIRMWARE_VER, FIRMWARE_VER_LEN);
+	}
+}
+
 void setUp(void)
 {
+	getTestFWVer();
 }
 
 void tearDown(void)
@@ -111,8 +119,8 @@ static void testFunction_str(uchar *p, char *name, uchar *input, int size)
 
 	sprintf(msg, "%s len : %d ", name, *p);
 	for (int i = 0; i < size; i++) {
-		TEST_ASSERT_EQUAL_CHAR_MESSAGE(*(input + i), *(p + i), msg);
 		if (i > 0) {
+			TEST_ASSERT_EQUAL_CHAR_MESSAGE(*(input + i), *(p + i), msg);
 			snprintf(msg, sizeof(msg), "%s%c", msg, *(p + i));
 		}
 	}
@@ -128,45 +136,45 @@ static void testFunction(int i)
 
 	char msg[100] = "";
 
-	Modem_t *ptr = &inputData[i].modem;
+	Modem_t *ptr = &testData[i].modem;
 
 	snprintf(modem.ctnStr, LEN_MODEM_CTN + 1, "%s", ptr->ctnStr);
 	modem.modemQuality.cgi = ptr->modemQuality.cgi;
 	modem.modemQuality.rsrp = ptr->modemQuality.rsrp;
 	modem.modemQuality.snr = ptr->modemQuality.snr;
-	parseQGMR(inputData[i].modemFwVer, &modem);
+	parseQGMR(testData[i].modemFwVer, &modem);
 	modem.modemQuality.txPower = ptr->modemQuality.txPower;
-	modemCtx.proc.initialReport = inputData[i].initialReport;
-	conf.termModel = inputData[i].deviceFwVer;
+	modemCtx.proc.initialReport = testData[i].initialReport;
+	conf.termModel = testData[i].deviceFwVer;
 
 	MODEM_qaData(raw_data);
 
 	NbiotQaReportToLg_t *p = (NbiotQaReportToLg_t *)raw_data;
 
 	sprintf(msg, "expect msg Version is %d", EXPECT_MSG_VER);
-	TEST_ASSERT_EQUAL_INT_MESSAGE(inputData[i].expect.msgVer, p->msgVer, msg);
-	testFunction_hex(p->ctn, "ctn test ", inputData[i].expect.ctn, sizeof(p->ctn));
-	testFunction_hex(p->batt, "batt test ", inputData[i].expect.batt, sizeof(p->batt));
-	testFunction_hex(p->cgi, "cgi test ", inputData[i].expect.cgi, sizeof(p->cgi));
-	testFunction_hex(p->rsrp, "rsrp test ", inputData[i].expect.rsrp, sizeof(p->rsrp));
-	testFunction_hex(p->sinr, "sinr test ", inputData[i].expect.sinr, sizeof(p->sinr));
-	testFunction_str(p->model, "model Test ", inputData[i].expect.model, sizeof(p->model));
-	testFunction_str(p->fwVer, "fwVer Test ", inputData[i].expect.fwVer, sizeof(p->fwVer));
-	testFunction_hex(p->txPower, "txPower Test ", inputData[i].expect.txPower,
+	TEST_ASSERT_EQUAL_INT_MESSAGE(testData[i].expect.msgVer, p->msgVer, msg);
+	testFunction_hex(p->ctn, "ctn test ", testData[i].expect.ctn, sizeof(p->ctn));
+	testFunction_hex(p->batt, "batt test ", testData[i].expect.batt, sizeof(p->batt));
+	testFunction_hex(p->cgi, "cgi test ", testData[i].expect.cgi, sizeof(p->cgi));
+	testFunction_hex(p->rsrp, "rsrp test ", testData[i].expect.rsrp, sizeof(p->rsrp));
+	testFunction_hex(p->sinr, "sinr test ", testData[i].expect.sinr, sizeof(p->sinr));
+	testFunction_str(p->model, "model Test ", testData[i].expect.model, sizeof(p->model));
+	testFunction_str(p->fwVer, "fwVer Test ", testData[i].expect.fwVer, sizeof(p->fwVer));
+	testFunction_hex(p->txPower, "txPower Test ", testData[i].expect.txPower,
 			 sizeof(p->txPower));
 
 	// PASS
-	TEST_ASSERT_EQUAL_HEX8(inputData[i].expect.location, p->location);
-	TEST_ASSERT_EQUAL_HEX8(inputData[i].expect.neighborCell, p->neighborCell);
+	TEST_ASSERT_EQUAL_HEX8(testData[i].expect.location, p->location);
+	TEST_ASSERT_EQUAL_HEX8(testData[i].expect.neighborCell, p->neighborCell);
 
-	TEST_ASSERT_EQUAL_HEX8(inputData[i].expect.ueInfo, p->ueInfo);
+	TEST_ASSERT_EQUAL_HEX8(testData[i].expect.ueInfo, p->ueInfo);
 	tddPrint("ueInfo : %x\n", p->ueInfo);
 
 	// PASS
-	testFunction_hex(p->portInfo, "portInfo Test ", inputData[i].expect.portInfo,
+	testFunction_hex(p->portInfo, "portInfo Test ", testData[i].expect.portInfo,
 			 sizeof(p->portInfo));
 
-	testFunction_hex(p->reserved, "reserved Test ", inputData[i].expect.reserved,
+	testFunction_hex(p->reserved, "reserved Test ", testData[i].expect.reserved,
 			 sizeof(p->reserved));
 }
 
@@ -181,7 +189,7 @@ static void coverageDummy()
 void test_tdd_MODEM_qaData(void)
 {
 	char msg[100] = "";
-	for (int i = 0; i < sizeof(inputData) / sizeof(inputData_t); i++) {
+	for (int i = 0; i < sizeof(testData) / sizeof(inputData_t); i++) {
 		sprintf(msg, "Test Case %d", i);
 		TEST_MESSAGE(msg);
 		testFunction(i);

@@ -54,7 +54,7 @@
 #define ICON_NORMAL 0
 #define ICON_TEMP 1
 
-struct {
+static struct {
 	uint8 bLCD_exist;
 	uint8 *txMsg;
 	uint8 len;
@@ -63,14 +63,14 @@ struct {
 	uchar bitPos;
 	uchar txData;
 #endif
-} lcdCon;
+} lcdCon = { 0 };
 
 static struct {
 	uint8 value[4];
 	int decimalPoint;
 	LcdIcon_t iconNormal;
 	LcdIcon_t iconTemp;
-} currentLCD;
+} currentLCD = { 0 };
 
 BOOL LCD_Exist()
 {
@@ -180,6 +180,7 @@ __interrupt void TIMER0_A0_ISR(void)
 	} else {
 		sendNextData();
 	}
+	TA0IV = 0;
 }
 #endif
 
@@ -204,7 +205,7 @@ static void sendMsgToLCD(LcdMsg_t *msg)
 	msg->etx = ETX;
 
 	uint8 checksum = 0;
-	uint8 msgLen = sizeof(LcdMsg_t) - 3; // 3: stx, checksum, etx
+	const uint8 msgLen = sizeof(LcdMsg_t) - 3; // 3: stx, checksum, etx
 
 	uint8 *p = &msg->mtype;
 	for (int i = 0; i < msgLen; i++) {
@@ -239,7 +240,7 @@ static void LCD_displayValue(int icon)
 
 	msg.mtype = MSG_LCD_DISPLAY_METER;
 
-	for (int i = 0; i < 4; i++) {
+	for (unsigned int i = 0; i < 4; i++) {
 		msg.digit[i * 2 + 0] = ((currentLCD.value[i] & 0xf0) >> 4) + 0x30;
 		msg.digit[i * 2 + 1] = (currentLCD.value[i] & 0x0f) + 0x30;
 	}

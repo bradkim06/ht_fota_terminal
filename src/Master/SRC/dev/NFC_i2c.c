@@ -18,17 +18,16 @@
 #define MAX_I2C_RX_BUFF_SIZE 16 + 2
 #define MAX_I2C_TX_BUFF_SIZE 16 + 2
 
-uint8 *I2cRxData; // Pointer to RX data
-uint8 I2cRxPos;
-uint8 I2cRxByteLen;
+static uint8 I2cRxPos = 0;
+static uint8 I2cRxByteLen = 0;
 
-uint8 *I2cTxData; // Pointer to TX data
-uint8 I2cTxByteCtr;
+static uint8 *I2cTxData = NULL; // Pointer to TX data
+static uint8 I2cTxByteCtr = 0;
 
-BOOL IsI2cComplete;
+static BOOL IsI2cComplete = FALSE;
 
-uint8 RxBuffer[MAX_I2C_RX_BUFF_SIZE]; // Allocate 16 byte of RAM
-uint8 TxBuffer[MAX_I2C_TX_BUFF_SIZE]; // Allocate 16 byte of RAM
+static uint8 RxBuffer[MAX_I2C_RX_BUFF_SIZE] = { 0 }; // Allocate 16 byte of RAM
+static uint8 TxBuffer[MAX_I2C_TX_BUFF_SIZE] = { 0 }; // Allocate 16 byte of RAM
 
 /* yikim 추후 예정
 static const uint8 Default_NDEF_Message[] = {
@@ -62,15 +61,12 @@ static const uint8 DefaultPage58[] = { 0x01, 0x00, 0xF8, 0x48, 0x08, 0x01, 0x00,
 				       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 
 //static const uint8 Default_NDEF_Message_length = sizeof(Default_NDEF_Message);
-static const uint8 DefaultBeginingOfMemoryLength = sizeof(DefaultBeginingOfMemory);
 
 BOOL I2C_rxMultipleBytes(uint8 slaveAddr, uint8 *data, uint8 len)
 {
 	uint8 status = NTAG_RET_OK;
 
 	memset(RxBuffer, 0, MAX_I2C_RX_BUFF_SIZE);
-
-	I2cRxData = (uint8 *)RxBuffer; // Start of RX buffer
 
 	if (len > MAX_I2C_RX_BUFF_SIZE) {
 		len = MAX_I2C_RX_BUFF_SIZE;
@@ -184,6 +180,7 @@ __interrupt void USCI_B3_ISR(void)
 	case 8:
 		break; // Vector  8: STPIFG
 	case 10: // Vector 10: RXIFG
+		UCB3IV &= ~USCI_UCRXIFG;
 		if (I2cRxPos < I2cRxByteLen) {
 			RxBuffer[I2cRxPos] = UCB3RXBUF;
 			I2cRxPos++;
@@ -197,6 +194,7 @@ __interrupt void USCI_B3_ISR(void)
 		}
 		break;
 	case 12: // Vector 12: TXIFG
+		UCB3IV &= ~USCI_UCTXIFG;
 		if (I2cTxByteCtr) // Check TX byte counter
 		{
 			UCB3TXBUF = *I2cTxData++; // Load TX buffer
@@ -212,7 +210,7 @@ __interrupt void USCI_B3_ISR(void)
 	}
 }
 
-BOOL I2C_rxBytes(uint8 slaveAddr, uint8 *data, uint8 len)
+static BOOL I2C_rxBytes(uint8 slaveAddr, uint8 *data, uint8 len)
 {
 	//오류시 2 회 실시
 	for (int i = 0; i < 2; i++) {
@@ -292,7 +290,7 @@ BOOL NTAG_writeSessionRegister(uint8 regAddr, uint8 mask, uint8 regData)
 	return NTAG_RET_ERR;
 }
 
-BOOL NTAG_readBlock(uint8 addr, uint8 *bytes, uint8 len)
+static BOOL NTAG_readBlock(uint8 addr, uint8 *bytes, uint8 len)
 {
 	/* receive bytes */
 	if (I2C_readData(addr, bytes, NTAG_I2C_BLOCK_SIZE) == NTAG_RET_ERR) {
@@ -306,7 +304,7 @@ BOOL NTAG_writeBlock(uint8 addr, const uint8 *bytes, uint8 len)
 {
 	uint8 nsReg = 0;
 	uint32 timeout = NTAG_MAX_WRITE_DELAY_MS / 5 + 1;
-	int i = 0;
+	unsigned int i = 0;
 	uint8 status;
 
 	uint8 txBuffer[NTAG_I2C_BLOCK_SIZE];
@@ -358,18 +356,18 @@ BOOL NTAG_readBytes(uint8 startAddr, uint8 *bytes, uint16 len)
 		uint8 currentLen = MIN(len - bytesRead, NTAG_I2C_BLOCK_SIZE - begin);
 
 		if (currentLen < NTAG_I2C_BLOCK_SIZE) {
-			int i = 0;
-
 			memset(rxBuff, 0, NTAG_I2C_BLOCK_SIZE);
 
 			/* read block into ntag->rxBuffer only */
 			status = NTAG_readBlock(currentAddr, rxBuff, currentLen);
-			if (status == NTAG_RET_ERR)
+			if (status == NTAG_RET_ERR) {
 				break;
+			}
 
 			/* modify rxBuffer */
-			for (i = 0; i < currentLen; i++)
+			for (unsigned int i = 0; i < currentLen; i++) {
 				bytes[bytesRead + i] = rxBuff[i];
+			}
 		} else {
 			/* full block read */
 			status =
@@ -395,27 +393,29 @@ BOOL NTAG_writeBytes(uint8 startAddr, const uint8 *bytes, uint16 len)
 		uint8 currentLen = MIN(len - bytesWritten, NTAG_I2C_BLOCK_SIZE - begin);
 
 		if (currentLen < NTAG_I2C_BLOCK_SIZE) {
-			int i = 0;
-
 			/* read block into ntag->rxBuffer only */
 			status = NTAG_readBlock(currentAddr, rxBuffer, NTAG_I2C_BLOCK_SIZE);
-			if (status == NTAG_RET_ERR)
+			if (status == NTAG_RET_ERR) {
 				break;
+			}
 
 			/* modify rxBuffer */
-			for (i = 0; i < currentLen; i++)
+			for (unsigned int i = 0; i < currentLen; i++) {
 				rxBuffer[i] = bytes[bytesWritten + i];
+			}
 
 			/* writeback modified buffer */
 			status = NTAG_writeBlock(currentAddr, rxBuffer, NTAG_I2C_BLOCK_SIZE);
-			if (status == NTAG_RET_ERR)
+			if (status == NTAG_RET_ERR) {
 				break;
+			}
 		} else {
 			/* full block write */
 			status = NTAG_writeBlock(currentAddr, &bytes[bytesWritten],
 						 NTAG_I2C_BLOCK_SIZE);
-			if (status == NTAG_RET_ERR)
+			if (status == NTAG_RET_ERR) {
 				break;
+			}
 		}
 
 		bytesWritten += currentLen;
@@ -425,19 +425,19 @@ BOOL NTAG_writeBytes(uint8 startAddr, const uint8 *bytes, uint16 len)
 }
 
 //---------------------------------------------------------------------
-BOOL NTAG_setFDOnFunction(uint8 func)
+static BOOL NTAG_setFDOnFunction(uint8 func)
 {
 	return NTAG_writeSessionRegister(NTAG_MEM_OFFSET_NC_REG, NTAG_NC_REG_MASK_FD_ON, func);
 }
 
 //---------------------------------------------------------------------
-BOOL NTAG_setFDOffFunction(uint8 func)
+static BOOL NTAG_setFDOffFunction(uint8 func)
 {
 	return NTAG_writeSessionRegister(NTAG_MEM_OFFSET_NC_REG, NTAG_NC_REG_MASK_FD_OFF, func);
 }
 
 //---------------------------------------------------------------------
-BOOL NTAG_setPthruOnOff(BOOL on)
+static BOOL NTAG_setPthruOnOff(BOOL on)
 {
 	uint8 val = 0;
 	if (on)
@@ -488,7 +488,7 @@ void NFC_tagDisable()
 	PORT1_IE &= ~BM(PORT_NFC_TAG); // Interrupt diabled
 }
 
-void NFC_fdEnable()
+static void NFC_fdEnable()
 {
 	//FD
 	PORT1_DIR &= ~BM(PORT_NFC_FD_IN); // Set to Input
@@ -506,7 +506,7 @@ void NFC_fdDisable()
 	PORT1_IE &= ~BM(PORT_NFC_FD_IN); // Interrupt disabled
 }
 
-BOOL NFC_FD_input()
+static BOOL NFC_FD_input()
 {
 	uint8 input = PORT1_IN & BM(PORT_NFC_FD_IN);
 
@@ -573,10 +573,10 @@ BOOL NFC_recvMessage()
 	int nStatus = NTAG_readBytes(NTAG_MEM_BLOCK_START_SRAM, msg, 64);
 
 	NfcMsg_t *p = (NfcMsg_t *)msg;
-	int len = MSG_OFFSET_LEN + p->header.len;
+	unsigned int len = MSG_OFFSET_LEN + p->header.len;
 
 	uint8 cChecksum = 0;
-	for (int i = 0; i < len; i++) {
+	for (unsigned int i = 0; i < len; i++) {
 		cChecksum += msg[i];
 	}
 	uint8 rChecksum = msg[len];
@@ -603,7 +603,7 @@ BOOL NFC_sendMessage(byte *msg, uint8 len)
 	memset(buff, 0, 64);
 
 	uint8 checksum = 0;
-	for (int i = 0; i < len; i++) {
+	for (unsigned int i = 0; i < len; i++) {
 		buff[i] = msg[i];
 		checksum += msg[i];
 	}
@@ -629,6 +629,7 @@ BOOL NFC_sendMessage(byte *msg, uint8 len)
 
 BOOL NFC_factoryResetTag()
 {
+	static const uint8 DefaultBeginingOfMemoryLength = sizeof(DefaultBeginingOfMemory);
 	MISC_delayMs(100);
 
 	int nStatus = NTAG_setTransferDir(I2C_TO_RF);
@@ -658,30 +659,4 @@ BOOL NFC_factoryResetTag()
 	MISC_delayMs(100);
 
 	return (nStatus <= 0);
-}
-
-BOOL NFC_checkTagSetting()
-{
-#define TAG_SETTING_CMP_POS 11
-	uint8 *tagSettings = (uint8 *)malloc(sizeof(uint8) * DefaultBeginingOfMemoryLength);
-	memset(tagSettings, 0, DefaultBeginingOfMemoryLength);
-
-	MISC_delayMs(100);
-	int nStatus = NTAG_readBytes(NTAG_MEM_ADRR_I2C_ADDRESS, tagSettings,
-				     DefaultBeginingOfMemoryLength);
-	MISC_delayMs(100);
-
-	BOOL result = FALSE;
-	if (nStatus <= 0) {
-		if (memcmp((tagSettings + TAG_SETTING_CMP_POS),
-			   (DefaultBeginingOfMemory + TAG_SETTING_CMP_POS),
-			   (DefaultBeginingOfMemoryLength - TAG_SETTING_CMP_POS))) {
-			result = FALSE;
-		} else {
-			result = TRUE;
-		}
-	}
-	free(tagSettings);
-
-	return result;
 }

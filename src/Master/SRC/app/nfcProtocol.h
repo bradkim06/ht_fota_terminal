@@ -9,6 +9,12 @@
 #include "slaveAccess.h"
 #endif
 
+// NFC 비동기 동작 시 사용되는 Command buffer
+typedef struct {
+	int len;
+	uint8 cmd[64];
+} nfcAsyncRx_t;
+
 #define DEVICE_CODE_LORA 0x05
 #define DEVICE_CODE_NB 0x06
 #define DEVICE_CODE_LORA_RF 0x07
@@ -93,7 +99,7 @@
 #define PERIOD_MODE_NO_USE 2
 
 #define DEBUG_MODE_NO_CHANGE 0
-#define DEBUG_JATG_MODE_USE 1
+#define DEBUG_JTAG_MODE_USE 1
 #define DEBUG_METER_MODE_USE 2
 #define DEBUG_MODE_NO_USE 3
 

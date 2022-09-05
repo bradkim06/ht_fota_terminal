@@ -8,9 +8,32 @@
 #include "lcdDriver.h"
 #include "test.h"
 #include "NFC_i2c.h"
+#include "fota.h"
 #include "battery.h"
 
 static BOOL IsTestModeOn = FALSE;
+
+static BOOL checkTestMode()
+{
+	// P1.0 --> if 0 with inernal pull-up, test mode
+	//          else normal mode
+
+	P1DIR |= 0x01;
+	P1REN |= 0x01;
+	P1OUT |= 0x01;
+
+	P1DIR &= ~0x01;
+
+	MISC_delayUs(1); // specific case need this delay
+
+	BOOL IsTestMode = (P1IN & 0x01) ? FALSE : TRUE;
+
+	P1DIR |= 0x01;
+	P1OUT &= ~0x01;
+
+	return (IsTestMode);
+}
+
 void initClock(void)
 {
 	UCSCTL3 |= SELREF_2; // Set DCO FLL reference = REFO
@@ -86,13 +109,13 @@ void initPort()
 	P2SEL = 0x00;
 	P2DIR = 0xFF;
 #if (DEVICE_REVISION == DEV_REV_PWRCTRL_MOSFET_ONLY)
-	// P2.5 (MCU_RESET) : NC µÇ¾úÀ¸¹Ç·Î ouput low
-	// P2.3 (NRESET)    : NC µÇ¾úÀ¸¹Ç·Î ouput low
+	// P2.5 (MCU_RESET) : NC ï¿½Ç¾ï¿½ï¿½ï¿½ï¿½Ç·ï¿½ ouput low
+	// P2.3 (NRESET)    : NC ï¿½Ç¾ï¿½ï¿½ï¿½ï¿½Ç·ï¿½ ouput low
 	// P2.0 (LDO_EN)    : power off Modem (output high)
 	P2OUT = 0x01;
 #else
-	// P2.5 (MCU_RESET) : NC µÇ¾úÀ¸¹Ç·Î ouput low
-	// P2.3 (NRESET)    : NC µÇ¾úÀ¸¹Ç·Î ouput low
+	// P2.5 (MCU_RESET) : NC ï¿½Ç¾ï¿½ï¿½ï¿½ï¿½Ç·ï¿½ ouput low
+	// P2.3 (NRESET)    : NC ï¿½Ç¾ï¿½ï¿½ï¿½ï¿½Ç·ï¿½ ouput low
 	// P2.0 (LDO_EN)    : power off Modem (output low)
 	P2OUT = 0x00;
 #endif
@@ -106,7 +129,7 @@ void initPort()
 	P4OUT = 0x00;
 
 #if defined(AUX_REPEATER)
-	// ÃÊ±â CC1200 power off
+	// ï¿½Ê±ï¿½ CC1200 power off
 	P4SEL &= ~0x10;
 	P4DIR |= 0x10;
 	P4OUT |= 0x10;
@@ -163,13 +186,17 @@ void initPort()
 		PORT_SENSOR_IFG &= ~BM(PORT_SENSOR_REED); // IFG cleared
 
 #if defined(AUX_REPEATER)
-        if(MISC_findPushButton()) {
-            PORT1_DIR &= ~BM(PORT_LCD_SWITCH);     // Set to Input
-            PORT1_IE  |=  BM(PORT_LCD_SWITCH);     // Interrupt enabled
-            PORT1_IES |=  BM(PORT_LCD_SWITCH);     // Hi/Low edge
-            PORT1_IFG &= ~BM(PORT_LCD_SWITCH);     // IFG cleared
-        }
+		if (MISC_findPushButton()) {
+			PORT1_DIR &= ~BM(PORT_LCD_SWITCH); // Set to Input
+			PORT1_IE |= BM(PORT_LCD_SWITCH); // Interrupt enabled
+			PORT1_IES |= BM(PORT_LCD_SWITCH); // Hi/Low edge
+			PORT1_IFG &= ~BM(PORT_LCD_SWITCH); // IFG cleared
+		}
 #endif
+	} else {
+		// reed switch
+		PORT_SENSOR_DIR &= ~BM(PORT_SENSOR_REED); // Set to Input
+		P2REN &= ~BM(PORT_SENSOR_REED);
 	}
 
 #if (DEVICE_REVISION == DEV_REV_PWRCTRL_MOSFET_LDO)
@@ -201,7 +228,7 @@ void initSystem()
 #define TEST_WAIT_DELAY (100)
 #define TEST_CHECK_COUNT (500 / TEST_WAIT_DELAY)
 	for (int i = 0; i < TEST_CHECK_COUNT; i++) {
-		IsTestModeOn = TEST_checkTestMode();
+		IsTestModeOn = checkTestMode();
 		if (IsTestModeOn == FALSE) {
 			break;
 		}
@@ -209,19 +236,24 @@ void initSystem()
 	}
 }
 
-main()
+#pragma CODE_SECTION(main, "MAIN")
+int main()
 {
-	WDTCTL = WDTPW | WDTCNTCL; // Clear watchdog timer
-	WDTCTL = WDT_VRST_3SEC; // Start watchdog timer(3.2768 sec)
+	WDTCTL = WDT_VRST_50SEC; // Start watchdog timer(3.2768 sec)
+#define FOTA_RAM_ADDR 0x1C00
+#define FOTA_FLASH_ADDR 0x20200
+#define FOTA_SIZE 0x1200
+	// isr copy ram(size & addr need to check lnk.cmd)
+	memcpy((void *)FOTA_RAM_ADDR, (void *)FOTA_FLASH_ADDR, FOTA_SIZE);
 	initSystem();
 
-	// ½Ã½ºÅÛ ÃÊ±âÈ­ ¹× Å×½ºÆ®¸ðµå ¿©ºÎ È®ÀÎ ÈÄ WDT´Â 16ÃÊ·Î Àç¼³Á¤
-	// 1. App levelÀÇ ÄÚµå ±¸µ¿ ½Ã Console Ãâ·ÂÀÌ Æ÷ÇÔµÇ¾î µ¿ÀÛ ½Ã°£ÀÌ À¯µ¿ÀûÀ¸·Î º¯ÇÔ.
-	// 2. ½Ã½ºÅÛ ÃÊ±âÈ­ ÀÌÈÄ¿¡´Â Clock ¼³Á¤ÀÌ ¿Ï·áµÈ »óÅÂÀÌ¹Ç·Î WDT¸¦ Àç¼³Á¤ÇØµµ ¹«¹æ.
+	// ì‹œìŠ¤í…œ ì´ˆê¸°í™” ë° í…ŒìŠ¤íŠ¸ëª¨ë“œ ì—¬ë¶€ í™•ì¸ í›„ WDTëŠ” 16ì´ˆë¡œ ìž¬ì„¤ì •
+	// 1. App levelì˜ ì½”ë“œ êµ¬ë™ ì‹œ Console ì¶œë ¥ì´ í¬í•¨ë˜ì–´ ë™ìž‘ ì‹œê°„ì´ ìœ ë™ì ìœ¼ë¡œ ë³€í•¨.
+	// 2. ì‹œìŠ¤í…œ ì´ˆê¸°í™” ì´í›„ì—ëŠ” Clock ì„¤ì •ì´ ì™„ë£Œëœ ìƒíƒœì´ë¯€ë¡œ WDTë¥¼ ìž¬ì„¤ì •í•´ë„ ë¬´ë°©.
 
-	WDTCTL = WDTPW | WDTCNTCL; // Clear watchdog timer
 	WDTCTL = WDT_ARST_16SEC; // Start watchdog timer(16 sec)
 	if (IsTestModeOn) {
+		TEST_checkTestMode();
 		TEST_run();
 	} else {
 		TASKMGR_init();

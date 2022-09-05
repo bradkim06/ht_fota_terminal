@@ -312,15 +312,14 @@ static uint32 getNwkId(char *pNwkid)
 
 void TEST_readIDs()
 {
-	Config_t config;
-	FLASH_readConfigInfo(&config);
+	FLASH_readConfigInfo(&conf);
 
-	printf(" PAN ID     : %04X\n", config.pan_id);
+	printf(" PAN ID     : %04X\n", conf.pan_id);
 
-	uint8 *p = (uint8 *)&config.nwk_addr;
+	uint8 *p = (uint8 *)&conf.nwk_addr;
 	printf(" NWK        : %d.%d.%d.%d\n", *(p + 3), *(p + 2), *(p + 1), *(p + 0));
 
-	p = (uint8 *)&config.slaveNwk;
+	p = (uint8 *)&conf.slaveNwk;
 	printf(" Slave NWK  : %d.%d.%d.%d\n", *(p + 3), *(p + 2), *(p + 1), *(p + 0));
 }
 
@@ -357,22 +356,21 @@ void TEST_writeIDs(char *pPanid, char *pNwkid, int slaveID)
 		return;
 	}
 
-	Config_t config;
-	FLASH_readConfigInfo(&config);
+	FLASH_readConfigInfo(&conf);
 
 	uint16 panid = getPanId(pPanid);
-	memcpy(&config.pan_id, &panid, 2);
+	memcpy(&conf.pan_id, &panid, 2);
 
 	uint32 nwkid = getNwkId(pNwkid);
-	memcpy(&config.nwk_addr, &nwkid, 4);
+	memcpy(&conf.nwk_addr, &nwkid, 4);
 
 	int zeroPos = getFirstZeroPosition(config.nwk_addr);
 	uint8 addr[4];
-	memcpy(addr, &config.nwk_addr, 4);
+	memcpy(addr, &conf.nwk_addr, 4);
 	addr[zeroPos] = slaveID;
-	memcpy(&config.slaveNwk, addr, 4);
+	memcpy(&conf.slaveNwk, addr, 4);
 
-	FLASH_saveConfigInfo(&config);
+	FLASH_saveConfigInfo(&conf);
 	TEST_readIDs();
 }
 
@@ -560,11 +558,11 @@ void TEST_RxData(int ch, BOOL zigMsg)
 	uint8 crcOK;
 
 	while (1) {
-		// ÁÖÀÇ »çÇ× : ¹İµå½Ã ¾Æ·¡ Å×½ºÆ®¿ë ÇÔ¼ö´Â TEST_stop()º¸´Ù ¸ÕÀú CallµÇ¾î¾ß ÇÑ´Ù.
-		// - Å×½ºÆ®¿ë ¸Ş¼¼Áö È®ÀÎ ÇÔ¼ö¿¡¼­ read pointer¸¦ Á¶ÀÛÇÏ´Â µ¿ÀÛÀÌ Æ÷ÇÔµÊ.
-		// - ´Ù¸¸ RF Rx¹ß»ı ½Ã ISR¿¡¼­ event¸¦ µî·Ï, TEST_stop()¿¡¼­ event¸¦ Ã³¸®ÇÑ´Ù.
-		// - À§ ÀÌÀ¯·Î TEST_stop()¸¦ ¸ÕÀú ½ÇÇà½ÃÅ³ °æ¿ì Å×½ºÆ® ÇÔ¼ö¿¡¼­ Àß¸øµÈ read pointer¸¦
-		//   ÂüÁ¶ÇÏ°Ô µÈ´Ù.
+		// ì£¼ì˜ ì‚¬í•­ : ë°˜ë“œì‹œ ì•„ë˜ í…ŒìŠ¤íŠ¸ìš© í•¨ìˆ˜ëŠ” TEST_stop()ë³´ë‹¤ ë¨¼ì € Callë˜ì–´ì•¼ í•œë‹¤.
+		// - í…ŒìŠ¤íŠ¸ìš© ë©”ì„¸ì§€ í™•ì¸ í•¨ìˆ˜ì—ì„œ read pointerë¥¼ ì¡°ì‘í•˜ëŠ” ë™ì‘ì´ í¬í•¨ë¨.
+		// - ë‹¤ë§Œ RF Rxë°œìƒ ì‹œ ISRì—ì„œ eventë¥¼ ë“±ë¡, TEST_stop()ì—ì„œ eventë¥¼ ì²˜ë¦¬í•œë‹¤.
+		// - ìœ„ ì´ìœ ë¡œ TEST_stop()ë¥¼ ë¨¼ì € ì‹¤í–‰ì‹œí‚¬ ê²½ìš° í…ŒìŠ¤íŠ¸ í•¨ìˆ˜ì—ì„œ ì˜ëª»ëœ read pointerë¥¼
+		//   ì°¸ì¡°í•˜ê²Œ ëœë‹¤.
 		if (CC1200_testGetReceivedData(&rtime, TestRxBuffer, &len, &rssi, &crcOK) == TRUE) {
 			if (zigMsg) {
 				int errCnt = 0;
@@ -621,11 +619,11 @@ void TEST_RxMsg(int ch)
 	CC1200_wor();
 
 	while (1) {
-		// ÁÖÀÇ »çÇ× : ¹İµå½Ã ¾Æ·¡ Å×½ºÆ®¿ë ÇÔ¼ö´Â TEST_stop()º¸´Ù ¸ÕÀú CallµÇ¾î¾ß ÇÑ´Ù.
-		// - Å×½ºÆ®¿ë ¸Ş¼¼Áö È®ÀÎ ÇÔ¼ö¿¡¼­ read pointer¸¦ Á¶ÀÛÇÏ´Â µ¿ÀÛÀÌ Æ÷ÇÔµÊ.
-		// - ´Ù¸¸ RF Rx¹ß»ı ½Ã ISR¿¡¼­ event¸¦ µî·Ï, TEST_stop()¿¡¼­ event¸¦ Ã³¸®ÇÑ´Ù.
-		// - À§ ÀÌÀ¯·Î TEST_stop()¸¦ ¸ÕÀú ½ÇÇà½ÃÅ³ °æ¿ì Å×½ºÆ® ÇÔ¼ö¿¡¼­ Àß¸øµÈ read pointer¸¦
-		//   ÂüÁ¶ÇÏ°Ô µÈ´Ù.
+		// ì£¼ì˜ ì‚¬í•­ : ë°˜ë“œì‹œ ì•„ë˜ í…ŒìŠ¤íŠ¸ìš© í•¨ìˆ˜ëŠ” TEST_stop()ë³´ë‹¤ ë¨¼ì € Callë˜ì–´ì•¼ í•œë‹¤.
+		// - í…ŒìŠ¤íŠ¸ìš© ë©”ì„¸ì§€ í™•ì¸ í•¨ìˆ˜ì—ì„œ read pointerë¥¼ ì¡°ì‘í•˜ëŠ” ë™ì‘ì´ í¬í•¨ë¨.
+		// - ë‹¤ë§Œ RF Rxë°œìƒ ì‹œ ISRì—ì„œ eventë¥¼ ë“±ë¡, TEST_stop()ì—ì„œ eventë¥¼ ì²˜ë¦¬í•œë‹¤.
+		// - ìœ„ ì´ìœ ë¡œ TEST_stop()ë¥¼ ë¨¼ì € ì‹¤í–‰ì‹œí‚¬ ê²½ìš° í…ŒìŠ¤íŠ¸ í•¨ìˆ˜ì—ì„œ ì˜ëª»ëœ read pointerë¥¼
+		//   ì°¸ì¡°í•˜ê²Œ ëœë‹¤.
 		if (CC1200_testGetReceivedData(&rx_time, TestRxBuffer, &len, &rssi, &crc) == TRUE) {
 			if (crc == FALSE) {
 				printf("CRC Error\n");

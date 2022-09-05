@@ -1,3 +1,4 @@
+#include "msp430f5419a.h"
 #include <msp430.h>
 #include <stdarg.h> // va_list, va_start, va_end
 #include "common_header.h"
@@ -12,6 +13,7 @@
 #include "rtcAlarm.h"
 #include "modem.h"
 #include "test.h"
+#include "fota.h"
 
 #define USCI_A0_TX_PIN BM(4)
 #define USCI_A0_RX_PIN BM(5)
@@ -110,9 +112,9 @@
 	} while (0);
 
 typedef struct {
-	int len;
-	int wpos;
-	int rpos;
+	unsigned int len;
+	unsigned int wpos;
+	unsigned int rpos;
 	char *buf;
 } UartBuf_t;
 
@@ -181,7 +183,7 @@ static void mallocUartBuf(UartIoBuf_t **ioBuf, int txBufLen, int rxBufLen)
 
 void UART_init()
 {
-	mallocUartBuf(&uartA0, LCD_TX_BUF_LEN, 0);
+	mallocUartBuf(&uartA0, LCD_TX_BUF_LEN, 1);
 	mallocUartBuf(&uartA1, DEBUG_TX_BUF_LEN, DEBUG_RX_BUF_LEN);
 	mallocUartBuf(&uartA2, MODEM_TX_BUF_LEN, MODEM_RX_BUF_LEN);
 	mallocUartBuf(&uartA3, METER_TX_BUF_LEN, METER_RX_BUF_LEN);
@@ -189,9 +191,7 @@ void UART_init()
 
 void UART_debugMode()
 {
-	mallocUartBuf(&uartA0, LCD_TX_BUF_LEN, 0);
-	mallocUartBuf(&uartA1, METER_TX_BUF_LEN, METER_RX_BUF_LEN);
-	mallocUartBuf(&uartA2, MODEM_TX_BUF_LEN, MODEM_RX_BUF_LEN);
+	mallocUartBuf(&uartA1, 1, 1);
 	mallocUartBuf(&uartA3, DEBUG_TX_BUF_LEN, DEBUG_RX_BUF_LEN);
 
 	UartInitParam_t param = { .isTxEnable = TRUE,
@@ -202,6 +202,14 @@ void UART_debugMode()
 				  .charLen = UART_8BITS_CHAR };
 
 	UART_open(UART_A3, &param);
+}
+
+void fota_uart()
+{
+	mallocUartBuf(&uartA0, 1, 1);
+	mallocUartBuf(&uartA1, 1, 1);
+	mallocUartBuf(&uartA2, 1, 1);
+	mallocUartBuf(&uartA3, 1, 1);
 }
 
 void UART_open(UartNum_t num, UartInitParam_t *param)
@@ -305,11 +313,26 @@ void UART_open(UartNum_t num, UartInitParam_t *param)
 		*(UART_BASE + 0x06) = 0xDC;
 		*(UART_BASE + 0x07) = 0;
 		*(UART_BASE + 0x08) |= UCBRS_3 + UCBRF_0;
+	} else if (param->baudrate == UART_BAUDRATE_57600) {
+		*(UART_BASE + 0x00) |= UCSSEL_2; // use SMCLK
+		*(UART_BASE + 0x06) = 138;
+		*(UART_BASE + 0x07) = 0;
+		*(UART_BASE + 0x08) |= UCBRS_7 + UCBRF_0;
 	} else if (param->baudrate == UART_BAUDRATE_115200) {
 		*(UART_BASE + 0x00) |= UCSSEL_2; // use SMCLK
 		*(UART_BASE + 0x06) = 0x45;
 		*(UART_BASE + 0x07) = 0;
 		*(UART_BASE + 0x08) |= UCBRS_4 + UCBRF_0;
+	} else if (param->baudrate == UART_BAUDRATE_230400) {
+		*(UART_BASE + 0x00) |= UCSSEL_2; // use SMCLK
+		*(UART_BASE + 0x06) = 34;
+		*(UART_BASE + 0x07) = 0;
+		*(UART_BASE + 0x08) |= UCBRS_6 + UCBRF_0;
+	} else if (param->baudrate == UART_BAUDRATE_460800) {
+		*(UART_BASE + 0x00) |= UCSSEL_2; // use SMCLK
+		*(UART_BASE + 0x06) = 17;
+		*(UART_BASE + 0x07) = 0;
+		*(UART_BASE + 0x08) |= UCBRS_3 + UCBRF_0;
 	} else {
 		return;
 	}
@@ -381,16 +404,16 @@ int printf(const char *format, ...)
 #define BUF_SIZE DEBUG_TX_BUF_LEN
 
 	if (IsPrintOn) {
-		int len = 0;
+		unsigned int len = 0;
 		char buf[BUF_SIZE];
 
 		va_list arg;
 		va_start(arg, format);
-		// Console Ãâ·Â ½Ã New lineÀ» À§ÇÑ 1byte °í·Á.
+		// Console ì¶œë ¥ ì‹œ New lineì„ ìœ„í•œ 1byte ê³ ë ¤.
 		len += vsnprintf(buf + len, BUF_SIZE - 1, format, arg);
 		va_end(arg);
 
-		if (buf[len - 1] == '\n') {
+		if (buf[(len - 1)] == '\n') {
 			buf[len++] = '\r';
 		}
 
@@ -409,7 +432,7 @@ int printf_ts(const char *format, ...)
 #define BUF_SIZE DEBUG_TX_BUF_LEN
 
 	if (IsPrintOn) {
-		int len = 0;
+		unsigned int len = 0;
 		char buf[BUF_SIZE];
 		Date_t date;
 
@@ -420,7 +443,7 @@ int printf_ts(const char *format, ...)
 
 		va_list arg;
 		va_start(arg, format);
-		// Console Ãâ·Â ½Ã New lineÀ» À§ÇÑ 1byte °í·Á.
+		// Console ì¶œë ¥ ì‹œ New lineì„ ìœ„í•œ 1byte ê³ ë ¤.
 		len += vsnprintf(buf + len, BUF_SIZE - 1, format, arg);
 		va_end(arg);
 
@@ -651,15 +674,21 @@ void set_meterPortForBSL()
 #pragma vector = USCI_A0_VECTOR
 __interrupt void USCI_A0_ISR(void)
 {
+	if (Fota.Status == 1) {
+		UCA0IE &= ~UCTXIE;
+		UCA0IFG &= ~UCRXIFG;
+		return;
+	}
+
 	if (UCA0IFG & UCTXIFG) {
 		if (uartA0->txBuf == NULL) {
-			UCA0IE &= ~UCTXIE;
+			UCA0IE &= ~UCTXIE; // txbuf empty --> disable tx interrupt
 			return;
 		}
 
 		UartBuf_t *p = uartA0->txBuf;
 		if (p->rpos == p->wpos) {
-			UCA0IE &= ~UCTXIE; // ´õ ÀÌ»ó º¸³¾ µ¥ÀÌÅÍ°¡ ¾øÀ¸¸é tx interrupt¸¦ disable
+			UCA0IE &= ~UCTXIE; // ë” ì´ìƒ ë³´ë‚¼ ë°ì´í„°ê°€ ì—†ìœ¼ë©´ tx interruptë¥¼ disable
 		} else {
 			UCA0TXBUF = p->buf[p->rpos++]; // send the data
 			if (p->rpos >= p->len) {
@@ -668,11 +697,10 @@ __interrupt void USCI_A0_ISR(void)
 		}
 	}
 
-	// rx interrupt¸¦ »ç¿ëÇÏÁö ¾ÊÀ½ - È¤½Ã ¹ß»ýÇÏ¸é Áï½Ã disable
+	// rx interruptë¥¼ ì‚¬ìš©í•˜ì§€ ì•ŠìŒ - í˜¹ì‹œ ë°œìƒí•˜ë©´ ì¦‰ì‹œ disable
 	if (UCA0IFG & UCRXIFG) {
-		UCA0IFG &= ~UCRXIFG;
 		if (uartA0->rxBuf == NULL) {
-			UCA0IE &= ~UCRXIE;
+			UCA0IFG &= ~UCRXIFG;
 			return;
 		}
 
@@ -685,17 +713,24 @@ __interrupt void USCI_A0_ISR(void)
 				p->wpos = 0;
 			}
 		}
+		UCA0IFG &= ~UCRXIFG;
 	}
 }
 #endif
 
-// UART_1 interrupt - ÄÜ¼Ö
+// UART_1 interrupt - ì½˜ì†”
 #pragma vector = USCI_A1_VECTOR
 __interrupt void USCI_A1_ISR(void)
 {
+	if (Fota.Status == 1) {
+		UCA1IE &= ~UCTXIE;
+		UCA1IFG &= ~UCRXIFG;
+		return;
+	}
+
 	if (UCA1IFG & UCTXIFG) { // USCI_A1 TX
 		if (uartA1->txBuf == NULL) {
-			UCA1IE &= ~UCTXIE;
+			UCA1IE &= ~UCTXIE; // txbuf empty --> disable tx interrupt
 			return;
 		}
 
@@ -711,9 +746,8 @@ __interrupt void USCI_A1_ISR(void)
 	}
 
 	if (UCA1IFG & UCRXIFG) { // USCI_A1 RX
-		UCA1IFG &= ~(UCRXIFG);
 		if (uartA1->rxBuf == NULL) {
-			UCA1IE &= ~UCRXIE;
+			UCA1IFG &= ~UCRXIFG;
 			return;
 		}
 
@@ -726,6 +760,7 @@ __interrupt void USCI_A1_ISR(void)
 				p->wpos = 0;
 			}
 		}
+		UCA1IFG &= ~UCRXIFG;
 	}
 }
 
@@ -733,9 +768,18 @@ __interrupt void USCI_A1_ISR(void)
 #pragma vector = USCI_A2_VECTOR
 __interrupt void USCI_A2_ISR(void)
 {
+	if (Fota.Status == 1) {
+		if (UCA2IFG & UCRXIFG) {
+			UCA2IE &= ~UCTXIE;
+			UCA2IFG &= ~UCRXIFG;
+			rxBuf[rxLen++] = UCA2RXBUF;
+		}
+		return;
+	}
+
 	if (UCA2IFG & UCTXIFG) { // USCI_A2 TX
 		if (uartA2->txBuf == NULL) {
-			UCA2IE &= ~UCTXIE;
+			UCA2IE &= ~UCTXIE; // txbuf empty --> disable tx interrupt
 			return;
 		}
 
@@ -751,9 +795,8 @@ __interrupt void USCI_A2_ISR(void)
 	}
 
 	if (UCA2IFG & UCRXIFG) { // USCI_A2 RX
-		UCA2IFG &= ~(UCRXIFG);
 		if (uartA2->rxBuf == NULL) {
-			UCA2IE &= ~UCRXIE;
+			UCA2IFG &= ~UCRXIFG;
 			return;
 		}
 
@@ -765,19 +808,26 @@ __interrupt void USCI_A2_ISR(void)
 			if (++p->wpos >= p->len) {
 				p->wpos = 0;
 			}
-			OSAL_startEventTimer(AppTaskId, APP_EVENT_MODEM_RX, (uint32)200);
+			OSAL_startEventTimer(AppTaskId, APP_EVENT_MODEM_RX, (uint32)300);
 		}
+		UCA2IFG &= ~UCRXIFG;
 	}
 }
 
-// UART_3 interrupt - Rx´Â °è·®±â µ¥ÀÌÅÍ ¼ö½Å¿ë, Tx´Â ½ÅÇÑ ÀÌ¿ÜÀÇ °è·®±â¿¡ ¸í·É Àü¼Û¿ëÀ¸·Î »ç¿ë
+// UART_3 interrupt - RxëŠ” ê³„ëŸ‰ê¸° ë°ì´í„° ìˆ˜ì‹ ìš©, TxëŠ” ì‹ í•œ ì´ì™¸ì˜ ê³„ëŸ‰ê¸°ì— ëª…ë ¹ ì „ì†¡ìš©ìœ¼ë¡œ ì‚¬ìš©
 #if !defined(AUX_REPEATER)
 #pragma vector = USCI_A3_VECTOR
 __interrupt void USCI_A3_ISR(void)
 {
+	if (Fota.Status == 1) {
+		UCA3IE &= ~UCTXIE;
+		UCA3IFG &= ~UCRXIFG;
+		return;
+	}
+
 	if (UCA3IFG & UCTXIFG) {
 		if (uartA3->txBuf == NULL) {
-			UCA3IE &= ~UCTXIE;
+			UCA3IE &= ~UCTXIE; // txbuf empty --> disable tx interrupt
 			return;
 		}
 
@@ -793,9 +843,8 @@ __interrupt void USCI_A3_ISR(void)
 	}
 
 	if (UCA3IFG & UCRXIFG) { // USCI_A3 RX
-		UCA3IFG &= ~(UCRXIFG);
 		if (uartA3->rxBuf == NULL) {
-			UCA3IE &= ~UCRXIE;
+			UCA3IFG &= ~UCRXIFG;
 			return;
 		}
 
@@ -809,6 +858,7 @@ __interrupt void USCI_A3_ISR(void)
 			}
 			OSAL_startEventTimer(AppTaskId, APP_EVENT_METER_RX, (uint32)50);
 		}
+		UCA3IFG &= ~UCRXIFG;
 	}
 }
 #endif // #if !defined(AUX_REPEATER)

@@ -1,4 +1,8 @@
-#include "meter.h"
+#include "device.h"
+#include "flashDriver.h"
+#include "intrinsics.h"
+#include "stdio.h"
+#include "string.h"
 #include <msp430.h>
 #include <ctype.h>
 #include <time.h>
@@ -6,6 +10,9 @@
 #include "common_header.h"
 #include "uart.h"
 #include "check_meter_misc.h"
+#include "Task_Mgr.h"
+#include "meter.h"
+#include "osal.h"
 #include "osal_Timer.h"
 #include "app.h"
 #include "rtcAlarm.h"
@@ -16,17 +23,26 @@
 #include "uuid.h"
 #include "message.h"
 #include "nbiotModem.h"
+#include "fota.h"
+#include "nbiotResponse.h"
 
 // AT command deregister delay
 #define DEREGISTER_DELAY 5000
 
+// FOTA timeout
+#define FOTA_TIMEOUT 60000
+#define FOTA_RETRY 0
+
+// QA report timeout
+#define AT_CMD_LGU_QA_TIMEOUT 1000
+
 // AT command default timeout/retry
-#define AT_CMD_DEFAULT_TIMEOUT 5000
-#define AT_CMD_DEFAULT_RETRY 4
+#define AT_CMD_DEFAULT_TIMEOUT 3000
+#define AT_CMD_DEFAULT_RETRY 5
 
 // QLWULDATA timeout/retry
-#define AT_CMD_DATA_SEND_TIMEOUT 10000
-#define AT_CMD_DATA_SEND_RETRY 2
+#define AT_CMD_DATA_SEND_TIMEOUT 60000
+#define AT_CMD_DATA_SEND_RETRY 1
 
 // NPSMR timeout/retry
 #define AT_CMD_CHECK_PSM_TIMEOUT 5000
@@ -34,9 +50,9 @@
 
 // Attach, Detach, No ack UDP timeout/retry
 #define AT_CMD_ATTACH_TIMEOUT 10000
-#define AT_CMD_ATTACH_RETRY 11
+#define AT_CMD_ATTACH_RETRY 14
 
-#define DETACH_DELAY_TIME 30000
+#define DETACH_DELAY_TIME 5000
 
 #define AT_CMD_COMM_TIMEOUT 5000
 #define AT_CMD_COMM_DETACH_RETRY 0
@@ -46,13 +62,13 @@
 #define AT_CMD_RESET_RETRY 0
 
 // LWM2M data transfer timeout/retry
-#define AT_CMD_LWM2M_TIMEOUT 90000
+#define AT_CMD_LWM2M_TIMEOUT 120000
 #define AT_CMD_LWM2M_DL_WAIT 60000
 #define AT_CMD_LWM2M_RETRY 0
 
 // MODEM remote open timeout/retry
-#define MODEM_CHECK_ALIVE_TIMEOUT 20000
-#define MODEM_CHECK_ALIVE_RETRY 15
+#define MODEM_CHECK_ALIVE_TIMEOUT 5000
+#define MODEM_CHECK_ALIVE_RETRY 11
 
 #define MODEM_ENTER_PSM_TIMEOUT 30000
 #define MODEM_FW_DOWN_REQ_TIMEOUT 40000
@@ -61,7 +77,7 @@
 #define MODEM_FOTA_COMPLETE_WAIT 60000
 
 #define MODEM_EVENT_INTERVAL 1000
-#define MODEM_BOOTUP_INTERVAL 7000
+#define MODEM_BOOTUP_INTERVAL 6000
 
 #define END_STEP_FLOW_INDEX 0xFF
 #define ENTER_PSM_FLOW_INDEX 0xFE
@@ -69,11 +85,9 @@
 extern Config_t conf;
 extern Modem_t modem;
 
-ModemComm_t modemComm;
-ModemContext_t modemCtx;
-
-uchar raw_data[LEN_MAX_NBIOT_DATA];
-char ul_data[600];
+static uchar raw_data[LEN_MAX_NBIOT_DATA] = { 0 };
+static char ul_data[LEN_MAX_AT_DATA + 1] = { 0 };
+static uint32 startEventTimeMsec = 0;
 
 typedef struct {
 	uint8 idle;
@@ -84,50 +98,20 @@ typedef struct {
 	uint8 transfer;
 	uint8 certify;
 	uint8 fota;
+	uint8 dfota;
 	uint8 detach;
 	uint8 retry;
 } StepFlowIndex_t;
-static StepFlowIndex_t StepFlowIndex;
+static StepFlowIndex_t StepFlowIndex = { 0 };
 
 // NB-IoT Modem AT command list
-static AtCmd_t AtCmdSwReset = { AT_CMD_IDX_SW_RESET, "AT+NRB" };
-static AtCmd_t AtCmdDetachNw = { AT_CMD_IDX_DETACH_NW, "AT+CGATT" };
-static AtCmd_t AtCmdGetIMEI = { AT_CMD_IDX_GET_IMEI, "AT+CGSN" };
-static AtCmd_t AtCmdGetIMSI = { AT_CMD_IDX_GET_IMSI, "AT+CIMI" };
-static AtCmd_t AtCmdGetICCID = { AT_CMD_IDX_GET_ICCID, "AT+NCCID" };
-static AtCmd_t AtCmdGetRadioQuality = { AT_CMD_IDX_GET_RADIO_QUALITY, "AT+NUESTATS" };
-static AtCmd_t AtCmdGetNwAlarm = { AT_CMD_IDX_GET_NW_ALARM, "AT+CEREG?" };
-static AtCmd_t AtCmdGetTime = { AT_CMD_IDX_GET_TIME, "AT+CCLK?" };
-static AtCmd_t AtCmdSetRfCtrl = { AT_CMD_IDX_SET_RF_CTRL, "AT+CFUN" };
-static AtCmd_t AtCmdSetPSM = { AT_CMD_IDX_SET_PSM, "AT+CPSMS" };
-static AtCmd_t AtCmdSetBAND = { AT_CMD_IDX_SET_BAND, "AT+NBAND" };
-static AtCmd_t AtCmdSetReselect = { AT_CMD_IDX_SET_RESELECT, "AT+NCONFIG" };
-static AtCmd_t AtCmdSetNwAlarm = { AT_CMD_IDX_SET_NW_ALARM, "AT+CEREG" };
-static AtCmd_t AtCmdSocketCreate = { AT_CMD_IDX_SOCKET_CREATE, "AT+NSOCR" };
-static AtCmd_t AtCmdSocketSendUL = { AT_CMD_IDX_SOCKET_SEND_UL, "AT+NSOST" };
-static AtCmd_t AtCmdSocketClose = { AT_CMD_IDX_SOCKET_CLOSE, "AT+NSOCL" };
-static AtCmd_t AtCmdSetReportPSM = { AT_CMD_IDX_SET_REPORT_PSM, "AT+NPSMR" };
-static AtCmd_t AtCmdGetReportPSM = { AT_CMD_IDX_GET_REPORT_PSM, "AT+NPSMR?" };
-#if defined(NBIOT_BASE_TYPE)
-static AtCmd_t AtCmdSocketRecvDL = { AT_CMD_IDX_SOCKET_RECV_DL, "AT+NSORF" };
-#endif
+static const AtCmd_t AtCmdSwReset = { AT_CMD_IDX_SW_RESET, "AT+NRB" };
+static const AtCmd_t AtCmdDetachNw = { AT_CMD_IDX_DETACH_NW, "AT+CGATT" };
+static const AtCmd_t AtCmdSetRfCtrl = { AT_CMD_IDX_SET_RF_CTRL, "AT+CFUN" };
+static const AtCmd_t AtCmdSocketCreate = { AT_CMD_IDX_SOCKET_CREATE, "AT+NSOCR" };
+static const AtCmd_t AtCmdSocketClose = { AT_CMD_IDX_SOCKET_CLOSE, "AT+NSOCL" };
 
-static AtCmd_t AtCmdGetFwRev = { AT_CMD_IDX_GET_FW_REV, "AT+QGMR" };
-static AtCmd_t AtCmdSetLWM2M = { AT_CMD_IDX_SET_LWM2M, "AT+QBOOTSTRAPHOLDOFF" };
-static AtCmd_t AtCmdSetLWServer = { AT_CMD_IDX_SET_LWM2M_SERVER, "AT+QLWSERVERIP" };
-static AtCmd_t AtCmdSetEPN = { AT_CMD_IDX_SET_EPN, "AT+QLWEPNS" };
-static AtCmd_t AtCmdSetBSPS = { AT_CMD_IDX_SET_BSPS, "AT+QLWMBSPS" };
-static AtCmd_t AtCmdGetLWServer = { AT_CMD_IDX_GET_LWM2M_SERVER, "AT+QLWSERVERIP?" };
-static AtCmd_t AtCmdGetBSPS = { AT_CMD_IDX_GET_BSPS, "AT+QLWMBSPS?" };
-static AtCmd_t AtCmdGetEPN = { AT_CMD_IDX_GET_EPN, "AT+QLWEPNS?" };
-static AtCmd_t AtCmdSwtLWM2M = { AT_CMD_IDX_SWITCH_LWM2M, "AT+QREGSWT" };
-static AtCmd_t AtCmdGetSwtLWM2M = { AT_CMD_IDX_GET_SWITCH_LWM2M, "AT+QREGSWT?" };
-static AtCmd_t AtCmdSetFOTA = { AT_CMD_IDX_SET_FOTA, "AT+QLWFOTAIND" };
-static AtCmd_t AtCmdRunRegister = { AT_CMD_IDX_RUN_REGISTER, "AT+QLWSREGIND" };
-/* static AtCmd_t AtCmdRunNmStatus = { AT_CMD_IDX_GET_NM_STATUS, "AT+NMSTATUS?" }; */
-#if defined(NBIOT_LG_TYPE)
-static AtCmd_t AtCmdULDATAEX = { AT_CMD_IDX_QLWULDATAEX, "AT+QLWULDATAEX" };
-#endif
+static const AtCmd_t AtCmdSetFOTA = { AT_CMD_IDX_SET_FOTA, "AT+QLWFOTAIND" };
 
 /**
  * @brief Get the End Point Name(= CSE ID) object
@@ -154,14 +138,15 @@ static char *getEndPointName(const char *serviceCode, const char *ctnStr, const 
 	uuid_create_md5_from_name(&u, uuidParam, LEN_UUID_PARAM);
 	snprintf(uuid, LEN_MODEM_UUID + 1, "%8.8lx-%4.4x-%4.4x-%2.2x%2.2x-", u.time_low, u.time_mid,
 		 u.time_hi_and_version, u.clock_seq_hi_and_reserved, u.clock_seq_low);
-	for (int i = 0; i < 6; i++) {
+	for (unsigned int i = 0; i < 6; i++) {
 		snprintf(uuid, LEN_MODEM_UUID + 1, "%s%2.2x", uuid, u.node[i]);
 	}
 
 	// Make Short UUID from UUID
-	snprintf(shortUuid, 6, "%s", &uuid[0]); // UUDI¿« æ’ 5¿⁄∏Æ Copy
+	// UUDIÏùò Ïïû 5ÏûêÎ¶¨ Copy
+	snprintf(shortUuid, 6, "%s", &uuid[0]);
 	snprintf(&shortUuid[5], 6, "%s",
-		 &uuid[LEN_MODEM_UUID - 5]); // UUDI¿« µ⁄ 5¿⁄∏Æ Copy
+		 &uuid[LEN_MODEM_UUID - 5]); // UUDIÏùò Îí§ 5ÏûêÎ¶¨ Copy
 
 	// Make Endpoint Name
 	memset(ul_data, 0, sizeof(ul_data));
@@ -217,10 +202,22 @@ static void setModemData()
 		memcpy(model, "HAT-124Q", TERM_MODEL_STRING_LEN + 1);
 	}
 
-	char devSn[11];
-	// Bootstrap ªÛ¿« serial number ¥¬ ICCID¿« 10¿⁄∏Æ ªÁøÎ.
+	// 3Í∞ÄÏßÄ ÌòïÏãù Ï°¥Ïû¨
+	// 1. NL7121500001 Ïù¥Ï†Ñ Î≤ÑÏ†Ñ (imei Ïïû2Í∞ú, Îí§ 1Í∞ú Ï†úÏô∏)
+	// EX : IMEI=359689090501559 >> devSn=968909050155
+	// char devSn[13];
+	// memcpy(devSn, &modem.imeiStr[2], 12);
+	// devSn[12] = 0; // Last char is set string end
+
+	// 2. NL7121500001 ~ NL7121601798, NL7121705401 ~ NL7121705402 (ÏÉùÏÇ∞ÎÖÑÎèÑ(21) + 3Î≤à ÏºÄÏù¥Ïä§)
+	// Bootstrap ÏÉÅÏùò serial number Îäî ICCIDÏùò 10ÏûêÎ¶¨ ÏÇ¨Ïö©.
+	// char devSn[13];
+	// snprintf(devSn, 12, "21%s", &modem.iccidStr[LEN_MODEM_ICCID - 11]);
+
+	// 3. NL7121601801 Ïù¥ÌõÑ (ICCIDÏùò ÎßàÏßÄÎßâ 1ÏûêÎ¶¨ Ï†úÏô∏Ìïú 10ÏûêÎ¶¨)
 	// USIM Model num 4 + Usim S/N num 6
 	// EX : ICCID = 8982068086002814399 >> devSn = 8600281439
+	char devSn[11];
 	memcpy(devSn, &modem.iccidStr[LEN_MODEM_ICCID - 11], 10);
 	devSn[10] = 0; // Last char is set string end
 
@@ -239,12 +236,8 @@ static void setModemData()
  * @param param   Parameter (string, support format)
  * @param ...     Parameter format argument
  */
-static void sendAtCommand(uint32 timeout, int retry, AtCmd_t *atCmd, char *param, ...)
+static void sendAtCommand(uint32 timeout, int retry, const AtCmd_t *atCmd, char *param, ...)
 {
-	ASSERT_PRINT(!(modemCtx.status.busy), "BUSY flag is not released \n");
-	ASSERT_PRINT((atCmd->cmd != NULL && strstr(atCmd->cmd, "AT") != NULL),
-		     "AT Command string is NULL\n");
-
 	if (retry >= 0) {
 		snprintf(modemComm.atData, LEN_MAX_AT_DATA, "%s", atCmd->cmd);
 
@@ -254,7 +247,6 @@ static void sendAtCommand(uint32 timeout, int retry, AtCmd_t *atCmd, char *param
 			int paramLen =
 				vsnprintf((modemComm.atData + strlen(atCmd->cmd)),
 					  (LEN_MAX_AT_DATA - strlen(atCmd->cmd)), param, arg);
-			ASSERT_PRINT((paramLen > 0), "Formatting parameter converting fail\n");
 			va_end(arg);
 		}
 
@@ -278,11 +270,8 @@ static void sendAtCommand(uint32 timeout, int retry, AtCmd_t *atCmd, char *param
  * @param param   Parameter (string, support format)
  * @param ...     Parameter format argument
  */
-static void sendNoRespAtCommand(uint32 delay, AtCmd_t *atCmd, char *param, ...)
+static void sendNoRespAtCommand(uint32 delay, const AtCmd_t *atCmd, char *param, ...)
 {
-	ASSERT_PRINT((atCmd->cmd != NULL && strstr(atCmd->cmd, "AT") != NULL),
-		     "AT Command string is NULL\n");
-
 	snprintf(modemComm.atData, LEN_MAX_AT_DATA, "%s", atCmd->cmd);
 
 	if (param != NULL) {
@@ -290,7 +279,6 @@ static void sendNoRespAtCommand(uint32 delay, AtCmd_t *atCmd, char *param, ...)
 		va_start(arg, param);
 		int paramLen = vsnprintf((modemComm.atData + strlen(atCmd->cmd)),
 					 (LEN_MAX_AT_DATA - strlen(atCmd->cmd)), param, arg);
-		ASSERT_PRINT((paramLen > 0), "Formatting parameter converting fail\n");
 		va_end(arg);
 	}
 
@@ -314,14 +302,15 @@ static void sendNoRespAtCommand(uint32 delay, AtCmd_t *atCmd, char *param, ...)
 static char *getQaReportMessage(int *messageLen)
 {
 	memset(raw_data, 0, sizeof(raw_data));
+	// len 58
 	int len = MODEM_qaData(raw_data);
 
-	// Hex data∏¶ ASCII∑Œ ∫Ø»Ø«œø© ¿˙¿Â«“ πˆ∆€¿« ±Ê¿Ã¿Ãπ«∑Œ
-	// ∫ª∑° µ•¿Ã≈Õ ±Ê¿Ã¿« x2ø° '\0'∏¶ ¿ß«— +1∑Œ ¡§¿«.
+	// Hex dataÎ•º ASCIIÎ°ú Î≥ÄÌôòÌïòÏó¨ Ï†ÄÏû•Ìï† Î≤ÑÌçºÏùò Í∏∏Ïù¥Ïù¥ÎØÄÎ°ú
+	// Î≥∏Îûò Îç∞Ïù¥ÌÑ∞ Í∏∏Ïù¥Ïùò x2Ïóê '\0'Î•º ÏúÑÌïú +1Î°ú Ï†ïÏùò.
 	int dataLen = (len * 2) + 1;
 	memset(ul_data, 0, sizeof(ul_data));
 
-	for (int i = 0; i < len; i++) {
+	for (unsigned int i = 0; i < len; i++) {
 		snprintf(ul_data, dataLen, "%s%02X", ul_data, *(raw_data + i));
 	}
 
@@ -339,15 +328,16 @@ static char *getQaReportMessage(int *messageLen)
 static char *getErrorReportMessage(int *messageLen)
 {
 	memset(raw_data, 0, sizeof(raw_data));
+	// len 35
 	int len = MODEM_errData(raw_data, modemCtx.pfUlCnt, modemCtx.pfDlCnt, modemCtx.ulCnt,
 				modemCtx.dlCnt);
 
-	// Hex data∏¶ ASCII∑Œ ∫Ø»Ø«œø© ¿˙¿Â«“ πˆ∆€¿« ±Ê¿Ã¿Ãπ«∑Œ
-	// ∫ª∑° µ•¿Ã≈Õ ±Ê¿Ã¿« x2ø° '\0'∏¶ ¿ß«— +1∑Œ ¡§¿«.
+	// Hex dataÎ•º ASCIIÎ°ú Î≥ÄÌôòÌïòÏó¨ Ï†ÄÏû•Ìï† Î≤ÑÌçºÏùò Í∏∏Ïù¥Ïù¥ÎØÄÎ°ú
+	// Î≥∏Îûò Îç∞Ïù¥ÌÑ∞ Í∏∏Ïù¥Ïùò x2Ïóê '\0'Î•º ÏúÑÌïú +1Î°ú Ï†ïÏùò.
 	int dataLen = (len * 2) + 1;
 	memset(ul_data, 0, sizeof(ul_data));
 
-	for (int i = 0; i < len; i++) {
+	for (unsigned int i = 0; i < len; i++) {
 		snprintf(ul_data, dataLen, "%s%02X", ul_data, *(raw_data + i));
 	}
 
@@ -367,18 +357,18 @@ static char *getErrorReportMessage(int *messageLen)
 static char *getMeterDataMessage(BOOL isJoin, int *messageLen)
 {
 	memset(raw_data, 0, LEN_MAX_NBIOT_DATA);
-	int len;
+	unsigned int len;
 	if (isJoin) {
 		len = MODEM_sendCurrentData(raw_data);
 	} else {
 		len = MODEM_sendPeriodicData(raw_data);
 	}
 
-	// Hex data∏¶ ASCII∑Œ ∫Ø»Ø«œø© ¿˙¿Â«“ πˆ∆€¿« ±Ê¿Ã¿Ãπ«∑Œ
-	// ∫ª∑° µ•¿Ã≈Õ ±Ê¿Ã¿« x2ø° '\0'∏¶ ¿ß«— +1∑Œ ¡§¿«.
+	// Hex dataÎ•º ASCIIÎ°ú Î≥ÄÌôòÌïòÏó¨ Ï†ÄÏû•Ìï† Î≤ÑÌçºÏùò Í∏∏Ïù¥Ïù¥ÎØÄÎ°ú
+	// Î≥∏Îûò Îç∞Ïù¥ÌÑ∞ Í∏∏Ïù¥Ïùò x2Ïóê '\0'Î•º ÏúÑÌïú +1Î°ú Ï†ïÏùò.
 	memset(ul_data, 0, sizeof(ul_data));
 
-	for (int i = 0; i < len; i++) {
+	for (unsigned int i = 0; i < len; i++) {
 		snprintf(ul_data, LEN_MAX_AT_DATA, "%s%02X", ul_data, *(raw_data + i));
 	}
 
@@ -393,10 +383,8 @@ static char *getMeterDataMessage(BOOL isJoin, int *messageLen)
  */
 static ModemStep_t idle()
 {
-	ASSERT_PRINT(modemCtx.step == MODEM_STEP_IDLE, "step is invalid \n");
-
 	ModemStep_t nextStep =
-		modemCtx.step; // step ¡æ∑· ¿¸ ±Ó¡ˆ «ˆ¿Á step¿ª next step ¿∏∑Œ return.
+		modemCtx.step; // step Ï¢ÖÎ£å Ï†Ñ ÍπåÏßÄ ÌòÑÏû¨ stepÏùÑ next step ÏúºÎ°ú return.
 	modemCtx.errCode = MODEM_ERROR_NONE;
 	modemCtx.retryCount = 0;
 	modemCtx.retryStep = MODEM_STEP_UNKNOWN;
@@ -410,18 +398,11 @@ static ModemStep_t idle()
 		nextStep = MODEM_STEP_BIP;
 	}
 
-	// FOTA ø‰√ª¿ª π´Ω√«“ ∞ÊøÏ ¥Ÿ¿Ω ¡÷±‚ µ•¿Ã≈Õ ¿¸º€¿ª Ω«∆–«œπ«∑Œ ∏≈π¯ »Æ¿Œ.
-	modemCtx.proc.runFota = 1;
 	if (RTC_isTimeSync()) {
 		Date_t now;
 		RTC_read(&now);
 		if (RTC_calcHourDiff(&modem.lastUpdateTime, &now) >= LG_QA_HOUR_INTERVAL) {
 			modemCtx.proc.updateQa = 1;
-		}
-
-		if (RTC_calcHourDiff(&modem.lastCertifyTime, &now) >= LG_CERTIFY_HOUR_INTERVAL) {
-			// MODEM PSM¿Ã æ∆¥— ∞ÊøÏ update register∏¶ ºˆ«‡«œ¡ˆ æ ¥¬¥Ÿ. (√ ±‚ ¿Œ¡ı ¿Á ºˆ«‡)
-			modemCtx.proc.updateReg = (modemCtx.status.psmOn) ? 1 : 0;
 		}
 	} else {
 		modemCtx.proc.updateQa = 1;
@@ -433,40 +414,31 @@ static ModemStep_t idle()
 	if (modemCtx.proc.updateQa) {
 		printf_ts("PROC : Enable Update QA.\n");
 	}
-	if (modemCtx.proc.updateReg) {
-		printf_ts("PROC : Enable Update Register.\n");
-		// ¿Á¿Œ¡ı ºˆ«‡¿ª ¿ß«— Flag √ ±‚»≠
-		modemCtx.lwm2m.regUpdate = 0;
-	}
-	if (modemCtx.proc.runFota) {
-		printf_ts("PROC : Enable FOTA.\n");
-		// FOTA ºˆ«‡¿ª ¿ß«— Flag √ ±‚»≠
-		modemCtx.lwm2m.fotaDownReq = 0;
-		modemCtx.lwm2m.fotaUpgradeReq = 0;
-		modemCtx.lwm2m.fotaFinish = 0;
-	}
+
+	printf_ts("PROC : Enable FOTA.\n");
+	// FOTA ÏàòÌñâÏùÑ ÏúÑÌïú Flag Ï¥àÍ∏∞Ìôî
+	modemCtx.lwm2m.fotaDownReq = 0;
+	modemCtx.lwm2m.fotaUpgradeReq = 0;
+	modemCtx.lwm2m.fotaFinish = 0;
 
 	return nextStep;
 }
 
 /**
- * @brief BIP step operator (V120¿« ∞ÊøÏ BIP∏¶ ¡ˆø¯«œ¡ˆ æ ¿∏π«∑Œ ∏µ©µø¿€ ø©∫Œ∏∏ »Æ¿Œ.)
+ * @brief BIP step operator (V120Ïùò Í≤ΩÏö∞ BIPÎ•º ÏßÄÏõêÌïòÏßÄ ÏïäÏúºÎØÄÎ°ú Î™®ÎéÄÎèôÏûë Ïó¨Î∂ÄÎßå ÌôïÏù∏.)
  *
  * @return ModemStep_t    return next step
  */
 static ModemStep_t bip()
 {
-	ASSERT_PRINT(modemCtx.step == MODEM_STEP_BIP, "step is invalid \n");
-
 	ModemStep_t nextStep =
-		modemCtx.step; // step ¡æ∑· ¿¸ ±Ó¡ˆ «ˆ¿Á step¿ª next step ¿∏∑Œ return.
+		modemCtx.step; // step Ï¢ÖÎ£å Ï†Ñ ÍπåÏßÄ ÌòÑÏû¨ stepÏùÑ next step ÏúºÎ°ú return.
 	modemCtx.errCode = MODEM_ERROR_USIM_INVALID;
 
 	if (modemCtx.stepReset) {
 		StepFlowIndex.bip = 0;
 	}
 
-	static uint32 startEventTimeMsec = 0;
 	switch (StepFlowIndex.bip) {
 	case 0: {
 		startEventTimeMsec = TIMER_getMsec();
@@ -485,6 +457,13 @@ static ModemStep_t bip()
 	} break;
 
 	case 2: {
+		static const AtCmd_t AtCmdCheckAlive = { AT_CMD_IDX_CHECK_ALIVE, "AT" };
+		sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, AT_CMD_DEFAULT_RETRY, &AtCmdCheckAlive, NULL);
+		StepFlowIndex.bip++;
+	} break;
+
+	case 3: {
+		static const AtCmd_t AtCmdGetIMSI = { AT_CMD_IDX_GET_IMSI, "AT+CIMI" };
 		sendAtCommand(MODEM_CHECK_ALIVE_TIMEOUT, MODEM_CHECK_ALIVE_RETRY, &AtCmdGetIMSI,
 			      NULL);
 		StepFlowIndex.bip++;
@@ -496,15 +475,10 @@ static ModemStep_t bip()
 		MODEM_copyImsi(imsi);
 		if (memcmp(conf.imsi, imsi, 8) != 0) {
 			memcpy(conf.imsi, imsi, 8);
+			saveConfChecksum();
 			printf_ts("MODEM : changed USIM\n");
-			modem.lastAttachStatus = MODEM_NW_STATUS_NORMAL;
 		}
 
-		if (modem.lastAttachStatus == MODEM_NW_STATUS_PAUSED) {
-			printf_ts("MODEM : lastAttach cellreg paused - try attach\n");
-		} else if (modem.lastAttachStatus == MODEM_NW_STATUS_REJECTED) {
-			printf_ts("MODEM : lastAttach cellreg rejected - try attach\n");
-		}
 		nextStep = MODEM_STEP_INIT;
 	} break;
 	}
@@ -519,10 +493,10 @@ static ModemStep_t bip()
  */
 static ModemStep_t init()
 {
-	ASSERT_PRINT(modemCtx.step == MODEM_STEP_INIT, "step is invalid \n");
+	static const AtCmd_t AtCmdSetLWServer = { AT_CMD_IDX_SET_LWM2M_SERVER, "AT+QLWSERVERIP" };
 
 	ModemStep_t nextStep =
-		modemCtx.step; // step ¡æ∑· ¿¸ ±Ó¡ˆ «ˆ¿Á step¿ª next step ¿∏∑Œ return.
+		modemCtx.step; // step Ï¢ÖÎ£å Ï†Ñ ÍπåÏßÄ ÌòÑÏû¨ stepÏùÑ next step ÏúºÎ°ú return.
 	modemCtx.errCode = MODEM_ERROR_AT_CMD_NO_RESP;
 
 	if (modemCtx.stepReset) {
@@ -531,39 +505,48 @@ static ModemStep_t init()
 
 	switch (StepFlowIndex.init) {
 	case 0: {
+		static const AtCmd_t AtCmdGetICCID = { AT_CMD_IDX_GET_ICCID, "AT+NCCID" };
 		sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, AT_CMD_DEFAULT_RETRY, &AtCmdGetICCID, NULL);
 		StepFlowIndex.init++;
 	} break;
 
 	case 1: {
+		static const AtCmd_t AtCmdGetIMEI = { AT_CMD_IDX_GET_IMEI, "AT+CGSN" };
 		sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, AT_CMD_DEFAULT_RETRY, &AtCmdGetIMEI, "=1");
 		StepFlowIndex.init++;
 	} break;
 
 	case 2: {
 		setModemData();
+		static const AtCmd_t AtCmdGetLWServer = { AT_CMD_IDX_GET_LWM2M_SERVER,
+							  "AT+QLWSERVERIP?" };
 		sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, AT_CMD_DEFAULT_RETRY, &AtCmdGetLWServer,
 			      NULL);
 		StepFlowIndex.init++;
 	} break;
 
 	case 3: {
+		static const AtCmd_t AtCmdGetEPN = { AT_CMD_IDX_GET_EPN, "AT+QLWEPNS?" };
 		sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, AT_CMD_DEFAULT_RETRY, &AtCmdGetEPN, NULL);
 		StepFlowIndex.init++;
 	} break;
 
 	case 4: {
+		static const AtCmd_t AtCmdGetBSPS = { AT_CMD_IDX_GET_BSPS, "AT+QLWMBSPS?" };
 		sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, AT_CMD_DEFAULT_RETRY, &AtCmdGetBSPS, NULL);
 		StepFlowIndex.init++;
 	} break;
 
 	case 5: {
+		static const AtCmd_t AtCmdGetSwtLWM2M = { AT_CMD_IDX_GET_SWITCH_LWM2M,
+							  "AT+QREGSWT?" };
 		sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, AT_CMD_DEFAULT_RETRY, &AtCmdGetSwtLWM2M,
 			      NULL);
 		StepFlowIndex.init++;
 	} break;
 
 	case 6: {
+		static const AtCmd_t AtCmdGetFwRev = { AT_CMD_IDX_GET_FW_REV, "AT+QGMR" };
 		sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, AT_CMD_DEFAULT_RETRY, &AtCmdGetFwRev, NULL);
 		StepFlowIndex.init =
 			(modemCtx.proc.runInit) ? (StepFlowIndex.init + 1) : END_STEP_FLOW_INDEX;
@@ -580,16 +563,19 @@ static ModemStep_t init()
 	} break;
 
 	case 9: {
+		static const AtCmd_t AtCmdSetBAND = { AT_CMD_IDX_SET_BAND, "AT+NBAND" };
 		sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, AT_CMD_DEFAULT_RETRY, &AtCmdSetBAND, "=5");
 		StepFlowIndex.init++;
 	} break;
 
 	case 10: {
+		static const AtCmd_t AtCmdSetPSM = { AT_CMD_IDX_SET_PSM, "AT+CPSMS" };
 		sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, AT_CMD_DEFAULT_RETRY, &AtCmdSetPSM, "=0");
 		StepFlowIndex.init++;
 	} break;
 
 	case 11: {
+		static const AtCmd_t AtCmdSetReselect = { AT_CMD_IDX_SET_RESELECT, "AT+NCONFIG" };
 		sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, AT_CMD_DEFAULT_RETRY, &AtCmdSetReselect,
 			      "=CELL_RESELECTION,TRUE");
 		StepFlowIndex.init++;
@@ -608,46 +594,41 @@ static ModemStep_t init()
 	} break;
 
 	case 14: {
+		static const AtCmd_t AtCmdSetEPN = { AT_CMD_IDX_SET_EPN, "AT+QLWEPNS" };
 		sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, AT_CMD_DEFAULT_RETRY, &AtCmdSetEPN,
 			      "=1,\"%s\"", modem.epName);
 		StepFlowIndex.init++;
 	} break;
 
 	case 15: {
+		static const AtCmd_t AtCmdSetBSPS = { AT_CMD_IDX_SET_BSPS, "AT+QLWMBSPS" };
 		sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, AT_CMD_DEFAULT_RETRY, &AtCmdSetBSPS, "=%s",
 			      modem.bsParam);
 		StepFlowIndex.init++; // BS start after 15sec after attach complete
 	} break;
 
 	case 16: {
+		static const AtCmd_t AtCmdSetLWM2M = { AT_CMD_IDX_SET_LWM2M,
+						       "AT+QBOOTSTRAPHOLDOFF" };
 		sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, AT_CMD_DEFAULT_RETRY, &AtCmdSetLWM2M, "=0");
 		StepFlowIndex.init++;
 	} break;
 
 	case 17: {
-		if (modemCtx.status.lwm2mOn) {
-			sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, AT_CMD_DEFAULT_RETRY, &AtCmdSetFOTA,
-				      "=1");
-		} else {
-			OSAL_setEvent(AppTaskId, APP_EVENT_MODEM_PROCESS);
-		}
+		static const AtCmd_t AtCmdSwtLWM2M = { AT_CMD_IDX_SWITCH_LWM2M, "AT+QREGSWT" };
+		sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, AT_CMD_DEFAULT_RETRY, &AtCmdSwtLWM2M, "=1");
 		StepFlowIndex.init++;
 	} break;
 
-	case 18: {
-		if (modemCtx.proc.runFota) {
-			sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, AT_CMD_DEFAULT_RETRY, &AtCmdSwtLWM2M,
-				      "=0");
-		} else {
-			sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, AT_CMD_DEFAULT_RETRY, &AtCmdSwtLWM2M,
-				      "=2");
-		}
+#define STEP_RESET_MODEM 18
+	case STEP_RESET_MODEM: {
+		sendAtCommand(AT_CMD_RESET_TIMEOUT, AT_CMD_RESET_RETRY, &AtCmdSwReset, NULL);
 		StepFlowIndex.init++;
 	} break;
 
 	case 19: {
-		sendAtCommand(AT_CMD_RESET_TIMEOUT, AT_CMD_RESET_RETRY, &AtCmdSwReset, NULL);
-		StepFlowIndex.init++;
+		sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, AT_CMD_DEFAULT_RETRY, &AtCmdSetFOTA, "=1");
+		StepFlowIndex.init = END_STEP_FLOW_INDEX;
 	} break;
 
 	case END_STEP_FLOW_INDEX:
@@ -657,7 +638,7 @@ static ModemStep_t init()
 			FLASH_saveConfigInfo(&conf);
 		}
 
-		// ∏µ‚ø°º≠ ¿⁄µø¿∏∑Œ ºˆ«‡«œ¥¬ ≈ÎΩ≈(LWM2M µÓ)¿ª √ ±‚»≠ «œ±‚ ¿ß«ÿ Reset.
+		// Î™®ÎìàÏóêÏÑú ÏûêÎèôÏúºÎ°ú ÏàòÌñâÌïòÎäî ÌÜµÏã†(LWM2M Îì±)ÏùÑ Ï¥àÍ∏∞Ìôî ÌïòÍ∏∞ ÏúÑÌï¥ Reset.
 		modemCtx.proc.runInit = 0;
 		nextStep = MODEM_STEP_ATTACH_NW;
 	} break;
@@ -673,9 +654,7 @@ static ModemStep_t init()
  */
 static ModemStep_t attachNw()
 {
-	ASSERT_PRINT(modemCtx.step == MODEM_STEP_ATTACH_NW, "step is invalid \n");
-
-	// step ¡æ∑· ¿¸ ±Ó¡ˆ «ˆ¿Á step¿ª next step ¿∏∑Œ return.
+	// step Ï¢ÖÎ£å Ï†Ñ ÍπåÏßÄ ÌòÑÏû¨ stepÏùÑ next step ÏúºÎ°ú return.
 	ModemStep_t nextStep = modemCtx.step;
 	modemCtx.errCode = MODEM_ERROR_AT_CMD_NO_RESP;
 
@@ -690,66 +669,64 @@ static ModemStep_t attachNw()
 	} break;
 
 	case 1: {
-		sendAtCommand(AT_CMD_CHECK_PSM_TIMEOUT, AT_CMD_CHECK_PSM_RETRY, &AtCmdDetachNw,
-			      "=1");
+		// CGATT possible return error(means now attach trying)
+		sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, AT_CMD_DEFAULT_RETRY, &AtCmdDetachNw, "=1");
 		StepFlowIndex.attach++;
 	} break;
 
 	case 2: {
+		static const AtCmd_t AtCmdGetReportPSM = { AT_CMD_IDX_GET_REPORT_PSM, "AT+NPSMR?" };
 		sendAtCommand(AT_CMD_CHECK_PSM_TIMEOUT, AT_CMD_CHECK_PSM_RETRY, &AtCmdGetReportPSM,
 			      NULL);
 		StepFlowIndex.attach++;
 	} break;
 
 	case 3: {
+		static const AtCmd_t AtCmdSetNwAlarm = { AT_CMD_IDX_SET_NW_ALARM, "AT+CEREG" };
 		sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, AT_CMD_DEFAULT_RETRY, &AtCmdSetNwAlarm, "=5");
 		StepFlowIndex.attach++;
 	} break;
 
 	case 4: {
 		modemCtx.errCode = MODEM_ERROR_ATTACH_FAIL;
+		static const AtCmd_t AtCmdGetNwAlarm = { AT_CMD_IDX_GET_NW_ALARM, "AT+CEREG?" };
 		sendAtCommand(AT_CMD_ATTACH_TIMEOUT, AT_CMD_ATTACH_RETRY, &AtCmdGetNwAlarm, NULL);
 		StepFlowIndex.attach++;
 	} break;
 
 	case 5: {
-		sendAtCommand(AT_CMD_ATTACH_TIMEOUT, AT_CMD_ATTACH_RETRY, &AtCmdGetTime, NULL);
+#define GET_TIME_TIMEOUT 5000
+#define GET_TIME_RETRY 11
+		static const AtCmd_t AtCmdGetTime = { AT_CMD_IDX_GET_TIME, "AT+CCLK?" };
+		sendAtCommand(GET_TIME_TIMEOUT, GET_TIME_RETRY, &AtCmdGetTime, NULL);
 		StepFlowIndex.attach++;
 	} break;
 
 	case 6: {
+		static const AtCmd_t AtCmdGetRadioQuality = { AT_CMD_IDX_GET_RADIO_QUALITY,
+							      "AT+NUESTATS" };
 		sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, AT_CMD_DEFAULT_RETRY, &AtCmdGetRadioQuality,
 			      "=RADIO");
 		StepFlowIndex.attach++;
 	} break;
 
 	case 7: {
+		static const AtCmd_t AtCmdSetReportPSM = { AT_CMD_IDX_SET_REPORT_PSM, "AT+NPSMR" };
 		sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, AT_CMD_DEFAULT_RETRY, &AtCmdSetReportPSM,
 			      "=1");
 		StepFlowIndex.attach++;
 	} break;
 
 	default: {
-		printf_ts(
-			"MODEM : CGI(%ld) CID(%d) TX_POWER(%d) RSRP(%d) SNR(%d) RSRQ(%d) RSSI(%d) \n",
-			modem.modemQuality.cgi, modem.modemQuality.cid, modem.modemQuality.txPower,
-			modem.modemQuality.rsrp, modem.modemQuality.snr, modem.modemQuality.rsrq,
-			modem.modemQuality.lastRSSI);
-
-		if (modemCtx.retryStep != MODEM_STEP_UNKNOWN &&
-		    modemCtx.retryStep != MODEM_STEP_ATTACH_NW) {
-			nextStep = modemCtx.retryStep;
+		if (modemCtx.proc.updateQa) {
+			nextStep = MODEM_STEP_UPDATE_QA;
 		} else {
-			if (modemCtx.proc.updateQa) {
-				nextStep = MODEM_STEP_UPDATE_QA;
-			} else {
-				nextStep = MODEM_STEP_CERTIFY;
-			}
+			nextStep = MODEM_STEP_CERTIFY;
 		}
 	} break;
 	}
 
-	// step ¡æ∑· ¿¸ ±Ó¡ˆ «ˆ¿Á step¿ª next step ¿∏∑Œ return.
+	// step Ï¢ÖÎ£å Ï†Ñ ÍπåÏßÄ ÌòÑÏû¨ stepÏùÑ next step ÏúºÎ°ú return.
 	return nextStep;
 }
 
@@ -760,17 +737,15 @@ static ModemStep_t attachNw()
  */
 static ModemStep_t updateQa()
 {
-	ASSERT_PRINT(modemCtx.step == MODEM_STEP_UPDATE_QA, "step is invalid \n");
-
+	static const AtCmd_t AtCmdSocketSendUL = { AT_CMD_IDX_SOCKET_SEND_UL, "AT+NSOST" };
 	ModemStep_t nextStep =
-		modemCtx.step; // step ¡æ∑· ¿¸ ±Ó¡ˆ «ˆ¿Á step¿ª next step ¿∏∑Œ return.
+		modemCtx.step; // step Ï¢ÖÎ£å Ï†Ñ ÍπåÏßÄ ÌòÑÏû¨ stepÏùÑ next step ÏúºÎ°ú return.
 	modemCtx.errCode = MODEM_ERROR_AT_CMD_NO_RESP;
 
 	if (modemCtx.stepReset) {
 		StepFlowIndex.updateQa = 0;
 	}
 
-	static uint32 startEventTimeMsec = 0;
 	switch (StepFlowIndex.updateQa) {
 	case 0: {
 		sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, AT_CMD_DEFAULT_RETRY, &AtCmdSocketCreate,
@@ -782,49 +757,23 @@ static ModemStep_t updateQa()
 		int len;
 		char *data = getQaReportMessage(&len);
 
-		modemCtx.errCode = MODEM_ERROR_UDP_UL_FAIL;
-		sendAtCommand(AT_CMD_COMM_TIMEOUT, 0, &AtCmdSocketSendUL, "=%d,%s,%ld,%d,%s",
-			      modemCtx.socket, LG_QA_SERVER_IP, LG_QA_SERVER_PORT, len, data);
-
-		// µ•¿Ã≈Õ ¿¸º€ »ƒ ¥Ÿ¿Ω ¿¸º€±Ó¡ˆ¿« interval∞ËªÍ¿ª ¿ß«ÿ «ˆ¿Á msec ¿˙¿Â.
-		startEventTimeMsec = TIMER_getMsec();
+		sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, AT_CMD_DEFAULT_RETRY, &AtCmdSocketSendUL,
+			      "=%d,%s,%ld,%d,%s", modemCtx.socket, LG_QA_SERVER_IP,
+			      LG_QA_SERVER_PORT, len, data);
 		StepFlowIndex.updateQa++;
 	} break;
 
 	case 2: {
-		if (TIMER_getMsecDiff(startEventTimeMsec) >= AT_CMD_COMM_TIMEOUT) {
-			OSAL_setEvent(AppTaskId, APP_EVENT_MODEM_PROCESS);
-			StepFlowIndex.updateQa++;
-		} else {
-			OSAL_startEventTimer(AppTaskId, APP_EVENT_MODEM_PROCESS,
-					     MODEM_EVENT_INTERVAL);
-		}
-	} break;
-
-	case 3: {
 		int len;
 		char *data = getErrorReportMessage(&len);
 
-		modemCtx.errCode = MODEM_ERROR_UDP_UL_FAIL;
-		sendAtCommand(AT_CMD_COMM_TIMEOUT, 0, &AtCmdSocketSendUL, "=%d,%s,%ld,%d,%s",
-			      modemCtx.socket, LG_ERR_SERVER_IP, LG_ERR_SERVER_PORT, len, data);
-
-		// µ•¿Ã≈Õ ¿¸º€ »ƒ ¥Ÿ¿Ω ¿¸º€±Ó¡ˆ¿« interval∞ËªÍ¿ª ¿ß«ÿ «ˆ¿Á msec ¿˙¿Â.
-		startEventTimeMsec = TIMER_getMsec();
+		sendAtCommand(AT_CMD_DEFAULT_TIMEOUT, AT_CMD_DEFAULT_RETRY, &AtCmdSocketSendUL,
+			      "=%d,%s,%ld,%d,%s", modemCtx.socket, LG_ERR_SERVER_IP,
+			      LG_ERR_SERVER_PORT, len, data);
 		StepFlowIndex.updateQa++;
 	} break;
 
-	case 4: {
-		if (TIMER_getMsecDiff(startEventTimeMsec) >= AT_CMD_COMM_TIMEOUT) {
-			OSAL_setEvent(AppTaskId, APP_EVENT_MODEM_PROCESS);
-			StepFlowIndex.updateQa++;
-		} else {
-			OSAL_startEventTimer(AppTaskId, APP_EVENT_MODEM_PROCESS,
-					     MODEM_EVENT_INTERVAL);
-		}
-	} break;
-
-	case 5: {
+	case 3: {
 		modemCtx.ulCnt = modemCtx.dlCnt = 0;
 		modemCtx.pfUlCnt = modemCtx.pfDlCnt = 0;
 		memset(modemCtx.errLog, 0, sizeof(modemCtx.errLog));
@@ -851,11 +800,10 @@ static ModemStep_t updateQa()
  */
 static ModemStep_t transfer()
 {
-	ASSERT_PRINT(modemCtx.step == MODEM_STEP_TRANSFER, "step is invalid \n");
 	static uint16 transfer_count = 0;
 
 	ModemStep_t nextStep =
-		modemCtx.step; // step ¡æ∑· ¿¸ ±Ó¡ˆ «ˆ¿Á step¿ª next step ¿∏∑Œ return.
+		modemCtx.step; // step Ï¢ÖÎ£å Ï†Ñ ÍπåÏßÄ ÌòÑÏû¨ stepÏùÑ next step ÏúºÎ°ú return.
 	modemCtx.errCode = MODEM_ERROR_AT_CMD_NO_RESP;
 
 	if (modemCtx.stepReset) {
@@ -864,7 +812,6 @@ static ModemStep_t transfer()
 		printf_ts("transfer count : %d\n", ++transfer_count);
 	}
 
-	static uint32 startEventTimeMsec = 0;
 	switch (StepFlowIndex.transfer) {
 	case 0: {
 		int len;
@@ -872,13 +819,14 @@ static ModemStep_t transfer()
 		BOOL isJoin = (AppProcess == APP_PERIODIC_REPORT) ? FALSE : TRUE;
 		char *data = getMeterDataMessage(isJoin, &len);
 
-		// Uplink ¿¸º€ ¿¸ Downlink length √ ±‚»≠.
-		// ¥‹∏ª±‚ ¿‘¿Âø°º≠ Uplink ¿¸º€ ¿Ã¿¸¿« Downlink∞° ¿Ø»ø«œ¥Ÿ∞Ì ∆«¥‹«œ±‚ »˚µÂπ«∑Œ π´Ω√.
+		// Uplink Ï†ÑÏÜ° Ï†Ñ Downlink length Ï¥àÍ∏∞Ìôî.
+		// Îã®ÎßêÍ∏∞ ÏûÖÏû•ÏóêÏÑú Uplink Ï†ÑÏÜ° Ïù¥Ï†ÑÏùò DownlinkÍ∞Ä Ïú†Ìö®ÌïòÎã§Í≥† ÌåêÎã®ÌïòÍ∏∞ ÌûòÎìúÎØÄÎ°ú Î¨¥Ïãú.
 		modemComm.dlDataLen = 0;
-		// µ•¿Ã≈Õ ¿¸º€ »ƒ ¥ŸΩ√ PSM ¡¯¿‘ »Æ¿Œ¿ª ¿ß«ÿ Flag √ ±‚»≠.
+		// Îç∞Ïù¥ÌÑ∞ Ï†ÑÏÜ° ÌõÑ Îã§Ïãú PSM ÏßÑÏûÖ ÌôïÏù∏ÏùÑ ÏúÑÌï¥ Flag Ï¥àÍ∏∞Ìôî.
 		modemCtx.status.psmOn = 0;
 
 		modemCtx.errCode = MODEM_ERROR_PF_UL_FAIL;
+		static const AtCmd_t AtCmdULDATAEX = { AT_CMD_IDX_QLWULDATAEX, "AT+QLWULDATAEX" };
 		sendAtCommand(AT_CMD_DATA_SEND_TIMEOUT, AT_CMD_DATA_SEND_RETRY, &AtCmdULDATAEX,
 			      "=0,%d,%s,0x0100,0", len, data);
 
@@ -892,34 +840,35 @@ static ModemStep_t transfer()
 	} break;
 
 	case 2: {
-		int nData = METER_getNumberOfStoredData();
-		if ((nData == NUM_NBIOT_STORED_DATA) && (modemCtx.waitDl)) {
-			// Uplink Ok
-			METER_clearIntervalData();
-		}
-
 		if (modemComm.dlDataLen > 0) {
 			// Ack Ok
 			METER_clearStoredData();
 			modemCtx.waitDl = FALSE;
 			MODEM_checkDlMessage((void *)modemComm.dlData, modemComm.dlDataLen);
-			OSAL_setEvent(AppTaskId, APP_EVENT_MODEM_PROCESS);
+
 			StepFlowIndex.transfer = END_STEP_FLOW_INDEX;
-		} else {
-			if (TIMER_getMsecDiff(startEventTimeMsec) >= AT_CMD_LWM2M_DL_WAIT) {
-				// ¥ŸøÓ∏µ≈© Timeout
-				OSAL_setEvent(AppTaskId, APP_EVENT_MODEM_PROCESS);
-				StepFlowIndex.transfer = END_STEP_FLOW_INDEX;
-			} else {
-				OSAL_startEventTimer(AppTaskId, APP_EVENT_MODEM_PROCESS,
-						     MODEM_EVENT_INTERVAL);
+			OSAL_setEvent(AppTaskId, APP_EVENT_MODEM_PROCESS);
+		} else if (TIMER_getMsecDiff(startEventTimeMsec) >= AT_CMD_LWM2M_DL_WAIT) {
+			printf_ts("DL : LWM2M downlink req timeout\n");
+
+			if (modemCtx.waitDl) {
+				// Uplink Ok
+				METER_clearIntervalData();
 			}
+
+			StepFlowIndex.transfer = END_STEP_FLOW_INDEX;
+			OSAL_setEvent(AppTaskId, APP_EVENT_MODEM_PROCESS);
+		} else {
+			OSAL_startEventTimer(AppTaskId, APP_EVENT_MODEM_PROCESS,
+					     MODEM_EVENT_INTERVAL);
 		}
 	} break;
 
 	case END_STEP_FLOW_INDEX:
 	default: {
-		if (modemCtx.lwm2m.fotaDownReq && modemCtx.proc.runFota) {
+		if (Fota.Req) {
+			nextStep = MODEM_STEP_DFOTA;
+		} else if (modemCtx.lwm2m.fotaDownReq) {
 			nextStep = MODEM_STEP_FOTA;
 		} else {
 			nextStep = MODEM_STEP_DETACH_NW;
@@ -931,14 +880,12 @@ static ModemStep_t transfer()
 }
 
 /**
- * @brief BC95G modem certify step operator (≈ÎΩ≈ªÁ «√∑ß∆˚ ¿Œ¡ı ∞˙¡§)
+ * @brief BC95G modem certify step operator (ÌÜµÏã†ÏÇ¨ ÌîåÎû´Ìèº Ïù∏Ï¶ù Í≥ºÏ†ï)
  *
  * @return ModemStep_t    return next step
  */
 static ModemStep_t certify()
 {
-	ASSERT_PRINT(modemCtx.step == MODEM_STEP_CERTIFY, "step is invalid \n");
-
 	ModemStep_t nextStep = modemCtx.step;
 	modemCtx.errCode = MODEM_ERROR_PF_CERITY_FAIL;
 
@@ -946,7 +893,6 @@ static ModemStep_t certify()
 		StepFlowIndex.certify = 0;
 	}
 
-	static uint32 startEventTimeMsec = 0;
 	switch (StepFlowIndex.certify) {
 	case 0: {
 		startEventTimeMsec = TIMER_getMsec();
@@ -955,32 +901,7 @@ static ModemStep_t certify()
 	} break;
 
 	case 1: {
-		if ((modemCtx.lwm2m.bsFinish) && (!modemCtx.lwm2m.regFinish)) {
-			sendAtCommand(AT_CMD_LWM2M_TIMEOUT, AT_CMD_LWM2M_RETRY, &AtCmdRunRegister,
-				      "=0");
-			StepFlowIndex.certify++;
-		} else {
-			if (TIMER_getMsecDiff(startEventTimeMsec) >= AT_CMD_LWM2M_TIMEOUT) {
-				OSAL_setEvent(AppTaskId, APP_EVENT_MODEM_PROCESS);
-				StepFlowIndex.certify = END_STEP_FLOW_INDEX;
-			} else if (modemCtx.lwm2m.obsObj16241) {
-				OSAL_setEvent(AppTaskId, APP_EVENT_MODEM_PROCESS);
-				StepFlowIndex.certify = END_STEP_FLOW_INDEX;
-			} else {
-				OSAL_startEventTimer(AppTaskId, APP_EVENT_MODEM_PROCESS,
-						     MODEM_EVENT_INTERVAL);
-			}
-		}
-	} break;
-
-	case 2: {
-		startEventTimeMsec = TIMER_getMsec();
-		OSAL_setEvent(AppTaskId, APP_EVENT_MODEM_PROCESS);
-		StepFlowIndex.certify++;
-	} break;
-
-	case 3: {
-		if (modemCtx.lwm2m.regFinish && modemCtx.lwm2m.obsObj10250) {
+		if (modemCtx.lwm2m.obsObj10250 || modemCtx.lwm2m.obsObj16241) {
 			OSAL_setEvent(AppTaskId, APP_EVENT_MODEM_PROCESS);
 			StepFlowIndex.certify++;
 		} else {
@@ -996,20 +917,13 @@ static ModemStep_t certify()
 
 	case END_STEP_FLOW_INDEX:
 	default: {
-		if (!modemCtx.lwm2m.bsFinish) {
-			printf_ts("PF : Fail to bootstrap\n");
-			// ¿Ã¿¸ command retry πÊ¡ˆ
+		if (modemCtx.lwm2m.obsObj10250 || modemCtx.lwm2m.obsObj16241) {
+			nextStep = MODEM_STEP_TRANSFER;
+		} else {
+			printf_ts("PF : Fail to register\n");
+			// Ïù¥Ï†Ñ command retry Î∞©ÏßÄ
 			memset(&modemComm, 0, sizeof(modemComm));
 			OSAL_setEvent(AppTaskId, APP_EVENT_MODEM_TIMEOUT);
-		} else {
-			if (!modemCtx.lwm2m.regFinish || !modemCtx.lwm2m.obsObj10250) {
-				printf_ts("PF : Fail to register\n");
-				memset(&modemComm, 0,
-				       sizeof(modemComm)); // ¿Ã¿¸ command retry πÊ¡ˆ
-				OSAL_setEvent(AppTaskId, APP_EVENT_MODEM_TIMEOUT);
-			} else {
-				nextStep = MODEM_STEP_TRANSFER;
-			}
 		}
 	} break;
 	}
@@ -1024,8 +938,6 @@ static ModemStep_t certify()
  */
 static ModemStep_t fota()
 {
-	ASSERT_PRINT(modemCtx.step == MODEM_STEP_FOTA, "step is invalid \n");
-
 	ModemStep_t nextStep = modemCtx.step;
 	modemCtx.errCode = MODEM_ERROR_PF_FOTA_FAIL;
 
@@ -1033,7 +945,6 @@ static ModemStep_t fota()
 		StepFlowIndex.fota = 0;
 	}
 
-	static uint32 startEventTimeMsec = 0;
 	switch (StepFlowIndex.fota) {
 	case 0: {
 		startEventTimeMsec = TIMER_getMsec();
@@ -1046,7 +957,7 @@ static ModemStep_t fota()
 			sendAtCommand(AT_CMD_LWM2M_TIMEOUT, AT_CMD_LWM2M_RETRY, &AtCmdSetFOTA,
 				      "=2");
 			StepFlowIndex.fota++;
-		} else if (modemCtx.status.psmOn) { // FOTA downlink request ¥Î±‚ ¡ﬂ PSM ¡¯¿‘ Ω√ √≥∏Æ.
+		} else if (modemCtx.status.psmOn) { // FOTA downlink request ÎåÄÍ∏∞ Ï§ë PSM ÏßÑÏûÖ Ïãú Ï≤òÎ¶¨.
 			OSAL_setEvent(AppTaskId, APP_EVENT_MODEM_PROCESS);
 			StepFlowIndex.fota = ENTER_PSM_FLOW_INDEX;
 		} else {
@@ -1110,9 +1021,9 @@ static ModemStep_t fota()
 	} break;
 
 	case 7: {
-		// FOTA øœ∑· »ƒ øœ∑· »Æ¿Œ¿ª ¿ß«— ¿Á¿Œ¡ı¿ª ¥Î±‚«—¥Ÿ(1∫–)
-		// ¿Á¿Œ¡ı º∫∞¯Ω«∆– ø©∫ŒøÕ ∞¸∞Ëæ¯¿Ã ¥‹∏ª±‚ ¿‘¿Âø°º≠ FOTA¥¬ º∫∞¯«— ∞Õ¿Ãπ«∑Œ
-		// º∫∞¯ø©∫Œ∏¶ ∆«¥‹«œ¡ˆ æ ¥¬¥Ÿ.
+		// FOTA ÏôÑÎ£å ÌõÑ ÏôÑÎ£å ÌôïÏù∏ÏùÑ ÏúÑÌïú Ïû¨Ïù∏Ï¶ùÏùÑ ÎåÄÍ∏∞ÌïúÎã§(1Î∂Ñ)
+		// Ïû¨Ïù∏Ï¶ù ÏÑ±Í≥µÏã§Ìå® Ïó¨Î∂ÄÏôÄ Í¥ÄÍ≥ÑÏóÜÏù¥ Îã®ÎßêÍ∏∞ ÏûÖÏû•ÏóêÏÑú FOTAÎäî ÏÑ±Í≥µÌïú Í≤ÉÏù¥ÎØÄÎ°ú
+		// ÏÑ±Í≥µÏó¨Î∂ÄÎ•º ÌåêÎã®ÌïòÏßÄ ÏïäÎäîÎã§.
 		if (TIMER_getMsecDiff(startEventTimeMsec) >= MODEM_FOTA_COMPLETE_WAIT) {
 			OSAL_setEvent(AppTaskId, APP_EVENT_MODEM_PROCESS);
 			StepFlowIndex.fota = END_STEP_FLOW_INDEX;
@@ -1140,16 +1051,95 @@ static ModemStep_t fota()
 					printf_ts("PF : FOTA complete timeout.\n");
 					MODEM_stop(FAIL);
 				} else {
-					// FOTA øœ∑· »ƒ MODEM √ ±‚»≠ ¿Áºˆ«‡¿ª ¿ß«ÿ init flag √ ±‚»≠
+					// FOTA ÏôÑÎ£å ÌõÑ MODEM Ï¥àÍ∏∞Ìôî Ïû¨ÏàòÌñâÏùÑ ÏúÑÌï¥ init flag Ï¥àÍ∏∞Ìôî
 					conf.isModemInit = FALSE;
 					FLASH_saveConfigInfo(&conf);
 
-					modemCtx.proc.runFota = 0;
 					nextStep = MODEM_STEP_DETACH_NW;
 				}
 			}
 		}
 	} break;
+	}
+
+	return nextStep;
+}
+
+static ModemStep_t dFota()
+{
+	static const AtCmd_t AtCmdSocketRecvDL = { AT_CMD_IDX_SOCKET_RECV_DL, "AT+NSORF" };
+
+	ModemStep_t nextStep =
+		modemCtx.step; // step Ï¢ÖÎ£å Ï†Ñ ÍπåÏßÄ ÌòÑÏû¨ stepÏùÑ next step ÏúºÎ°ú return.
+	modemCtx.errCode = MODEM_ERROR_AT_CMD_NO_RESP;
+
+	if (modemCtx.stepReset) {
+		StepFlowIndex.dfota = 0;
+	}
+
+	switch (StepFlowIndex.dfota) {
+	case 0: {
+		sendAtCommand(FOTA_TIMEOUT, FOTA_RETRY, &AtCmdSocketCreate, "=STREAM,6,0,1");
+		StepFlowIndex.dfota++;
+	} break;
+
+	case 1: {
+		static const AtCmd_t AtCmdTcpConnect = { AT_CMD_IDX_TCP_CONNECT, "AT+NSOCO" };
+		sendAtCommand(FOTA_TIMEOUT, FOTA_RETRY, &AtCmdTcpConnect, "=%d,%s,%d",
+			      modemCtx.socket, Fota.Info.ip, Fota.Info.port);
+		StepFlowIndex.dfota++;
+	} break;
+
+	case 2: {
+		sendAtCommand(FOTA_TIMEOUT, FOTA_RETRY, &AtCmdSocketRecvDL, "=%d,%d",
+			      modemCtx.socket, modemComm.dlDataLen);
+		StepFlowIndex.dfota++;
+	} break;
+
+	case 3: {
+		if (strcmp(FIRMWARE_VER, Fota.Info.version) == 0) {
+			printf_ts("Curr[%s], Update[%s] Equal, No update\n", FIRMWARE_VER,
+				  Fota.Info.version);
+			memset(&Fota, 0, sizeof(Fota));
+			sendNoRespAtCommand(DEREGISTER_DELAY, &AtCmdSocketClose, "=%d",
+					    modemCtx.socket);
+			nextStep = MODEM_STEP_DETACH_NW;
+			break;
+		}
+
+		char msg[FOTA_REQMSG_SIZE];
+		snprintf(msg, FOTA_REQMSG_SIZE, "C1%s%s%s%s", FIRMWARE_VER, Fota.Info.version,
+			 modem.imeiStr, modem.imsiStr);
+		memset(Fota.reqMsg, 0, sizeof(Fota.reqMsg));
+
+		char checksum = 0;
+		for (unsigned int i = 0; i < sizeof(msg); i++) {
+			char data = *(msg + i);
+			checksum += data;
+			snprintf(Fota.reqMsg, FOTA_REQMSG_SIZE * 2 - 1, "%s%02X", Fota.reqMsg,
+				 data);
+		}
+		snprintf(Fota.reqMsg, FOTA_REQMSG_SIZE * 2 + 2, "%s%02X", Fota.reqMsg, checksum);
+
+		static const AtCmd_t AtCmdTcpSendUL = { AT_CMD_IDX_TCP_CONNECT, "AT+NSOSD" };
+		sendAtCommand(FOTA_TIMEOUT, FOTA_RETRY, &AtCmdTcpSendUL, "=%d,%d,%s,0x100,101",
+			      modemCtx.socket, FOTA_REQMSG_SIZE, Fota.reqMsg);
+		StepFlowIndex.dfota++;
+	} break;
+
+	case 4: {
+		sendAtCommand(FOTA_TIMEOUT, FOTA_RETRY, &AtCmdSocketRecvDL, "=%d,%d",
+			      modemCtx.socket, modemComm.dlDataLen);
+		StepFlowIndex.dfota++;
+	} break;
+
+	default:
+		P2OUT &= ~0x20;
+		TIMER_stop();
+		LCD_disable();
+		METER_disable();
+		startFota();
+		break;
 	}
 
 	return nextStep;
@@ -1162,23 +1152,18 @@ static ModemStep_t fota()
  */
 static ModemStep_t detachNw()
 {
-	ASSERT_PRINT(modemCtx.step == MODEM_STEP_DETACH_NW, "step is invalid \n");
-
 	ModemStep_t nextStep = modemCtx.step;
-	modemCtx.errCode = MODEM_ERROR_AT_CMD_NO_RESP;
+	// detach fail none error
+	modemCtx.errCode = MODEM_ERROR_NONE;
 
 	if (modemCtx.stepReset) {
 		StepFlowIndex.detach = 0;
 	}
 
-	static uint32 startEventTimeMsec = 0;
 	switch (StepFlowIndex.detach) {
 	case 0: {
-		// FOTA øœ∑· Ω√ ±‚¡∏ ¿Œ¡ı¿˝¬˜µµ √ ±‚»≠ µ«π«∑Œ De-register∏¶ «“ « ø‰∞° æ¯¿Ω.
-		// ¥Ÿ∏∏, ¥‹∏ª F/Wø°º≠ ¡¯«‡ø©∫Œ∏¶ ∆«¥‹«œ¥¬ Flag¿Ãπ«∑Œ √ ±‚»≠¥¬ æ»«‘.
-		// if (modemCtx.lwm2m.regFinish) {
-		// 	sendNoRespAtCommand(DEREGISTER_DELAY, &AtCmdRunRegister, "=1");
-		// }
+		// FOTA ÏôÑÎ£å Ïãú Í∏∞Ï°¥ Ïù∏Ï¶ùÏ†àÏ∞®ÎèÑ Ï¥àÍ∏∞Ìôî ÎêòÎØÄÎ°ú De-registerÎ•º Ìï† ÌïÑÏöîÍ∞Ä ÏóÜÏùå.
+		// Îã§Îßå, Îã®Îßê F/WÏóêÏÑú ÏßÑÌñâÏó¨Î∂ÄÎ•º ÌåêÎã®ÌïòÎäî FlagÏù¥ÎØÄÎ°ú Ï¥àÍ∏∞ÌôîÎäî ÏïàÌï®.
 		sendAtCommand(AT_CMD_COMM_TIMEOUT, AT_CMD_COMM_DETACH_RETRY, &AtCmdDetachNw, "=0");
 
 		startEventTimeMsec = TIMER_getMsec();
@@ -1214,12 +1199,7 @@ static ModemStep_t detachNw()
  */
 static ModemStep_t retry()
 {
-	ASSERT_PRINT(modemCtx.step == MODEM_STEP_RETRY, "step is invalid \n");
-	ASSERT_PRINT(modemCtx.retryCount > 0, "retry count is not increased \n");
-	ASSERT_PRINT(modemCtx.retryStep != MODEM_STEP_UNKNOWN, "MODEM retry step is not set \n");
-	ASSERT_PRINT(modemCtx.retryStep != MODEM_STEP_IDLE, "MODEM retry step is initialized \n");
-
-	// step ¡æ∑· ¿¸ ±Ó¡ˆ «ˆ¿Á step¿ª next step ¿∏∑Œ return.
+	// step Ï¢ÖÎ£å Ï†Ñ ÍπåÏßÄ ÌòÑÏû¨ stepÏùÑ next step ÏúºÎ°ú return.
 	ModemStep_t nextStep = modemCtx.step;
 	modemCtx.errCode = MODEM_ERROR_AT_CMD_NO_RESP;
 
@@ -1227,37 +1207,24 @@ static ModemStep_t retry()
 		StepFlowIndex.retry = 0;
 	}
 
-	static uint32 startEventTimeMsec = 0;
 	switch (StepFlowIndex.retry) {
 	case 0: {
 		if (modemCtx.status.cellreg == MODEM_CELLREG_ATTACHED) {
-			if (modemCtx.lwm2m.regFinish) {
-				sendNoRespAtCommand(DEREGISTER_DELAY, &AtCmdRunRegister, "=1");
-			}
 			sendAtCommand(AT_CMD_COMM_TIMEOUT, AT_CMD_COMM_DETACH_RETRY, &AtCmdDetachNw,
 				      "=0");
 		} else {
 			OSAL_setEvent(AppTaskId, APP_EVENT_MODEM_PROCESS);
 		}
+		startEventTimeMsec = TIMER_getMsec();
 		StepFlowIndex.retry++;
 	} break;
 
 	case 1: {
-		if (modemCtx.proc.hwRstRetry) {
-			MODEM_turnOff();
-			MODEM_turnOn();
-			startEventTimeMsec = TIMER_getMsec();
+		// wait detach time
+		if (TIMER_getMsecDiff(startEventTimeMsec) >= DETACH_DELAY_TIME) {
 			OSAL_setEvent(AppTaskId, APP_EVENT_MODEM_PROCESS);
 			StepFlowIndex.retry++;
-		} else {
-			sendAtCommand(AT_CMD_RESET_TIMEOUT, AT_CMD_RESET_RETRY, &AtCmdSwReset,
-				      NULL);
-			StepFlowIndex.retry = END_STEP_FLOW_INDEX;
-		}
-	} break;
-
-	case 2: {
-		if (TIMER_getMsecDiff(startEventTimeMsec) >= MODEM_BOOTUP_INTERVAL) {
+		} else if (modemCtx.status.cellreg != MODEM_CELLREG_ATTACHED) {
 			OSAL_setEvent(AppTaskId, APP_EVENT_MODEM_PROCESS);
 			StepFlowIndex.retry++;
 		} else {
@@ -1266,17 +1233,39 @@ static ModemStep_t retry()
 		}
 	} break;
 
-	case END_STEP_FLOW_INDEX:
+	case 2: {
+		if (modemCtx.proc.hwRstRetry) {
+			MODEM_turnOff();
+		}
+		StepFlowIndex.retry++;
+		OSAL_startEventTimer(AppTaskId, APP_EVENT_MODEM_PROCESS, 3000);
+	} break;
+
+	case 3: {
+		if (modemCtx.proc.hwRstRetry) {
+			MODEM_turnOn();
+		} else {
+			sendAtCommand(AT_CMD_RESET_TIMEOUT, AT_CMD_RESET_RETRY, &AtCmdSwReset,
+				      NULL);
+		}
+		startEventTimeMsec = TIMER_getMsec();
+		StepFlowIndex.retry++;
+		OSAL_setEvent(AppTaskId, APP_EVENT_MODEM_PROCESS);
+	} break;
+
+	case 4: {
+		if (TIMER_getMsecDiff(startEventTimeMsec) >= MODEM_BOOTUP_INTERVAL) {
+			StepFlowIndex.retry++;
+		}
+		OSAL_setEvent(AppTaskId, APP_EVENT_MODEM_PROCESS);
+	} break;
+
 	default: {
 		if (modemCtx.proc.hwRstRetry) {
-			// H/W reset Ω√ Idle πŸ∑Œ ¥Ÿ¿Ω Step¿Œ BIP ∫Œ≈Õ ºˆ«‡.
+			// H/W reset Ïãú Idle Î∞îÎ°ú Îã§Ïùå StepÏù∏ BIP Î∂ÄÌÑ∞ ÏàòÌñâ.
 			nextStep = MODEM_STEP_BIP;
 		} else {
-			if (modemCtx.retryStep == MODEM_STEP_BIP) {
-				nextStep = MODEM_STEP_BIP;
-			} else {
-				nextStep = MODEM_STEP_ATTACH_NW;
-			}
+			nextStep = MODEM_STEP_ATTACH_NW;
 		}
 	} break;
 	}
@@ -1308,17 +1297,12 @@ BOOL MODEM_generateCseID(const char *serviceCode, const char *ctnStr, const char
 void MODEM_detach()
 {
 /*
-     * ø‹∫Œ Interruptø° ¿««— ¥‹∏ª±‚ Reboot¿¸ Detach π◊ Deregister ¿Ãπ«∑Œ
-     * º≠πˆ/±‚¡ˆ±π ¿¿¥‰¿ª ¥Î±‚«œ¡ˆ æ ∞Ì ¿œ¡§ Delay »ƒ ¡æ∑·«—¥Ÿ.
-     * «ÿ¥Á µø¿€¿∫ UDP ±‚π›¿Ã∞≈≥™ øπø‹√≥∏Æ Ω√ «„øÎµ«¥¬ µø¿€¿Ã±‚ ∂ßπÆø° ∞°¥…«œ¥Ÿ.
+     * Ïô∏Î∂Ä InterruptÏóê ÏùòÌïú Îã®ÎßêÍ∏∞ RebootÏ†Ñ Detach Î∞è Deregister Ïù¥ÎØÄÎ°ú
+     * ÏÑúÎ≤Ñ/Í∏∞ÏßÄÍµ≠ ÏùëÎãµÏùÑ ÎåÄÍ∏∞ÌïòÏßÄ ÏïäÍ≥† ÏùºÏ†ï Delay ÌõÑ Ï¢ÖÎ£åÌïúÎã§.
+     * Ìï¥Îãπ ÎèôÏûëÏùÄ UDP Í∏∞Î∞òÏù¥Í±∞ÎÇò ÏòàÏô∏Ï≤òÎ¶¨ Ïãú ÌóàÏö©ÎêòÎäî ÎèôÏûëÏù¥Í∏∞ ÎïåÎ¨∏Ïóê Í∞ÄÎä•ÌïòÎã§.
      */
 #define DETACH_DELAY_MS 5000
-
-	if (modemCtx.lwm2m.regFinish) {
-		// De-Register ¿¸º€.
-		sendNoRespAtCommand(DEREGISTER_DELAY, &AtCmdRunRegister, "=1");
-	}
-	// Detach ¿¸º€.
+	// Detach Ï†ÑÏÜ°.
 	sendNoRespAtCommand(DETACH_DELAY_MS, &AtCmdDetachNw, "=0");
 }
 
@@ -1358,12 +1342,14 @@ BOOL MODEM_process()
 	case MODEM_STEP_RETRY:
 		nextStep = retry();
 		break;
+	case MODEM_STEP_DFOTA:
+		nextStep = dFota();
+		break;
 	default:
 		return FALSE;
 	}
 
-	ASSERT_PRINT(nextStep != MODEM_STEP_UNKNOWN, "next step is not set when step finish");
-	// µø¿€ ¡ﬂ∞£ø° stopµ» ∞ÊøÏ∏¶ ∞Ì∑¡.
+	// ÎèôÏûë Ï§ëÍ∞ÑÏóê stopÎêú Í≤ΩÏö∞Î•º Í≥†Î†§.
 	if (modemCtx.step != nextStep && !modemCtx.status.stop) {
 #if defined(DEBUG)
 		printf_ts("MODEM : current(%s) next(%s) busy(%d) stop(%d) error(%d) cellreg(%d)\n",
@@ -1372,15 +1358,15 @@ BOOL MODEM_process()
 			  modemCtx.status.cellreg);
 #endif
 
-		// øœ∑·µ» «ˆ¿Á step∞˙ retry step¿Ã µø¿œ«— ∞ÊøÏ
-		// retry µø¿€¿Ã ¡§ªÛ¿˚¿∏∑Œ ºˆ«‡µ» ∞Õ¿ª ¿«πÃ«œπ«∑Œ retry ∞¸∑√ context∏¶ √ ±‚»≠.
+		// ÏôÑÎ£åÎêú ÌòÑÏû¨ stepÍ≥º retry stepÏù¥ ÎèôÏùºÌïú Í≤ΩÏö∞
+		// retry ÎèôÏûëÏù¥ Ï†ïÏÉÅÏ†ÅÏúºÎ°ú ÏàòÌñâÎêú Í≤ÉÏùÑ ÏùòÎØ∏ÌïòÎØÄÎ°ú retry Í¥ÄÎ†® contextÎ•º Ï¥àÍ∏∞Ìôî.
 		if (modemCtx.step == modemCtx.retryStep) {
-			modemCtx.retryCount = 0;
+			// modemCtx.retryCount = 0;
 			modemCtx.retryStep = MODEM_STEP_UNKNOWN;
 		}
 
 		modemCtx.step = nextStep;
-		// step¿Ã ∫Ø∞Êµ… ∞ÊøÏ «ÿ¥Á step¿ª √÷√ ∫Œ≈Õ Ω√¿€«œ±‚ ¿ß«ÿ reset flag∏¶ º≥¡§
+		// stepÏù¥ Î≥ÄÍ≤ΩÎê† Í≤ΩÏö∞ Ìï¥Îãπ stepÏùÑ ÏµúÏ¥àÎ∂ÄÌÑ∞ ÏãúÏûëÌïòÍ∏∞ ÏúÑÌï¥ reset flagÎ•º ÏÑ§Ï†ï
 		modemCtx.stepReset = TRUE;
 
 		// If next step is IDLE and retry step is not set, process finish end success.

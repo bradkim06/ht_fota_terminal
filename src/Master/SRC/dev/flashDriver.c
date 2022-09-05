@@ -1,9 +1,15 @@
 #include "flashDriver.h"
 #include "common_header.h"
+#include "string.h"
 #include "tdd.h"
+#include "uart.h"
+#if NBIOT_DEVICE
+#include "modem.h"
+#endif
 
 #ifndef TDD_TEST
 #include <msp430.h>
+#include <stddef.h>
 #include "check_meter_misc.h"
 #include "MSP430FlashUtil.h"
 #include "app.h"
@@ -28,20 +34,6 @@ static uint8 calChecksum(uint8 *p, int len)
  * Flash functions for Configuration data
  **************************************************/
 
-uint8 FLASH_readResetCause()
-{
-	uint8 cause = 0;
-
-	halIntState_t intState;
-	HAL_ENTER_CRITICAL_SECTION(intState);
-	MSP430FLASH_read((uint8 *)SYSRSTIV_ADDR, &cause, 1);
-	// 현재 Reset cuase data를 사용하고 있지 않으므로 추가처리는 생략한다.
-	MSP430FLASH_erasePage((uint8 *)SYSRSTIV_ADDR);
-	HAL_EXIT_CRITICAL_SECTION(intState);
-
-	return cause;
-}
-
 static void saveConfig(FlashConfig_t *pInfo)
 {
 	// Info Flash A와 C에 동일한 정보를 저장함
@@ -51,41 +43,40 @@ static void saveConfig(FlashConfig_t *pInfo)
 	halIntState_t intState;
 	HAL_ENTER_CRITICAL_SECTION(intState);
 
-	BOOL result = FALSE;
+	BOOL resultA = FALSE;
 	MSP430FLASH_read((uint8 *)FLASH_SEGA_ADDR, flash, LEN_INFO_FLASH_SECTOR);
 	memcpy(flash, (uint8 *)pInfo, sizeof(FlashConfig_t));
 
 	if (MSP430FLASH_erasePage((uint8 *)FLASH_SEGA_ADDR)) {
 		if (MSP430FLASH_write((uint8 *)FLASH_SEGA_ADDR, flash, LEN_INFO_FLASH_SECTOR)) {
-			result = TRUE;
+			resultA = TRUE;
 		}
 	}
 
 	MSP430FLASH_read((uint8 *)FLASH_SEGC_ADDR, flash, LEN_INFO_FLASH_SECTOR);
 	memcpy(flash, (uint8 *)pInfo, sizeof(FlashConfig_t));
 
+	BOOL resultC = FALSE;
 	if (MSP430FLASH_erasePage((uint8 *)FLASH_SEGC_ADDR)) {
 		if (MSP430FLASH_write((uint8 *)FLASH_SEGC_ADDR, flash, LEN_INFO_FLASH_SECTOR)) {
-			result = TRUE;
+			resultC = TRUE;
 		}
 	}
 
 	HAL_EXIT_CRITICAL_SECTION(intState);
-	if (!result) {
-		OSAL_setEvent(AppTaskId, APP_EVENT_REBOOT);
+	if ((resultA & resultC) == FALSE) {
+		printf("flash fail A(%d), C(%d)\n", resultA, resultC);
 	}
 }
 
-#if NBIOT_DEVICE
-#include "modem.h"
-#endif
-static void readConfig(FlashConfig_t *pInfo)
+static BOOL readConfig(FlashConfig_t *pInfo)
 {
 	// Info Flash A와 C에 저장된 정보를 읽어서 checksum을 확인하여
 	// 저장된 값의 에러 여부를 확인함. 만일 두 부분 중 한 곳의 정보가
 	// 깨져 있다면 에러 없는 부분의 데이터를 복사하여 복구함.
 
 	uint8 flash[LEN_INFO_FLASH_SECTOR];
+	BOOL retVal = TRUE;
 
 	halIntState_t intState;
 
@@ -96,7 +87,7 @@ static void readConfig(FlashConfig_t *pInfo)
 	FlashConfig_t info_a;
 	memcpy((uint8 *)&info_a, flash, sizeof(FlashConfig_t));
 
-	uint8 checksum = calChecksum((uint8 *)&info_a, LEN_FLASH_CONFIG);
+	uint8 checksum = calChecksum((uint8 *)&info_a, offsetof(FlashConfig_t, checksum));
 	BOOL a_valid = (checksum == info_a.checksum) ? TRUE : FALSE;
 
 	HAL_ENTER_CRITICAL_SECTION(intState);
@@ -105,7 +96,7 @@ static void readConfig(FlashConfig_t *pInfo)
 
 	FlashConfig_t info_c;
 	memcpy((uint8 *)&info_c, flash, sizeof(FlashConfig_t));
-	checksum = calChecksum((uint8 *)&info_c, LEN_FLASH_CONFIG);
+	checksum = calChecksum((uint8 *)&info_c, offsetof(FlashConfig_t, checksum));
 	BOOL c_valid = (checksum == info_c.checksum) ? TRUE : FALSE;
 
 	if (a_valid == TRUE && c_valid == TRUE) {
@@ -118,16 +109,16 @@ static void readConfig(FlashConfig_t *pInfo)
 		saveConfig(pInfo);
 	} else {
 		printf("Config: both side are false\n");
-		memcpy((uint8 *)pInfo, (uint8 *)&info_a, sizeof(FlashConfig_t));
+		memset((uint8 *)pInfo, 0, sizeof(FlashConfig_t));
 		pInfo->meterType = W_STANDARD_D;
 		pInfo->meterInterval = 1;
 		pInfo->reportInterval = 6;
-		pInfo->reportRange = pInfo->reportInterval; // default
+		pInfo->reportRange = 6;
 		pInfo->sleepMode = 0;
 		pInfo->riCtrlMode = 0;
-		pInfo->periodMode = 0;
 		pInfo->isShortInterval = 0;
 		pInfo->debugPrint = 0;
+		pInfo->isModemInit = 0;
 
 #if NBIOT_DEVICE
 		ip2hexArray((char *)LG_DEFAULT_FOTA_SERVER_IP, pInfo->fotaIp);
@@ -136,10 +127,10 @@ static void readConfig(FlashConfig_t *pInfo)
 		pInfo->fotaInterval = LG_DEFAULT_FOTA_DAY_INTERVAL;
 		pInfo->dataSkipMode = 1;
 #endif
-
-		memset(pInfo->resetCount, 0, 2);
-		saveConfig(pInfo);
+		retVal = FALSE;
 	}
+
+	return retVal;
 }
 
 static void saveID(FlashId_t *pInfo)
@@ -175,13 +166,14 @@ static void saveID(FlashId_t *pInfo)
 	}
 }
 
-static void readID(FlashId_t *pInfo)
+static BOOL readID(FlashId_t *pInfo)
 {
 	// Info Flash B와 D에 저장된 정보를 읽어서 checksum을 확인하여
 	// 저장된 값의 에러 여부를 확인함. 만일 두 부분 중 한 곳의 정보가
 	// 깨져 있다면 에러 없는 부분의 데이터를 복사하여 복구함.
 
 	uint8 flash[LEN_INFO_FLASH_SECTOR];
+	BOOL retVal = TRUE;
 
 	halIntState_t intState;
 
@@ -192,7 +184,7 @@ static void readID(FlashId_t *pInfo)
 	FlashId_t info_b;
 	memcpy((uint8 *)&info_b, flash, sizeof(FlashId_t));
 
-	uint8 checksum = calChecksum((uint8 *)&info_b, LEN_FLASH_ID);
+	uint8 checksum = calChecksum((uint8 *)&info_b, offsetof(FlashId_t, checksum));
 	BOOL b_valid = (checksum == info_b.checksum) ? TRUE : FALSE;
 
 	HAL_ENTER_CRITICAL_SECTION(intState);
@@ -202,7 +194,7 @@ static void readID(FlashId_t *pInfo)
 	FlashId_t info_d;
 	memcpy((uint8 *)&info_d, flash, sizeof(FlashId_t));
 
-	checksum = calChecksum((uint8 *)&info_d, LEN_FLASH_ID);
+	checksum = calChecksum((uint8 *)&info_d, offsetof(FlashId_t, checksum));
 	BOOL d_valid = (checksum == info_d.checksum) ? TRUE : FALSE;
 
 	if (b_valid == TRUE && d_valid == TRUE) {
@@ -216,6 +208,7 @@ static void readID(FlashId_t *pInfo)
 	} else {
 		memcpy((uint8 *)pInfo, (uint8 *)&info_b, sizeof(FlashId_t));
 		printf("ID: both side are false\n");
+		retVal = FALSE;
 		// 두개의 영역이 모두 깨지더라도 Serial Number는 지우지 않음.
 #if 0
         memset((uint8 *)pInfo, 0xff, sizeof(FlashId_t));
@@ -224,6 +217,7 @@ static void readID(FlashId_t *pInfo)
         saveID(pInfo);
 #endif
 	}
+	return retVal;
 }
 
 void bcd2int(uint8 *pBCD, uint32 *pInt, uint8 nDigit)
@@ -280,7 +274,7 @@ void FLASH_saveConfigInfo(Config_t *config)
 	memcpy(flashID.imei, config->imei, 8);
 #endif
 
-	flashID.checksum = calChecksum((uint8 *)&flashID, LEN_FLASH_ID);
+	flashID.checksum = calChecksum((uint8 *)&flashID, offsetof(FlashId_t, checksum));
 
 	saveID(&flashID);
 
@@ -290,7 +284,6 @@ void FLASH_saveConfigInfo(Config_t *config)
 	flashConfig.meterType = config->meterType;
 	flashConfig.sleepMode = config->sleepMode;
 	flashConfig.riCtrlMode = config->riCtrlMode;
-	flashConfig.periodMode = config->periodMode;
 	flashConfig.meterInterval = config->meterInterval;
 	flashConfig.reportInterval = config->reportInterval;
 	flashConfig.reportRange = config->reportRange;
@@ -307,81 +300,103 @@ void FLASH_saveConfigInfo(Config_t *config)
 	flashConfig.isShortInterval = config->isShortInterval;
 	flashConfig.debugPrint = config->debugPrint;
 
-	memcpy(flashConfig.resetCount, &config->resetCount, 2);
-
 	Date_t date;
 	RTC_read(&date);
 
-	flashConfig.checksum = calChecksum((uint8 *)&flashConfig, LEN_FLASH_CONFIG);
+	flashConfig.checksum = calChecksum((uint8 *)&flashConfig, offsetof(FlashId_t, checksum));
 	saveConfig(&flashConfig);
+
+	saveConfChecksum();
 }
 
 void FLASH_readConfigInfo(Config_t *config)
 {
 	// read others
 	FlashConfig_t flashConfig;
-	readConfig(&flashConfig);
+	uint8 checksum = calChecksum((uint8 *)config, offsetof(Config_t, checksum));
+	char isRamChecksumOk = TRUE;
 
-	config->termModel = MISC_getDeviceType();
-	config->bslModel = MISC_getBslType();
-
-	config->meterType = flashConfig.meterType;
-	config->meterInterval = flashConfig.meterInterval;
-	config->reportInterval = flashConfig.reportInterval;
-	config->reportRange = flashConfig.reportRange;
-
-#if NBIOT_DEVICE
-	sprintf(config->serverIp, "%d.%d.%d.%d", flashConfig.serverIp[0], flashConfig.serverIp[1],
-		flashConfig.serverIp[2], flashConfig.serverIp[3]);
-	memcpy(&config->serverPort, flashConfig.serverPort, 2);
-	sprintf(config->fotaIp, "%d.%d.%d.%d", flashConfig.fotaIp[0], flashConfig.fotaIp[1],
-		flashConfig.fotaIp[2], flashConfig.fotaIp[3]);
-	memcpy(&config->fotaPort, flashConfig.fotaPort, 2);
-	config->fotaInterval = flashConfig.fotaInterval;
-	memcpy(config->serviceCode, flashConfig.serviceCode, 4);
-	config->serviceCode[4] = 0;
-	config->isModemInit = flashConfig.isModemInit;
-	config->dataSkipMode = flashConfig.dataSkipMode;
-	if (config->dataSkipMode > 1) {
-		config->dataSkipMode = 1;
+	if (checksum != config->checksum) {
+		printf("config ram checksum fail\n");
+		memset(config, 0, sizeof(Config_t));
+		isRamChecksumOk = FALSE;
 	}
-#endif
-	config->sleepMode = flashConfig.sleepMode;
-	config->riCtrlMode = flashConfig.riCtrlMode;
-	config->periodMode = flashConfig.periodMode;
-	config->isShortInterval = flashConfig.isShortInterval;
-	config->debugPrint = flashConfig.debugPrint;
 
-	memcpy(&config->resetCount, flashConfig.resetCount, 2);
+	BOOL result_conf = readConfig(&flashConfig);
+
+	if ((result_conf == TRUE) || (isRamChecksumOk == FALSE)) {
+#if NBIOT_DEVICE
+		sprintf(config->serverIp, "%d.%d.%d.%d", flashConfig.serverIp[0],
+			flashConfig.serverIp[1], flashConfig.serverIp[2], flashConfig.serverIp[3]);
+		memcpy(&config->serverPort, flashConfig.serverPort, 2);
+		memcpy(config->serviceCode, flashConfig.serviceCode, 4);
+		config->serviceCode[4] = 0;
+		config->meterType = flashConfig.meterType;
+#endif
+		config->termModel = MISC_getDeviceType();
+		config->bslModel = MISC_getBslType();
+
+		config->meterInterval = flashConfig.meterInterval;
+		config->reportInterval = flashConfig.reportInterval;
+		config->reportRange = flashConfig.reportRange;
+		config->sleepMode = flashConfig.sleepMode;
+		config->riCtrlMode = flashConfig.riCtrlMode;
+		config->isShortInterval = flashConfig.isShortInterval;
+		config->debugPrint = flashConfig.debugPrint;
+		config->dataSkipMode = flashConfig.dataSkipMode;
+#if NBIOT_DEVICE
+		sprintf(config->fotaIp, "%d.%d.%d.%d", flashConfig.fotaIp[0], flashConfig.fotaIp[1],
+			flashConfig.fotaIp[2], flashConfig.fotaIp[3]);
+		memcpy(&config->fotaPort, flashConfig.fotaPort, 2);
+		config->fotaInterval = flashConfig.fotaInterval;
+		config->isModemInit = flashConfig.isModemInit;
+#endif
+	}
 
 	// read serial number
 	FlashId_t flashID;
-	readID(&flashID);
-
+	BOOL result_id = readID(&flashID);
+	if ((result_id == TRUE) || (isRamChecksumOk == FALSE)) {
 #if defined(AUX_REPEATER)
-	memcpy(&config->pan_id, &flashID.pan_id, 2);
-	memcpy(&config->nwk_addr, &flashID.nwk_addr, 4);
+		memcpy(&config->pan_id, &flashID.pan_id, 2);
+		memcpy(&config->nwk_addr, &flashID.nwk_addr, 4);
 
-	int zeroPos = getFirstZeroPosition(flashID.nwk_addr);
-	uint8 addr[4];
-	memcpy(addr, &flashID.nwk_addr, 4);
-	addr[zeroPos] = flashID.slaveId;
-	memcpy(&config->slaveNwk, addr, 4);
-	config->havePushButton = MISC_findPushButton();
+		int zeroPos = getFirstZeroPosition(flashID.nwk_addr);
+		uint8 addr[4];
+		memcpy(addr, &flashID.nwk_addr, 4);
+		addr[zeroPos] = flashID.slaveId;
+		memcpy(&config->slaveNwk, addr, 4);
 #endif
 
 #if LORA_DEVICE
-	memcpy(config->devEui, flashID.devEui, 8);
+		memcpy(config->devEui, flashID.devEui, 8);
 #else // NBIOT_DEVICE
-	memcpy(config->imei, flashID.imei, 8);
+		memcpy(config->imei, flashID.imei, 8);
+#endif
+		memcpy(config->serialNum, flashID.serialNum, SERIAL_NUM_LEN);
+	}
+
+#if defined(AUX_REPEATER)
+	config->havePushButton = MISC_findPushButton();
 #endif
 
-	memcpy(config->serialNum, flashID.serialNum, SERIAL_NUM_LEN);
 	int serialBase = ascii2Hex(config->serialNum[8]) * 1000 +
 			 ascii2Hex(config->serialNum[9]) * 100 +
 			 ascii2Hex(config->serialNum[10]) * 10 + ascii2Hex(config->serialNum[11]);
-
 	distributingReportTime(serialBase, config);
+
+	if ((result_id & result_conf) == FALSE) {
+		FLASH_saveConfigInfo(config);
+	}
+
+	if (isRamChecksumOk == FALSE) {
+		saveConfChecksum();
+	}
+}
+
+void saveConfChecksum()
+{
+	conf.checksum = calChecksum((uint8 *)&conf, offsetof(Config_t, checksum));
 }
 
 void ip2hexArray(char *ip, uint8 *hexIp)
@@ -410,7 +425,7 @@ void FLASH_updateResetCount(Config_t *config)
 {
 	if (config->resetCount < 65000) {
 		config->resetCount++;
-		FLASH_saveConfigInfo(config);
+		saveConfChecksum();
 	}
 }
 
@@ -450,14 +465,14 @@ uint8 ascii2Hex(char ch)
 
 void distributingReportTime(int serialBase, Config_t *config)
 {
-#if 1 // sholee
-	int nSpread = config->reportRange * 50;
-#else
-	int nSpread = config->reportInterval * 50;
-#endif
+	if (config->reportRange == 0) {
+		config->reportRange = config->reportInterval;
+	}
 
-	config->reportSec = ((serialBase / nSpread) % 4) *
-			    15; // 같은 '분'에 보고하는 단말기들간에 시간을 15초 단위로 4개로 나눔
+	int nSpread = config->reportRange * 50;
+
+	// 같은 '분'에 보고하는 단말기들간에 시간을 15초 단위로 4개로 나눔
+	config->reportSec = ((serialBase / nSpread) % 4) * 15;
 	serialBase %= nSpread;
 
 	config->intervalBaseTime = serialBase / 50;

@@ -13,21 +13,13 @@
 /**
  * @brief Define firmware main version. It depends on the product family.
  */
-// #if defined(NBIOT_MODEM_TPB23)
-// #if defined(AUX_REPEATER)
-// #define FW_VER_MAIN "6"
-// #define FIRMWARE_VER "U" FW_VER_MAIN "19" //TODO
-// #else
-// #define FW_VER_MAIN "2"
-// #define FIRMWARE_VER "U" FW_VER_MAIN "19" //TODO
-// #endif
 #if defined(NBIOT_MODEM_BC95G)
 #if defined(AUX_REPEATER)
 #define FW_VER_MAIN "7"
 #define FIRMWARE_VER "U" FW_VER_MAIN "01"
 #else
 #define FW_VER_MAIN "3"
-#define FIRMWARE_VER "U" FW_VER_MAIN "25"
+#define FIRMWARE_VER "U" FW_VER_MAIN "26"
 #endif
 #else
 #error "NB-IoT Modem model is not defined. please define V120 or V150."

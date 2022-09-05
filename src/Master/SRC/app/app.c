@@ -1,4 +1,5 @@
 #ifndef TDD_TEST
+#include "msp430f5419a.h"
 #include <msp430.h>
 #include <ctype.h>
 
@@ -24,16 +25,18 @@
 #include "modem.h"
 #include "nfcProtocol.h"
 #include "dataFlash.h"
+#include "fota.h"
 
 #if defined(AUX_REPEATER)
 #include "slaveAccess.h"
 #include "cc1200.h"
 #endif
 
-uint8 AppTaskId;
+uint8 AppTaskId = 0;
 uint8 AppProcess = APP_IDLE;
+#pragma NOINIT(conf)
 Config_t conf;
-Metering_t Metering;
+Metering_t Metering = { 0 };
 
 void APP_showConfig(Config_t *p)
 {
@@ -49,7 +52,7 @@ void APP_showConfig(Config_t *p)
 #endif
 	printf("===========================================\n");
 	printf(" [ Model      ] %s \n", TERM_MODEL_STRING(p->termModel));
-	printf(" [ Build      ] %s %s (%s)\n", __DATE__, __TIME__, FIRMWARE_VER);
+	printf(" [ FW Ver     ] %s\n", FIRMWARE_VER);
 	printf(" [ S/N        ] %s\n", serial);
 #if LORA_DEVICE
 	printf(" [ Device EUI ] %02x%02x%02x-%02x%02x-%02x%02x%02x\n", p->devEui[0], p->devEui[1],
@@ -64,10 +67,11 @@ void APP_showConfig(Config_t *p)
 	printf(" [ FOTA       ] %s : %d, %dday\n", p->fotaIp, p->fotaPort, p->fotaInterval);
 #endif
 #endif
-	if (p->isShortInterval) {
+	if (p->isShortInterval == 1) {
 		printf(" [ MI & RI    ] %d (minutes)\n", p->reportInterval);
 		printf(" [ Base Min   ] %d min\n", p->reportMin);
 	} else {
+		p->isShortInterval = 0;
 		printf(" [ MI/RI/SI   ] %d/%d/%d (hours)\n", p->meterInterval, p->reportInterval,
 		       METER_DATA_SAVE_INTERVAL);
 		printf(" [ Report Hour] ");
@@ -85,19 +89,20 @@ void APP_showConfig(Config_t *p)
 		printf(" [ Report Min ] %d (%d sec)\n", p->reportMin, p->reportSec);
 	}
 	printf(" [ RI Control ] %s \n", (p->riCtrlMode > 0) ? "On" : "Off");
-	printf(" [ PeriodMode ] %s \n", (p->periodMode > 0) ? "On" : "Off");
 	printf(" [ Meter Type ] %s\n", METER_getMeterName(p->meterType));
 	printf(" [ Operating  ] %s\n", p->sleepMode ? "Sleep" : "Active");
 	uint8 batt = BATT_getLastVoltage();
 	printf(" [ Battery    ] %d.%dV\n", batt / 10, batt % 10);
+	printf(" [ BSL Model  ] %d\n", p->bslModel);
 	printf(" [ Reset Count] %d times\n", p->resetCount);
 #define DEBUG_OFF 0
 #define DEBUG_JTAG 1
 #define DEBUG_METER 2
 #define DEBUG_STATUS_STR(x)                                                                        \
-	(((x) == DEBUG_OFF) ?                                                                      \
-		 "OFF" :                                                                           \
-		 ((x) == DEBUG_JTAG) ? "JTAG" : ((x) == DEBUG_METER) ? "METER" : "UNKNOWN")
+	(((x) == DEBUG_OFF)   ? "OFF" :                                                            \
+	 ((x) == DEBUG_JTAG)  ? "JTAG" :                                                           \
+	 ((x) == DEBUG_METER) ? "METER" :                                                          \
+				"UNKNOWN")
 	printf(" [ Debug Out  ] %s(%s)\n", p->debugPrint ? "On" : "Off",
 	       DEBUG_STATUS_STR(p->debugPrint));
 	printf(" [ Dataskip   ] %d, (0:24hour), (1:4day)\n", p->dataSkipMode);
@@ -135,34 +140,45 @@ void REBOOT_SYSTEM()
 __interrupt void RTC_ISR(void)
 {
 	if (RTCIV & RTCAIFG) {
-		RTCIV &= ~(RTCAIFG);
+		if (Fota.Status == 1) {
+			LPM3_EXIT;
+			RTCIV = 0;
+			return;
+		}
+
 		WAKEUP_DEVICE();
 		OSAL_setEvent(AppTaskId, APP_EVENT_RTC_ALARM);
 	}
+
+	RTCIV = 0;
 }
 
 // Port 1 interrupt service routine - NFC
 #pragma vector = PORT1_VECTOR
 __interrupt void Port_1(void)
 {
+	if (Fota.Status == 1) {
+		PORT1_IFG = 0;
+		return;
+	}
+
 	if (PORT1_IFG & BM(PORT_NFC_TAG)) {
-		PORT1_IFG &= ~BM(PORT_NFC_TAG);
 		NFC_tagDetect();
 		OSAL_startEventTimer(AppTaskId, APP_EVENT_NFC_WAIT, (uint32)700);
 		WAKEUP_DEVICE();
 
 		NFCAPP_clearAsyncCmd();
+		PORT1_IFG &= ~BM(PORT_NFC_TAG);
 	}
 
 	if (PORT1_IFG & BM(PORT_NFC_FD_IN)) {
-		PORT1_IFG &= ~BM(PORT_NFC_FD_IN);
 		NFC_recvMessage();
 		OSAL_startEventTimer(AppTaskId, APP_EVENT_NFC_WAIT, (uint32)700);
+		PORT1_IFG &= ~BM(PORT_NFC_FD_IN);
 	}
 
 #if defined(AUX_REPEATER)
 	if (PORT1_IFG & BM(PORT_LCD_SWITCH)) {
-		PORT1_IFG &= ~BM(PORT_LCD_SWITCH);
 		if (conf.havePushButton) {
 			OSAL_stopEventTimer(AppTaskId, APP_EVENT_SENSOR_REED);
 			if (TEST_isTestMode() == TRUE) {
@@ -170,23 +186,30 @@ __interrupt void Port_1(void)
 			} else {
 				OSAL_startEventTimer(AppTaskId, APP_EVENT_SENSOR_REED, (uint32)500);
 			}
-			WAKEUP_DEVICE();
 		}
+		PORT1_IFG &= ~BM(PORT_LCD_SWITCH);
 	}
 #endif
+	PORT1_IFG = 0;
 }
 
 // Port 2 interrupt service routine - Reed, Tamper, Flood
 #pragma vector = PORT2_VECTOR
 __interrupt void Port_2(void)
 {
-	if (PORT_SENSOR_IFG & BM(PORT_LCD_SWITCH)) {
-		// lora ´Ü¸»±â¿¡´Â push button switch°¡ ´Ş·ÁÀÖÁö ¾ÊÀ½
-		PORT_SENSOR_IFG &= ~BM(PORT_LCD_SWITCH);
+	if (Fota.Status == 1) {
+		PORT_SENSOR_IFG = 0;
+		return;
 	}
 
+#if defined(AUX_REPEATER)
+	if (PORT_SENSOR_IFG & BM(PORT_LCD_SWITCH)) {
+		// lora ë‹¨ë§ê¸°ì—ëŠ” push button switchê°€ ë‹¬ë ¤ìˆì§€ ì•ŠìŒ
+		PORT_SENSOR_IFG &= ~BM(PORT_LCD_SWITCH);
+	}
+#endif
+
 	if (PORT_SENSOR_IFG & BM(PORT_SENSOR_REED)) {
-		PORT_SENSOR_IFG &= ~BM(PORT_SENSOR_REED); // P1.2 IFG cleared
 		OSAL_stopEventTimer(AppTaskId, APP_EVENT_SENSOR_REED);
 		if (TEST_isTestMode() == TRUE) {
 			OSAL_startEventTimer(AppTaskId, APP_EVENT_SENSOR_REED, (uint32)10);
@@ -194,20 +217,20 @@ __interrupt void Port_2(void)
 			OSAL_startEventTimer(AppTaskId, APP_EVENT_SENSOR_REED, (uint32)500);
 		}
 		WAKEUP_DEVICE();
+		PORT_SENSOR_IFG &= ~BM(PORT_SENSOR_REED); // P1.2 IFG cleared
 	}
 
 #if defined(AUX_REPEATER)
 	// CC1200 tx/rx interrupt
 	if (PORT_SENSOR_IFG & BM(PORT_CC1200_GPIO0)) {
-		PORT_SENSOR_IFG &= ~BM(PORT_CC1200_GPIO0);
-
 		if (SLAVE_getAccessState() == SLAVE_ACCESS_IDLE &&
 		    CC1200_getRfMode() == RF_MODE_RX) {
-			// Rx µ¿ÀÛÀº Slave operatingÀÌ ¾Æ´Ñ °æ¿ì ¾²·¹±â °ªÀ¸·Î °£ÁÖÇÏ°í ±× ¿Ü¿¡´Â ¸ğµÎ Ã³¸®.
-			// (Slave¿¡ ´ëÇÑ ACK Àü¼Û Ã³¸®°¡ Interrupt¿¡ ÀÇÇÑ ºñµ¿±â·Î Ã³¸®µÇ¹Ç·Î
-			//  Slave operatingÀÌ ¾Æ´Ï´õ¶óµµ ISR¿¡ ÀÇÇÑ Ã³¸®°¡ ÇÊ¿ä.)
+			// Rx ë™ì‘ì€ Slave operatingì´ ì•„ë‹Œ ê²½ìš° ì“°ë ˆê¸° ê°’ìœ¼ë¡œ ê°„ì£¼í•˜ê³  ê·¸ ì™¸ì—ëŠ” ëª¨ë‘ ì²˜ë¦¬.
+			// (Slaveì— ëŒ€í•œ ACK ì „ì†¡ ì²˜ë¦¬ê°€ Interruptì— ì˜í•œ ë¹„ë™ê¸°ë¡œ ì²˜ë¦¬ë˜ë¯€ë¡œ
+			//  Slave operatingì´ ì•„ë‹ˆë”ë¼ë„ ISRì— ì˜í•œ ì²˜ë¦¬ê°€ í•„ìš”.)
 			if (TEST_isTestMode() == FALSE) {
-				// Test modeÀÎ °æ¿ì ¸ğµÎ Ã³¸®.
+				// Test modeì¸ ê²½ìš° ëª¨ë‘ ì²˜ë¦¬.
+				PORT_SENSOR_IFG &= ~BM(PORT_CC1200_GPIO0);
 				return;
 			}
 		}
@@ -230,8 +253,10 @@ __interrupt void Port_2(void)
 			}
 			SLAVE_activeStart(10);
 		}
+		PORT_SENSOR_IFG &= ~BM(PORT_CC1200_GPIO0);
 	}
 #endif
+	PORT_SENSOR_IFG = 0;
 }
 
 #pragma vector = UNMI_VECTOR
@@ -252,18 +277,20 @@ __interrupt void UNMI_ISR(void)
 		SFRIFG1 &= ~VMAIFG;
 		SYSTEM_RESET();
 	}
+
+	SFRIFG1 = 0;
 }
 
 #if !defined(AUX_REPEATER)
 static void ctrlReportInterval()
 {
-#define RI_CTRL_MAX_THRESHOLD 3 // ÃÖÁ¾ ¹İ¿µ È½¼ö
+#define RI_CTRL_MAX_THRESHOLD 3 // ìµœì¢… ë°˜ì˜ íšŸìˆ˜
 #if LORA_DEVICE
-#define RI_CTRL_DEC_SIG_QUAL 90 // º¸°íÁÖ±â °¨¼Ò ±âÁØ °ª
-#define RI_CTRL_INC_SIG_QUAL 120 // º¸°íÁÖ±â Áõ°¡ ±âÁØ °ª
+#define RI_CTRL_DEC_SIG_QUAL 90 // ë³´ê³ ì£¼ê¸° ê°ì†Œ ê¸°ì¤€ ê°’
+#define RI_CTRL_INC_SIG_QUAL 120 // ë³´ê³ ì£¼ê¸° ì¦ê°€ ê¸°ì¤€ ê°’
 #else
-#define RI_CTRL_DEC_SIG_QUAL 105 // º¸°íÁÖ±â °¨¼Ò ±âÁØ °ª
-#define RI_CTRL_INC_SIG_QUAL 110 // º¸°íÁÖ±â Áõ°¡ ±âÁØ °ª
+#define RI_CTRL_DEC_SIG_QUAL 105 // ë³´ê³ ì£¼ê¸° ê°ì†Œ ê¸°ì¤€ ê°’
+#define RI_CTRL_INC_SIG_QUAL 110 // ë³´ê³ ì£¼ê¸° ì¦ê°€ ê¸°ì¤€ ê°’
 #endif
 
 	if (!conf.riCtrlMode) {
@@ -275,7 +302,7 @@ static void ctrlReportInterval()
 	int error = MODEM_getStateOrResult();
 	switch (error) {
 #if LORA_DEVICE
-	// LoRaÀÇ °æ¿ì GET TIME ½ÇÆĞµµ µ¥ÀÌÅÍ Àü¼ÛÀº ¼º°øÇÑ °ÍÀÌ¹Ç·Î Åë½Å¼º°øÀ¸·Î °£ÁÖÇÑ´Ù.
+	// LoRaì˜ ê²½ìš° GET TIME ì‹¤íŒ¨ë„ ë°ì´í„° ì „ì†¡ì€ ì„±ê³µí•œ ê²ƒì´ë¯€ë¡œ í†µì‹ ì„±ê³µìœ¼ë¡œ ê°„ì£¼í•œë‹¤.
 	case ERROR_CODE_GET_TIME:
 #endif
 	case ERROR_CODE_NONE: {
@@ -293,7 +320,7 @@ static void ctrlReportInterval()
 		}
 	} break;
 #if LORA_DEVICE
-	// LoRaÀÇ °æ¿ì Join ½ÇÆĞµµ Åë½Å½ÇÆĞ·Î °£ÁÖÇÑ´Ù.
+	// LoRaì˜ ê²½ìš° Join ì‹¤íŒ¨ë„ í†µì‹ ì‹¤íŒ¨ë¡œ ê°„ì£¼í•œë‹¤.
 	case ERROR_CODE_NOT_JOINED:
 #endif
 	case ERROR_CODE_COMM: {
@@ -301,7 +328,7 @@ static void ctrlReportInterval()
 	} break;
 
 	default:
-		// conf.riCtrlChgCount °ª À¯Áö.
+		// conf.riCtrlChgCount ê°’ ìœ ì§€.
 		break;
 	}
 
@@ -373,28 +400,27 @@ void APP_init(uint8 taskId)
 		PRINT_stop();
 		PRINT_disable();
 	}
-	// Flash memory¿¡ ÀúÀåµÈ µ¥ÀÌÅÍ Á¡°Ë
+	// Flash memoryì— ì €ì¥ëœ ë°ì´í„° ì ê²€
 #if !defined(AUX_REPEATER)
 	dataFlash_init();
 #endif
 
 	MODEM_initialization();
 
-	// ÃÊ±âÈ­ Á÷ÈÄ LCD¿¡ Æß¿ş¾î ¹öÀüÀ» Ç¥½Ã
+	// ì´ˆê¸°í™” ì§í›„ LCDì— íŒì›¨ì–´ ë²„ì „ì„ í‘œì‹œ
 	LCD_clear();
 	LCD_displayFirmwareVersion();
 	MISC_delayMs(500);
 
 	if (conf.sleepMode) {
-		// NFCÅë½Å ÈÄ Sleep¿©ºÎ¿¡ µû¶ó H¸¶Å©¸¦ Ç¥½ÃÈ÷ÀÚ¸¸,
-		// H/W ResetÀÌ ¹ß»ıÇÒ °æ¿ì H¸¶Å©°¡ ÃÊ±âÈ­µÇ±â ¶§¹®¿¡
-		// Sleep ¸ğµåÀÎ °æ¿ì¿¡¸¸ H¸¶Å© Onµ¿ÀÛÀ» ¼öÇàÇÑ´Ù.
+		// NFCí†µì‹  í›„ Sleepì—¬ë¶€ì— ë”°ë¼ Hë§ˆí¬ë¥¼ í‘œì‹œíˆìë§Œ,
+		// H/W Resetì´ ë°œìƒí•  ê²½ìš° Hë§ˆí¬ê°€ ì´ˆê¸°í™”ë˜ê¸° ë•Œë¬¸ì—
+		// Sleep ëª¨ë“œì¸ ê²½ìš°ì—ë§Œ Hë§ˆí¬ Onë™ì‘ì„ ìˆ˜í–‰í•œë‹¤.
 		if (SMART_WATER_METER(conf.termModel)) {
-			MISC_delayMs(1500); // °ËÄ§±â MCU ºÎÆÃ ¹× Åë½Å ÁØºñ½Ã°£ ´ë±â
+			MISC_delayMs(1500); // ê²€ì¹¨ê¸° MCU ë¶€íŒ… ë° í†µì‹  ì¤€ë¹„ì‹œê°„ ëŒ€ê¸°
 			METER_std_lcdMarkReq(conf.sleepMode);
 			MISC_delayMs(100);
 		}
-		APP_prepareToSleep();
 		return;
 	}
 
@@ -413,7 +439,7 @@ static void meteringCompleted()
 	}
 
 	if (AppProcess != APP_IDLE) {
-		// APP process°¡ IDLEÀÌ ¾Æ´Ï´õ¶óµµ ÃÊ±â º¸°í ÀıÂ÷´Â ¹«Á¶°Ç ¼öÇà.
+		// APP processê°€ IDLEì´ ì•„ë‹ˆë”ë¼ë„ ì´ˆê¸° ë³´ê³  ì ˆì°¨ëŠ” ë¬´ì¡°ê±´ ìˆ˜í–‰.
 		if (Metering.meteringType == INITIAL_METERING) {
 			MODEM_close();
 		} else {
@@ -428,14 +454,11 @@ static void meteringCompleted()
 		MODEM_open(APP_IMMEDIATE_REPORT);
 	}
 #if defined(AUX_REPEATER)
-	// º¸Á¶Áß°è±â·Î ¾²ÀÏ¶§¿¡´Â slave ÁÖ±â °ËÄ§ Á÷ÈÄ report.
+	// ë³´ì¡°ì¤‘ê³„ê¸°ë¡œ ì“°ì¼ë•Œì—ëŠ” slave ì£¼ê¸° ê²€ì¹¨ ì§í›„ report.
 	else if (Metering.meteringType == PERIODIC_METERING) {
 		MODEM_open(APP_PERIODIC_REPORT);
 	}
 #endif
-	else {
-		APP_prepareToSleep();
-	}
 }
 
 #if defined(AUX_REPEATER)
@@ -443,17 +466,11 @@ static void meteringCompleted()
 void APP_slaveAccessCompleted()
 {
 	printf_ts("Slave access complete\n");
-	// Metering.inProcess = 0;
-	// Metering.success = 1;
-	APP_prepareToSleep();
 }
 
 void APP_slaveAccessFailed()
 {
 	printf_ts("Slave access fail\n");
-	// Metering.inProcess = 0;
-	// Metering.success = 0;
-	APP_prepareToSleep();
 }
 
 void APP_slaveMeteringCompleted()
@@ -463,10 +480,10 @@ void APP_slaveMeteringCompleted()
 	Metering.success = 1;
 	Metering.slaveMeteringError = ERROR_NONE;
 
-	// Slave °ËÄ§ ÈÄ LCD¿¡ °ËÄ§µ¥ÀÌÅÍ¸¦ Ç¥½ÃÇÒ ¶§ LCD Icon Á¤º¸°¡ ¾øÀ¸¹Ç·Î
-	// ±âº» Icon Á¤º¸¸¦ ¼³Á¤ÇÑ ÈÄ LCD¿¡ Ç¥½ÃÇÔ.
+	// Slave ê²€ì¹¨ í›„ LCDì— ê²€ì¹¨ë°ì´í„°ë¥¼ í‘œì‹œí•  ë•Œ LCD Icon ì •ë³´ê°€ ì—†ìœ¼ë¯€ë¡œ
+	// ê¸°ë³¸ Icon ì •ë³´ë¥¼ ì„¤ì •í•œ í›„ LCDì— í‘œì‹œí•¨.
 	if (Metering.meteringType == PERIODIC_METERING) {
-		// ÃÖÃÊ ÁÖ±âµ¿ÀÛ¿¡¼­ Slave°¡ °ËÄ§µ¥ÀÌÅÍ¸¦ ¾ÈÁÙ ¼ö ÀÖÀ½.
+		// ìµœì´ˆ ì£¼ê¸°ë™ì‘ì—ì„œ Slaveê°€ ê²€ì¹¨ë°ì´í„°ë¥¼ ì•ˆì¤„ ìˆ˜ ìˆìŒ.
 		if (METER_getNumberOfStoredData() > 0) {
 			MeterUnitData_t *unit = METER_getLastData();
 			unit->icon.fArrow = 1;
@@ -510,10 +527,10 @@ void APP_slaveMeteringFailed(int resultCode)
 			void meteringUpdateData(BOOL isSuccess, MeterUnitData_t * unit);
 			meteringUpdateData(FALSE, &unit);
 		} else {
-			// Åë½Å ºÒ·®ÀÌ ¹ß»ıÇÏ¸é ±× µ¿¾È ÀúÀåµÇ¾î ÀÖ´ø µ¥ÀÌÅÍ¸¦ ¸ğµÎ Áö¿ò
-			// ¼­¹ö·Î Àü¼ÛÇÏ´Â µ¥ÀÌÅÍ ÇÁ·¹ÀÓ¿¡´Â M-S°£ Åë½Å ºÒ·®À» ³Ö¾î ÁÙ ¹æ¹ıÀÌ ¾øÀ½
-			// ¸¸¾à ÀúÀåµÈ µ¥ÀÌÅÍ¸¦ Áö¿ìÁö ¾ÊÀ¸¸é Åë½Å ºÒ·® ÈÄ Á¤»óÀ¸·Î ¼ö½ÅµÈ µ¥ÀÌÅÍ¿Í ¹­¾î
-			// Àü¼ÛÇÒ ¶§ Åë½Å ºÒ·® Á÷ÀüÀÇ µ¥ÀÌÅÍÀÇ °ËÄ§ ½Ã°£ÀÌ ¿Ö°îµÉ ¼ö ÀÖÀ½
+			// í†µì‹  ë¶ˆëŸ‰ì´ ë°œìƒí•˜ë©´ ê·¸ ë™ì•ˆ ì €ì¥ë˜ì–´ ìˆë˜ ë°ì´í„°ë¥¼ ëª¨ë‘ ì§€ì›€
+			// ì„œë²„ë¡œ ì „ì†¡í•˜ëŠ” ë°ì´í„° í”„ë ˆì„ì—ëŠ” M-Sê°„ í†µì‹  ë¶ˆëŸ‰ì„ ë„£ì–´ ì¤„ ë°©ë²•ì´ ì—†ìŒ
+			// ë§Œì•½ ì €ì¥ëœ ë°ì´í„°ë¥¼ ì§€ìš°ì§€ ì•Šìœ¼ë©´ í†µì‹  ë¶ˆëŸ‰ í›„ ì •ìƒìœ¼ë¡œ ìˆ˜ì‹ ëœ ë°ì´í„°ì™€ ë¬¶ì–´
+			// ì „ì†¡í•  ë•Œ í†µì‹  ë¶ˆëŸ‰ ì§ì „ì˜ ë°ì´í„°ì˜ ê²€ì¹¨ ì‹œê°„ì´ ì™œê³¡ë  ìˆ˜ ìˆìŒ
 			METER_clearStoredData();
 		}
 	} else {
@@ -537,25 +554,25 @@ void APP_slaveMeteringFailed(int resultCode)
 void APP_runMetering(int meteringType)
 {
 #if defined(AUX_REPEATER)
-	if (SLAVE_getAccessState() != SLAVE_ACCESS_IDLE) // ÇöÀç Slave µ¿ÀÛ ÁßÀÏ °æ¿ì °ËÄ§ÇÏÁö ¾ÊÀ½.
+	if (SLAVE_getAccessState() != SLAVE_ACCESS_IDLE) // í˜„ì¬ Slave ë™ì‘ ì¤‘ì¼ ê²½ìš° ê²€ì¹¨í•˜ì§€ ì•ŠìŒ.
 #else
-	if (Metering.inProcess) // ÇöÀç °ËÄ§ÁßÀÌ¸é Àç °ËÄ§ÇÏÁö ¾ÊÀ½
+	if (Metering.inProcess) // í˜„ì¬ ê²€ì¹¨ì¤‘ì´ë©´ ì¬ ê²€ì¹¨í•˜ì§€ ì•ŠìŒ
 #endif
 	{
 		return;
 	}
 
-	// INITIAL_METERING °ú PERIODIC_METERINGÀº ¹«Á¶°Ç Ã³¸®ÇÏ³ª Áï½Ã °ËÄ§Àº È®ÀÎ ÇÊ¿ä
+	// INITIAL_METERING ê³¼ PERIODIC_METERINGì€ ë¬´ì¡°ê±´ ì²˜ë¦¬í•˜ë‚˜ ì¦‰ì‹œ ê²€ì¹¨ì€ í™•ì¸ í•„ìš”
 	if (meteringType == IMMEDIATE_METERING || meteringType == IMMEDIATE_METERING_FOR_REPORT) {
 #if defined(AUX_REPEATER)
 		if (SLAVE_needToUpdateMeterInfo() ==
-		    FALSE) // Meter Info update¿¡ ´ëÇÑ Interval È®ÀÎ.
+		    FALSE) // Meter Info updateì— ëŒ€í•œ Interval í™•ì¸.
 #else
 		if (METER_needNewMetering(10) ==
-		    0) // Áï½Ã °ËÄ§ÀÇ °æ¿ì¿¡´Â 10ÃÊ ÀÌÇÏÀÌ¸é Àç °ËÄ§ÇÏÁö ¾ÊÀ½.
+		    0) // ì¦‰ì‹œ ê²€ì¹¨ì˜ ê²½ìš°ì—ëŠ” 10ì´ˆ ì´í•˜ì´ë©´ ì¬ ê²€ì¹¨í•˜ì§€ ì•ŠìŒ.
 #endif
 		{
-			// Áï½Ã °ËÄ§ÀÇ °æ¿ì¿¡´Â 10ÃÊ ÀÌÇÏÀÌ¸é Àç °ËÄ§ÇÏÁö ¾ÊÀ½
+			// ì¦‰ì‹œ ê²€ì¹¨ì˜ ê²½ìš°ì—ëŠ” 10ì´ˆ ì´í•˜ì´ë©´ ì¬ ê²€ì¹¨í•˜ì§€ ì•ŠìŒ
 			Metering.meteringType = meteringType;
 			meteringCompleted();
 			return;
@@ -571,7 +588,7 @@ void APP_runMetering(int meteringType)
 
 	Metering.nRetry = 3;
 	if (meteringType == IMMEDIATE_METERING || meteringType == IMMEDIATE_METERING_FOR_REPORT) {
-		// ÀÚ¼®À» ´í °æ¿ì ¸¶Áö¸·¿¡ ¹ÌÅÍ Å¸ÀÔÀ» ¹Ù²Ù¾î ÇÑ ¹ø ´õ ½ÃµµÇØ º¸±â À§ÇØ 4È¸·Î ´Ã¸².
+		// ìì„ì„ ëŒ„ ê²½ìš° ë§ˆì§€ë§‰ì— ë¯¸í„° íƒ€ì…ì„ ë°”ê¾¸ì–´ í•œ ë²ˆ ë” ì‹œë„í•´ ë³´ê¸° ìœ„í•´ 4íšŒë¡œ ëŠ˜ë¦¼.
 		Metering.nRetry = 4;
 	}
 
@@ -582,29 +599,6 @@ void APP_runMetering(int meteringType)
 	METER_sendRequest(Metering.meterType);
 	OSAL_startEventTimer(AppTaskId, APP_EVENT_METER_TIMEOUT, (uint32)1500);
 #endif
-}
-
-// NFC tag ¼³Á¤ È®ÀÎ ¹× º¹±¸ code.
-void APP_runPeriodicCheckNFC()
-{
-	NFC_tagDisable();
-	NFC_fdDisable();
-
-	PORT1_DIR |= BM(PORT_NFC_TAG);
-	PORT1_OUT |= BM(PORT_NFC_TAG);
-
-	if (NFC_checkTagSetting()) {
-		printf("NFC TAG setting check - OK\n");
-	} else {
-		printf("NFC TAG setting check - FAIL\n");
-		if (NFC_factoryResetTag()) {
-			printf("TAG RESET - OK\n");
-		} else {
-			printf("TAG RESET - FAIL\n");
-		}
-	}
-
-	NFC_init();
 }
 
 void APP_runPeriodicReport()
@@ -623,14 +617,9 @@ void meteringUpdateData(BOOL isSuccess, MeterUnitData_t *unit)
 	RTC_read(&date);
 	switch (Metering.meteringType) {
 	case PERIODIC_METERING:
-		unit->sec = 0; // ÁÖ±â°ËÄ§ÀÇ °æ¿ì ÃÊ´ÜÀ§´Â 0À¸·Î ¼³Á¤ÇÑ´Ù.
+		unit->sec = 0; // ì£¼ê¸°ê²€ì¹¨ì˜ ê²½ìš° ì´ˆë‹¨ìœ„ëŠ” 0ìœ¼ë¡œ ì„¤ì •í•œë‹¤.
 		METER_addStoredData(&date, unit);
 		METER_displayStoredData();
-		break;
-	case PERIODIC_METERING_FOR_SAVE:
-		if (conf.periodMode) {
-			METER_saveInFlash(&date, unit);
-		}
 		break;
 	default:
 		METER_addTempData(&date, unit);
@@ -649,7 +638,6 @@ void meteringUpdateData(BOOL isSuccess, MeterUnitData_t *unit)
 
 				conf.meterType = Metering.meterType;
 				FLASH_saveConfigInfo(&conf);
-				FLASH_readConfigInfo(&conf);
 			}
 		}
 	}
@@ -657,15 +645,15 @@ void meteringUpdateData(BOOL isSuccess, MeterUnitData_t *unit)
 
 void meteringRetry()
 {
-	LCD_redraw(); // LCDÀÇ ÇÁ·ÎÆç·¯ È¸ÀüÀ» ÁßÁöÇÏ±â À§ÇÔ.
+	LCD_redraw(); // LCDì˜ í”„ë¡œí ëŸ¬ íšŒì „ì„ ì¤‘ì§€í•˜ê¸° ìœ„í•¨.
 
 	if (--Metering.nRetry > 0) {
-		MISC_delayMs(100); // ¾à°£ÀÇ ½Ã°£ gapÀ» ÁØ µÚ Àç°ËÄ§ ½Ãµµ
+		MISC_delayMs(100); // ì•½ê°„ì˜ ì‹œê°„ gapì„ ì¤€ ë’¤ ì¬ê²€ì¹¨ ì‹œë„
 
 		if (Metering.nRetry == 1 &&
 		    (Metering.meteringType == IMMEDIATE_METERING ||
 		     Metering.meteringType == IMMEDIATE_METERING_FOR_REPORT)) {
-			// ¸¶Áö¸· °ËÄ§¿¡¼­ ¹ÌÅÍ Å¸ÀÔÀ» ¹Ù²Ù¾î ÇÑ ¹ø ´õ ½ÃµµÇÔ.
+			// ë§ˆì§€ë§‰ ê²€ì¹¨ì—ì„œ ë¯¸í„° íƒ€ì…ì„ ë°”ê¾¸ì–´ í•œ ë²ˆ ë” ì‹œë„í•¨.
 			if (Metering.meterType == W_STANDARD_D) {
 				Metering.meterType = W_SHINHAN_D;
 			} else if (Metering.meterType == W_SHINHAN_D ||
@@ -717,7 +705,6 @@ static void meteringRecvResp()
 static void meteringTimeout()
 {
 	if (conf.sleepMode) {
-		APP_prepareToSleep();
 		return;
 	}
 
@@ -770,12 +757,9 @@ event32_t APP_tasks(uint8 taskId, event32_t events)
 		if (SLAVE_isTimeSync() == FALSE && RTC_isTimeSync()) {
 			MODEM_close();
 			SLAVE_updateTimeSync();
-		} else {
-			APP_prepareToSleep();
 		}
 #else
 		ctrlReportInterval();
-		APP_prepareToSleep();
 #endif
 		return (events ^ APP_EVENT_MODEM_POWER_OFF);
 	}
@@ -827,9 +811,9 @@ event32_t APP_tasks(uint8 taskId, event32_t events)
 
 	if (events & APP_EVENT_CHANGE_CONFIG) {
 		if (SMART_WATER_METER(conf.termModel)) {
-			// SWMÀÎ °æ¿ì sleep ¸ğµå¿¡ µû¶ó H¸¶Å© on/off
+			// SWMì¸ ê²½ìš° sleep ëª¨ë“œì— ë”°ë¼ Hë§ˆí¬ on/off
 			METER_std_lcdMarkReq(conf.sleepMode);
-			MISC_delayMs(100); // UART Àü¼Û¿Ï·á ´ë±â.
+			MISC_delayMs(100); // UART ì „ì†¡ì™„ë£Œ ëŒ€ê¸°.
 		}
 		FLASH_saveConfigInfo(&conf);
 		REBOOT_SYSTEM();

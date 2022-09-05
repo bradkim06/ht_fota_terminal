@@ -39,12 +39,12 @@ static struct {
 	int meteringResult;
 	uint8 lastRssi;
 	Date_t lastAccessTime;
-	SlaveAccessState_t state; // ÇöÀç slave access state
-	SlaveAccessState_t lastActiveState; // IDLeÀ» Á¦¿ÜÇÑ µ¿ÀÛ¿Ï·á µÈ state
+	SlaveAccessState_t state; // í˜„ìž¬ slave access state
+	SlaveAccessState_t lastActiveState; // IDLeì„ ì œì™¸í•œ ë™ìž‘ì™„ë£Œ ëœ state
 } slaveAccessCtx;
 
 static struct {
-	uint8 serial[LEN_SLAVE_SERIAL_NUM + 1]; // slave device´Â RF424ÀåÄ¡ÀÌ¹Ç·Î ÀÏ·Ã¹øÈ£°¡ 8ÀÚ¸®ÀÓ.
+	uint8 serial[LEN_SLAVE_SERIAL_NUM + 1]; // slave deviceëŠ” RF424ìž¥ì¹˜ì´ë¯€ë¡œ ì¼ë ¨ë²ˆí˜¸ê°€ 8ìžë¦¬ìž„.
 	uint8 rssi;
 	uint8 nodeType;
 	uint8 timeSync;
@@ -70,10 +70,10 @@ static void turnOff_cc1200()
 {
 	if (slaveAccessCtx.isPowerOn) {
 		SLAVE_DBG("CC1200 power OFF\n");
-		// Power onÀ» ÃÖ¼Ò 1¹øÀÌ¶óµµ ¼öÇàÇÏ¿© set ready¸¦ ÇØ¾ß
-		// SPI interface°¡ ÃÊ±âÈ­ µÇ¹Ç·Î set sleepÀÌ °¡´ÉÇÏ´Ù.
-		// set ready¸¦ ¾ÈÇÏ°í set sleepÀ» ÇÒ °æ¿ì Áß°£ °úÁ¤¿¡¼­
-		// ¹«ÇÑ ·çÇÁ¿¡ ºüÁö°Ô µÈ´Ù. (driver level bug.)
+		// Power onì„ ìµœì†Œ 1ë²ˆì´ë¼ë„ ìˆ˜í–‰í•˜ì—¬ set readyë¥¼ í•´ì•¼
+		// SPI interfaceê°€ ì´ˆê¸°í™” ë˜ë¯€ë¡œ set sleepì´ ê°€ëŠ¥í•˜ë‹¤.
+		// set readyë¥¼ ì•ˆí•˜ê³  set sleepì„ í•  ê²½ìš° ì¤‘ê°„ ê³¼ì •ì—ì„œ
+		// ë¬´í•œ ë£¨í”„ì— ë¹ ì§€ê²Œ ëœë‹¤. (driver level bug.)
 		CC1200_setSleep();
 	}
 	CC1200_rfOff();
@@ -103,7 +103,7 @@ static void send_pdaGroupScanReq(int longPreamble, int retryCount)
 	p->hour = date.hour;
 	p->min = date.min;
 	p->sec = date.sec;
-	p->waitSec = 16; // TODO - Smart Phone App¿¡¼­ ¼³Á¤µÈ ½Ã°£¿¡ ¸ÂÃß¾î¾ß ÇÔ.
+	p->waitSec = 16; // TODO - Smart Phone Appì—ì„œ ì„¤ì •ëœ ì‹œê°„ì— ë§žì¶”ì–´ì•¼ í•¨.
 
 	uint8 ackFlag = retryCount > 1 ? NWK_HDR_FLAG_DATA_REQ : NWK_HDR_FLAG_DATA_RESP;
 	CC1200_dataRequest(conf.slaveNwk, ackFlag, retryCount, msg, sizeof(PdaGroupScanReq_t));
@@ -221,10 +221,10 @@ static void send_amiMultiDataAck()
 	p->bt = slaveDevice.bt;
 	p->ri = slaveDevice.ri;
 
-	uint8 ackFlag = NWK_HDR_FLAG_DATA_RESP; // ÀçÀü¼Û ¾ø°Ô ÇÏ±â À§ÇÔ.
+	uint8 ackFlag = NWK_HDR_FLAG_DATA_RESP; // ìž¬ì „ì†¡ ì—†ê²Œ í•˜ê¸° ìœ„í•¨.
 	CC1200_dataRequest(conf.slaveNwk, ackFlag, 1, msg, sizeof(AmiMultiDataAck_t));
 
-	// timeout ºÒÇÊ¿ä
+	// timeout ë¶ˆí•„ìš”
 }
 
 static void close_slave()
@@ -275,7 +275,7 @@ static void close_slave()
 static void finish_slave_access(BOOL isSuccess)
 {
 	if (slaveAccessCtx.state == SLAVE_ACCESS_READ_METER) {
-		// Áï½Ã °ËÄ§½ÃÀÇ Ã¹¹øÂ° ´Ü°è Á¾·á
+		// ì¦‰ì‹œ ê²€ì¹¨ì‹œì˜ ì²«ë²ˆì§¸ ë‹¨ê³„ ì¢…ë£Œ
 		slaveAccessCtx.state = SLAVE_ACCESS_GET_DATA;
 		slaveAccessCtx.meteringResult = SLAVE_METERING_COMM_ERR;
 		send_pdaMasterSlaveMeterReq(SHORT_PREAMBLE, 3);
@@ -288,7 +288,7 @@ static void finish_slave_access(BOOL isSuccess)
 	if (CC1200_isRadioTxDone()) {
 		OSAL_startEventTimer(slaveAccessCtx.taskId, SLAVE_EVENT_SLAVE_ACCESS_CLOSE, 10);
 	} else {
-		// ACK¸¦ À§ÇÑ Tx°¡ ³²¾ÆÀÖ´Â °æ¿ì ÀÌ¹Ç·Î delay 1ÃÊ¸¦ Ãß°¡.
+		// ACKë¥¼ ìœ„í•œ Txê°€ ë‚¨ì•„ìžˆëŠ” ê²½ìš° ì´ë¯€ë¡œ delay 1ì´ˆë¥¼ ì¶”ê°€.
 		OSAL_startEventTimer(slaveAccessCtx.taskId, SLAVE_EVENT_SLAVE_ACCESS_CLOSE, 1000);
 	}
 }
@@ -324,7 +324,7 @@ BOOL SLAVE_metering(uint8 meteringType)
 		SLAVE_DBG("Check meter info update cycle (%dh/%dh)\n", nHour,
 			  INTERVAL_HOUR_AUTO_UPDATE_METER_INFO);
 		if (nHour >= INTERVAL_HOUR_AUTO_UPDATE_METER_INFO) {
-			// meter Á¤º¸¸¦ °»½ÅÇØ¾ß ÇÒ ÇÊ¿ä°¡ ÀÖÀ½
+			// meter ì •ë³´ë¥¼ ê°±ì‹ í•´ì•¼ í•  í•„ìš”ê°€ ìžˆìŒ
 			slaveAccessCtx.state = SLAVE_ACCESS_GET_METER_INFO;
 			send_pdaMasterSlaveMeterReq(LONG_PREAMBLE, 3);
 		} else {
@@ -345,7 +345,7 @@ BOOL SLAVE_metering(uint8 meteringType)
 
 void SLAVE_close()
 {
-	// ¿ÜºÎ¿¡¼­ RF424/433 µ¿ÀÛ ¾øÀÌ ¹Ù·Î close¸¦ ¼öÇàÇÒ °æ¿ì
+	// ì™¸ë¶€ì—ì„œ RF424/433 ë™ìž‘ ì—†ì´ ë°”ë¡œ closeë¥¼ ìˆ˜í–‰í•  ê²½ìš°
 	turnOff_cc1200();
 }
 
@@ -451,8 +451,8 @@ BOOL SLAVE_updateTimeSync()
 		return FALSE;
 	}
 
-	// slaveÀÇ ½Ã°£ µ¿±â¸¦ È®ÀÎÇÑ ÀûÀÌ ¾øÀ» ¶§¸¸ Àü¼Û.
-	// ÇÑ¹øÀÌ¶óµµ µÇ¾ú´Ù¸é ÁÖ±â°ËÄ§À¸·Î ½Ã°£ÀÌ ¸ÂÃçÁú °ÍÀÌ¹Ç·Î ÀÌ ÀýÂ÷ ºÒÇÊ¿ä
+	// slaveì˜ ì‹œê°„ ë™ê¸°ë¥¼ í™•ì¸í•œ ì ì´ ì—†ì„ ë•Œë§Œ ì „ì†¡.
+	// í•œë²ˆì´ë¼ë„ ë˜ì—ˆë‹¤ë©´ ì£¼ê¸°ê²€ì¹¨ìœ¼ë¡œ ì‹œê°„ì´ ë§žì¶°ì§ˆ ê²ƒì´ë¯€ë¡œ ì´ ì ˆì°¨ ë¶ˆí•„ìš”
 	if (slaveDevice.timeSync) {
 		SLAVE_DBG("Slave already time synchronized\n");
 		return FALSE;
@@ -487,7 +487,7 @@ void recv_pdaGroupDataReport(uint32 srcAddr, uint8 *pData, int len)
 {
 	SLAVE_DBG("Recv PDA_GROUP_DATA_REPORT\n");
 
-	// Meter S/N, Meter Type ÃßÃâ
+	// Meter S/N, Meter Type ì¶”ì¶œ
 
 	uint8 meterSerial[4];
 	uint8 caliberDp = 0;
@@ -498,8 +498,8 @@ void recv_pdaGroupDataReport(uint32 srcAddr, uint8 *pData, int len)
 	PdaGroupDataReportStd_t *pSTD = (PdaGroupDataReportStd_t *)pData;
 	if (pSTD->moreFlag != 0) { // Metering Failed
 		if (slaveAccessCtx.meteringType == PERIODIC_METERING) {
-			// Slave°¡ long preamble·Î accessµÈ Á÷ÈÄ¿¡´Â 10ÃÊ µ¿¾È ´ë±â »óÅÂ¸¦ À¯ÁöÇÏ¹Ç·Î
-			// ¿©±â´Â short preambleÀ» »ç¿ëÇØµµ ±¦ÂúÀ½.
+			// Slaveê°€ long preambleë¡œ accessëœ ì§í›„ì—ëŠ” 10ì´ˆ ë™ì•ˆ ëŒ€ê¸° ìƒíƒœë¥¼ ìœ ì§€í•˜ë¯€ë¡œ
+			// ì—¬ê¸°ëŠ” short preambleì„ ì‚¬ìš©í•´ë„ ê´œì°®ìŒ.
 			slaveAccessCtx.state = SLAVE_ACCESS_GET_DATA;
 			send_amiMasterSlaveMeterReq(SHORT_PREAMBLE, 3);
 		} else {
@@ -509,7 +509,7 @@ void recv_pdaGroupDataReport(uint32 srcAddr, uint8 *pData, int len)
 		return;
 	}
 
-	// º¸Á¶Áß°è±âÀÇ metertypeÀº slave¿¡¼­ º¸³»ÁØ °Í°ú µ¿ÀÏÇÏ°Ô ÇØ¾ß ÇÔ.
+	// ë³´ì¡°ì¤‘ê³„ê¸°ì˜ metertypeì€ slaveì—ì„œ ë³´ë‚´ì¤€ ê²ƒê³¼ ë™ì¼í•˜ê²Œ í•´ì•¼ í•¨.
 	if (pSTD->meterType != conf.meterType) {
 		conf.meterType = pSTD->meterType;
 		FLASH_saveConfigInfo(&conf);
@@ -522,15 +522,15 @@ void recv_pdaGroupDataReport(uint32 srcAddr, uint8 *pData, int len)
 		memcpy(meterSerial, pSTD->meterSerial, 4);
 		memcpy(meterData, pSTD->meterData, 4);
 		SLAVE_DBG("Slave meter type STD (caliber/point : %02X)\n", caliberDp);
-	} else { // ½ÅÇÑ, M&S, Pulse
+	} else { // ì‹ í•œ, M&S, Pulse
 		PdaGroupDataReportOthers_t *pOthers = (PdaGroupDataReportOthers_t *)pData;
 
 		if (pOthers->meterType == W_MNS_D) {
-			caliberDp = 0x13; // MNS´Â Ç×»ó 15mm/¼Ò¼ýÁ¡ 3ÀÚ¸®
+			caliberDp = 0x13; // MNSëŠ” í•­ìƒ 15mm/ì†Œìˆ«ì  3ìžë¦¬
 		} else if (pOthers->meterType == W_SHINHAN_D_BIG) {
-			caliberDp = 0x12; // SH_BÀº Ç×»ó 15mm/¼Ò¼ýÁ¡ 3ÀÚ¸®
+			caliberDp = 0x12; // SH_Bì€ í•­ìƒ 15mm/ì†Œìˆ«ì  3ìžë¦¬
 		} else {
-			caliberDp = 0x13; // ±× ¿Ü ±âº» Ç×»ó 15mm/¼Ò¼ýÁ¡ 3ÀÚ¸®
+			caliberDp = 0x13; // ê·¸ ì™¸ ê¸°ë³¸ í•­ìƒ 15mm/ì†Œìˆ«ì  3ìžë¦¬
 		}
 		SLAVE_DBG("Slave meter type OTHERS(type : %d, caliber/point : %02X)\n",
 			  pOthers->meterType, caliberDp);
@@ -539,18 +539,18 @@ void recv_pdaGroupDataReport(uint32 srcAddr, uint8 *pData, int len)
 		memcpy(meterData, pOthers->meterData, 4);
 	}
 
-	// °è·®±â°¡ ¹Ù²î¾ú´ÂÁö È®ÀÎÇÏ°í, ¹Ù²î¾úÀ¸¸é °ü·Ã Á¤º¸ update
-	// (´Ü, ¼Ò¼öÁ¡/±¸°æ Á¤º¸°¡ invalidÇÒ °æ¿ì »ý·«.)
+	// ê³„ëŸ‰ê¸°ê°€ ë°”ë€Œì—ˆëŠ”ì§€ í™•ì¸í•˜ê³ , ë°”ë€Œì—ˆìœ¼ë©´ ê´€ë ¨ ì •ë³´ update
+	// (ë‹¨, ì†Œìˆ˜ì /êµ¬ê²½ ì •ë³´ê°€ invalidí•  ê²½ìš° ìƒëžµ.)
 	uint8 dp = (caliberDp & 0x0F);
 	uint8 caliber = (caliberDp & 0xF0) >> 4;
-	if (dp < 7 && caliber > 0) { // ¼Ò¼öÁ¡ ÃÖ´ë6ÀÚ¸®, ±¸°æ°ªÀº 0ÀÌ»ó 0xFÀÌÇÏÀÎ °æ¿ì Á¤»ó.
+	if (dp < 7 && caliber > 0) { // ì†Œìˆ˜ì  ìµœëŒ€6ìžë¦¬, êµ¬ê²½ê°’ì€ 0ì´ìƒ 0xFì´í•˜ì¸ ê²½ìš° ì •ìƒ.
 		METER_saveMeterInfo(meterSerial, caliberDp, dif, vif);
 	}
 
-	// °è·®±â Á¤º¸¸¦ ¸¶Áö¸·À¸·Î ÀÐ¾î ¿Â ½Ã°£ ±â·Ï
+	// ê³„ëŸ‰ê¸° ì •ë³´ë¥¼ ë§ˆì§€ë§‰ìœ¼ë¡œ ì½ì–´ ì˜¨ ì‹œê°„ ê¸°ë¡
 	RTC_read(&slaveDevice.meterInfoUpdateTime);
 
-	// Temp ¿µ¿ª¿¡ ÀÐ¾î¿Â µ¥ÀÌÅÍ ÀúÀå
+	// Temp ì˜ì—­ì— ì½ì–´ì˜¨ ë°ì´í„° ì €ìž¥
 	MeterUnitData_t unit;
 	memset(&unit, 0, sizeof(unit));
 
@@ -563,8 +563,8 @@ void recv_pdaGroupDataReport(uint32 srcAddr, uint8 *pData, int len)
 	METER_displayTempData();
 
 	if (slaveAccessCtx.meteringType == PERIODIC_METERING) {
-		// Slave°¡ long preamble·Î accessµÈ Á÷ÈÄ¿¡´Â 10ÃÊ µ¿¾È ´ë±â »óÅÂ¸¦ À¯ÁöÇÏ¹Ç·Î
-		// ¿©±â´Â short preambleÀ» »ç¿ëÇØµµ ±¦ÂúÀ½.
+		// Slaveê°€ long preambleë¡œ accessëœ ì§í›„ì—ëŠ” 10ì´ˆ ë™ì•ˆ ëŒ€ê¸° ìƒíƒœë¥¼ ìœ ì§€í•˜ë¯€ë¡œ
+		// ì—¬ê¸°ëŠ” short preambleì„ ì‚¬ìš©í•´ë„ ê´œì°®ìŒ.
 		slaveAccessCtx.state = SLAVE_ACCESS_GET_DATA;
 		send_amiMasterSlaveMeterReq(SHORT_PREAMBLE, 3);
 	} else {
@@ -575,12 +575,12 @@ void recv_pdaGroupDataReport(uint32 srcAddr, uint8 *pData, int len)
 
 void recv_amiNodeEventAlarm(uint32 srcAddr, uint8 *pData, int len)
 {
-	// AMI_MASTER_SLAVE_METER_REQ(ÁÖ±â °ËÄ§)¸¦ ¼ö½ÅÇÑ Slave´Â ´ÙÀ½°ú °°ÀÌ ÀÀ´äÇÔ
-	// 1) ÁÖ±â °ËÄ§ µ¥ÀÌÅÍ°¡ ÀÖ°Å³ª(Á¤»ó), SlaveÀÇ °ËÄ§ ±â·ÏÀÌ ¾øÀ½(MT_DOWN) - AMI_MULTI_DATA_REPORT·Î ÀÀ´ä
-	// 2) Slave°¡ Á÷ÀüÀÇ °è·®±â °ËÄ§¿¡ ½ÇÆÐÇÔ(MT_DOWN) - AMI_NODE_EVENT_ALARMÀ¸·Î ÀÀ´ä
+	// AMI_MASTER_SLAVE_METER_REQ(ì£¼ê¸° ê²€ì¹¨)ë¥¼ ìˆ˜ì‹ í•œ SlaveëŠ” ë‹¤ìŒê³¼ ê°™ì´ ì‘ë‹µí•¨
+	// 1) ì£¼ê¸° ê²€ì¹¨ ë°ì´í„°ê°€ ìžˆê±°ë‚˜(ì •ìƒ), Slaveì˜ ê²€ì¹¨ ê¸°ë¡ì´ ì—†ìŒ(MT_DOWN) - AMI_MULTI_DATA_REPORTë¡œ ì‘ë‹µ
+	// 2) Slaveê°€ ì§ì „ì˜ ê³„ëŸ‰ê¸° ê²€ì¹¨ì— ì‹¤íŒ¨í•¨(MT_DOWN) - AMI_NODE_EVENT_ALARMìœ¼ë¡œ ì‘ë‹µ
 
-	// ±×·¯³ª AMI_MASTER_SLAVE_METER_REQ ¸Þ½ÃÁö´Â ½Ã°£ µ¿±â¿ëÀ¸·Îµµ »ç¿ëµÇ¹Ç·Î ÀÌ °æ¿ì¿¡´Â
-	// Slave·ÎºÎÅÍ ¾î¶² ÀÀ´äÀÌµç ¹Þ±â¸¸ ÇÏ¸é µ¿±â ¼º°øÀÓ.
+	// ê·¸ëŸ¬ë‚˜ AMI_MASTER_SLAVE_METER_REQ ë©”ì‹œì§€ëŠ” ì‹œê°„ ë™ê¸°ìš©ìœ¼ë¡œë„ ì‚¬ìš©ë˜ë¯€ë¡œ ì´ ê²½ìš°ì—ëŠ”
+	// Slaveë¡œë¶€í„° ì–´ë–¤ ì‘ë‹µì´ë“  ë°›ê¸°ë§Œ í•˜ë©´ ë™ê¸° ì„±ê³µìž„.
 
 	SLAVE_DBG("Recv AMI_NODE_EVENT_ALARM (%02X)\n", *(pData + 1));
 
@@ -598,35 +598,35 @@ void recv_amiNodeEventAlarm(uint32 srcAddr, uint8 *pData, int len)
 void recv_amiMultiDataReport(uint32 srcAddr, uint8 *pData, int len)
 {
 	SLAVE_DBG("Recv AMI_MULTI_DATA_REPORT\n");
-	// slave Ãø¿¡ ack ¸Þ½ÃÁö¸¦ Àü¼ÛÇÔ.
+	// slave ì¸¡ì— ack ë©”ì‹œì§€ë¥¼ ì „ì†¡í•¨.
 	send_amiMultiDataAck();
 
 	if (slaveAccessCtx.state == SLAVE_ACCESS_SET_TIME_SYNC) {
 		/**
-         * AMI slave¿¡ ½Ã°£µ¿±âÈ­ ¹æ¹ýÀ» ±âÁ¸ "AMI S-M meter request"¸¦ »ç¿ë.
-         * ÀÌÀ¯ :
-         *   "½Ã°£¼³Á¤"Àº °æ¿ì ´Ü¼ø ½Ã°£ ¼³Á¤ÀÌ¸ç, °æ¿ì¿¡ µû¶ó µ¿±âÈ­ ¾ÈµÈ µ¥ÀÌÅÍ°¡
-         *   ³²¾ÆÀÖÀ» ¼ö ÀÖ´Â ¹®Á¦°¡ ÀÖÀ½.
-         *   "AMI S-M meter request"Àº ACK ¼ö½Å¿©ºÎ¿¡ µû¶ó ±âÁ¸ µ¥ÀÌÅÍ¸¦
-         *   »èÁ¦ÇÏ¹Ç·Î ÇØ´ç request¸¦ »ç¿ë.
+         * AMI slaveì— ì‹œê°„ë™ê¸°í™” ë°©ë²•ì„ ê¸°ì¡´ "AMI S-M meter request"ë¥¼ ì‚¬ìš©.
+         * ì´ìœ  :
+         *   "ì‹œê°„ì„¤ì •"ì€ ê²½ìš° ë‹¨ìˆœ ì‹œê°„ ì„¤ì •ì´ë©°, ê²½ìš°ì— ë”°ë¼ ë™ê¸°í™” ì•ˆëœ ë°ì´í„°ê°€
+         *   ë‚¨ì•„ìžˆì„ ìˆ˜ ìžˆëŠ” ë¬¸ì œê°€ ìžˆìŒ.
+         *   "AMI S-M meter request"ì€ ACK ìˆ˜ì‹ ì—¬ë¶€ì— ë”°ë¼ ê¸°ì¡´ ë°ì´í„°ë¥¼
+         *   ì‚­ì œí•˜ë¯€ë¡œ í•´ë‹¹ requestë¥¼ ì‚¬ìš©.
          */
 		SLAVE_DBG("Proc AMI_MULTI_DATA_REPORT - time sync\n");
 
 		slaveDevice.timeSync = 1;
 		finish_slave_access(TRUE);
 	} else {
-		// master/slave ¾çÃø ¸ðµÎ ½Ã°£ µ¿±âµÈ »óÅÂ¿¡¼­ ¹ÞÀº µ¥ÀÌÅÍ¸¸
-		// ¸Þ½ÃÁö¿¡ Æ÷ÇÔµÈ ½Ã°£ÀÌ Á¤È®ÇÏ¹Ç·Î »ç¿ë °¡´ÉÇÔ.
+		// master/slave ì–‘ì¸¡ ëª¨ë‘ ì‹œê°„ ë™ê¸°ëœ ìƒíƒœì—ì„œ ë°›ì€ ë°ì´í„°ë§Œ
+		// ë©”ì‹œì§€ì— í¬í•¨ëœ ì‹œê°„ì´ ì •í™•í•˜ë¯€ë¡œ ì‚¬ìš© ê°€ëŠ¥í•¨.
 		int valid = (RTC_isTimeSync() && slaveDevice.timeSync) ? 1 : 0;
 
 		AmiMultiDataReport_t *p = (AmiMultiDataReport_t *)pData;
 
-		// ack¿¡ »ç¿ëÇÏ±â À§ÇØ slaveÀÇ °ËÄ§ ÆÄ¶ó¹ÌÅÍ¸¦ ÀúÀåÇØ µÒ
+		// ackì— ì‚¬ìš©í•˜ê¸° ìœ„í•´ slaveì˜ ê²€ì¹¨ íŒŒë¼ë¯¸í„°ë¥¼ ì €ìž¥í•´ ë‘ 
 		slaveDevice.mi = p->mi;
 		slaveDevice.bt = p->bt;
 		slaveDevice.ri = p->ri;
 
-		// slave deviceÀÇ ¹èÅÍ¸® »óÅÂ
+		// slave deviceì˜ ë°°í„°ë¦¬ ìƒíƒœ
 		slaveDevice.batt = p->nodeBatt;
 
 		MeterUnitData_t unit;
@@ -650,7 +650,7 @@ void recv_amiMultiDataReport(uint32 srcAddr, uint8 *pData, int len)
 			p->nData, p->nodeBatt / 10, p->nodeBatt % 10, p->mi, p->ri,
 			unit.meterStatus);
 
-		// °ËÄ§µ¥ÀÌÅÍ 4¹ÙÀÌÆ®°¡ ¸ðµÎ 0xFFÀÌ¸é °ËÄ§ºÒ·®
+		// ê²€ì¹¨ë°ì´í„° 4ë°”ì´íŠ¸ê°€ ëª¨ë‘ 0xFFì´ë©´ ê²€ì¹¨ë¶ˆëŸ‰
 		int mtDown = 1;
 		for (int i = 0; i < 4; i++) {
 			if (unit.meterData[i] != 0xFF) {
@@ -705,13 +705,13 @@ void recv_amiMultiDataReport(uint32 srcAddr, uint8 *pData, int len)
 		}
 
 		if (valid) {
-			// Network·Î º¸°í ÀýÂ÷ °³½Ã
+			// Networkë¡œ ë³´ê³  ì ˆì°¨ ê°œì‹œ
 			slaveAccessCtx.meteringResult = SLAVE_METERING_OK;
 			finish_slave_access(TRUE);
 		} else {
-			// ÃÖÃÊ ºÎÆÃ ½Ã ½Ã°£µ¿±âÈ­¿¡ ½ÇÆÐÇÒ °æ¿ì ¹ß»ý.
-			// ÀÌ ¶§ ¹ÞÀº ÁÖ±â º¸°í µ¥ÀÌÅÍ´Â ½Ã°£ µ¿±â ÀÌÀü¿¡ ÀÐÀº °ÍÀÌ¹Ç·Î Invalid ÇÏ¹Ç·Î
-			// ÇØ´ç µ¥ÀÌÅÍ¸¦ ¹«½ÃÇÏ°í fail Ã³¸®ÇÑ´Ù.
+			// ìµœì´ˆ ë¶€íŒ… ì‹œ ì‹œê°„ë™ê¸°í™”ì— ì‹¤íŒ¨í•  ê²½ìš° ë°œìƒ.
+			// ì´ ë•Œ ë°›ì€ ì£¼ê¸° ë³´ê³  ë°ì´í„°ëŠ” ì‹œê°„ ë™ê¸° ì´ì „ì— ì½ì€ ê²ƒì´ë¯€ë¡œ Invalid í•˜ë¯€ë¡œ
+			// í•´ë‹¹ ë°ì´í„°ë¥¼ ë¬´ì‹œí•˜ê³  fail ì²˜ë¦¬í•œë‹¤.
 			if (RTC_isTimeSync()) {
 				SLAVE_DBG("Slave is not tmie sync - currently time sync\n");
 				slaveDevice.timeSync = 1;
@@ -732,28 +732,28 @@ void SLAVE_runMessage(uint32 SrcAddr, byte *data, uint8 len, uint8 rssi)
 
 	switch (data[0]) {
 	case MSG_PDA_GROUP_DATA_REPORT:
-		// PDA_MASTER_SLAVE_METER_REQ¿¡ ´ëÇÑ ÀÀ´ä -  Áï½Ã °ËÄ§
+		// PDA_MASTER_SLAVE_METER_REQì— ëŒ€í•œ ì‘ë‹µ -  ì¦‰ì‹œ ê²€ì¹¨
 		OSAL_stopEventTimer(slaveAccessCtx.taskId, SLAVE_EVENT_SLAVE_ACCESS_TIMEOUT);
 
 		recv_pdaGroupDataReport(SrcAddr, data, len);
 		break;
 
 	case MSG_AMI_MULTI_DATA_REPORT:
-		// AMI_MASTER_SLAVE_METER_REQ¿¡ ´ëÇÑ ÀÀ´ä - ÁÖ±â °ËÄ§: µ¥ÀÌÅÍ°¡ ÀÖ°Å³ª SlaveÀÇ °ËÄ§ ½Ãµµ Àü
+		// AMI_MASTER_SLAVE_METER_REQì— ëŒ€í•œ ì‘ë‹µ - ì£¼ê¸° ê²€ì¹¨: ë°ì´í„°ê°€ ìžˆê±°ë‚˜ Slaveì˜ ê²€ì¹¨ ì‹œë„ ì „
 		OSAL_stopEventTimer(slaveAccessCtx.taskId, SLAVE_EVENT_SLAVE_ACCESS_TIMEOUT);
 
 		recv_amiMultiDataReport(SrcAddr, data, len);
 		break;
 
 	case MSG_AMI_MASTER_SLAVE_CHECK_REPORT:
-		// AMI_MASTER_SLAVE_CHECK_REQ¿¡ ´ëÇÑ ÀÀ´ä - °è·®±â Á¤º¸ update
+		// AMI_MASTER_SLAVE_CHECK_REQì— ëŒ€í•œ ì‘ë‹µ - ê³„ëŸ‰ê¸° ì •ë³´ update
 		OSAL_stopEventTimer(slaveAccessCtx.taskId, SLAVE_EVENT_SLAVE_ACCESS_TIMEOUT);
 
 		recv_amiMasterSlaveCheckReport(SrcAddr, data, len);
 		break;
 
 	case MSG_AMI_NODE_EVENT_ALARM:
-		// AMI_MASTER_SLAVE_METER_REQ¿¡ ´ëÇÑ ÀÀ´ä - ÁÖ±â °ËÄ§: SlaveÀÇ °ËÄ§ ½ÇÆÐ
+		// AMI_MASTER_SLAVE_METER_REQì— ëŒ€í•œ ì‘ë‹µ - ì£¼ê¸° ê²€ì¹¨: Slaveì˜ ê²€ì¹¨ ì‹¤íŒ¨
 		OSAL_stopEventTimer(slaveAccessCtx.taskId, SLAVE_EVENT_SLAVE_ACCESS_TIMEOUT);
 		recv_amiNodeEventAlarm(SrcAddr, data, len);
 		break;
@@ -768,7 +768,7 @@ void SLAVE_init(uint8 taskId)
 	slaveAccessCtx.taskId = taskId;
 
 	memset(&slaveDevice, 0, sizeof(slaveDevice));
-	memset(slaveDevice.serial, '0', 8); // ¹®ÀÚ '0'À¸·Î Ã¤¿ò
+	memset(slaveDevice.serial, '0', 8); // ë¬¸ìž '0'ìœ¼ë¡œ ì±„ì›€
 }
 
 event32_t SLAVE_tasks(uint8 taskId, event32_t events)
@@ -781,8 +781,8 @@ event32_t SLAVE_tasks(uint8 taskId, event32_t events)
 
 	if (events & SLAVE_EVENT_SET_TIME_SYNC) {
 		SLAVE_DBG("Task (Time sync, state=%d)\n", slaveAccessCtx.state);
-		// AMI_MASTER_SLAVE_METER_REQ¿¡ ¸Þ½ÃÁö¿¡´Â slave¿¡ ÁÖ´Â ½Ã°£ Á¤º¸°¡ Æ÷ÇÔµÇ¾î ÀÖÀ½
-		// ÁÖ±â °ËÄ§½Ã¸¶´Ù ÀÌ ¸Þ½ÃÁö¸¦ º¸³¾°ÍÀÌ¹Ç·Î ÀÌ ¶§´Â ÀçÀü¼Û¾øÀÌ ÇÑ ¹ø¸¸ º¸³¿.
+		// AMI_MASTER_SLAVE_METER_REQì— ë©”ì‹œì§€ì—ëŠ” slaveì— ì£¼ëŠ” ì‹œê°„ ì •ë³´ê°€ í¬í•¨ë˜ì–´ ìžˆìŒ
+		// ì£¼ê¸° ê²€ì¹¨ì‹œë§ˆë‹¤ ì´ ë©”ì‹œì§€ë¥¼ ë³´ë‚¼ê²ƒì´ë¯€ë¡œ ì´ ë•ŒëŠ” ìž¬ì „ì†¡ì—†ì´ í•œ ë²ˆë§Œ ë³´ëƒ„.
 		send_amiMasterSlaveMeterReq(LONG_PREAMBLE, 2);
 		return (events ^ SLAVE_EVENT_SET_TIME_SYNC);
 	}

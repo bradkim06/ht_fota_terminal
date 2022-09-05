@@ -1,3 +1,4 @@
+#include "intrinsics.h"
 #include <msp430.h>
 #include "common_header.h"
 #include "Task_Mgr.h"
@@ -24,9 +25,9 @@ const pTaskEventHandlerFn TasksArray[] = {
 };
 
 const uint8 TotalTasksCnt = sizeof(TasksArray) / sizeof(TasksArray[0]);
-event32_t *TasksEvents;
+event32_t *TasksEvents = 0;
 
-BOOL device_sleep_state;
+BOOL device_sleep_state = FALSE;
 
 void TASKMGR_init(void)
 {
@@ -35,7 +36,6 @@ void TASKMGR_init(void)
 	TasksEvents = (event32_t *)malloc(sizeof(event32_t) * TotalTasksCnt);
 	if (TasksEvents == NULL) {
 		printf("malloc error - TASKMGR_init\n");
-		return;
 	}
 
 	memset(TasksEvents, 0, (sizeof(event32_t) * TotalTasksCnt));
@@ -54,7 +54,6 @@ void TASKMGR_run(void)
 	device_sleep_state = FALSE;
 
 	for (;;) { // Forever Loop
-		WDTCTL = WDTPW | WDTCNTCL; // Clear watchdog timer
 		WDTCTL = WDT_ARST_16SEC; // Start watchdog timer(16 sec)
 
 		if (++idx >= TotalTasksCnt) {
@@ -82,18 +81,17 @@ void TASKMGR_run(void)
 			TasksEvents[idx] |=
 				events; // Add back unprocessed events to the current task.
 			HAL_EXIT_CRITICAL_SECTION(intState); // Hold off interrupts
-
 		} else {
 			if (OsalTimerHead == NULL) {
-				int taskIdx;
-				for (taskIdx = 0; taskIdx < TotalTasksCnt; taskIdx++) {
+				unsigned int taskIdx = 0;
+				for (; taskIdx < TotalTasksCnt; taskIdx++) {
 					if (TasksEvents[taskIdx] != 0x00000000) {
 						break;
 					}
 				}
 
 				if (taskIdx >= TotalTasksCnt) {
-					WDTCTL = WDTPW | WDTHOLD; //Stop watchdog timer
+					// RTC Alarm이 설정되지 않는 버그 발견. prepareToSleep() 두번 실행.
 					APP_prepareToSleep();
 					printf("--sleep--\n\n");
 					MISC_delayMs(100);

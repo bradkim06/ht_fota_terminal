@@ -19,7 +19,7 @@ uint32 MaskAddr[MAX_DEPTH + 1] = { 0x00000000, 0xFF000000, 0xFFFF0000, 0xFFFFFF0
 
 extern Config_t conf;
 
-// Test mode°¡ ¾Æ´Ï¸ç, DEBUG µ¿ÀÛ ÁßÀÎ °æ¿ì¿¡¸¸ Print.
+// Test modeê°€ ì•„ë‹ˆë©°, DEBUG ë™ì‘ ì¤‘ì¸ ê²½ìš°ì—ë§Œ Print.
 #if defined(DEBUG)
 #define CC1200_DBG(...)                                                                            \
 	do {                                                                                       \
@@ -57,8 +57,8 @@ extern Config_t conf;
 		P8OUT |= 0x01;                                                                     \
 	} while (0);
 
-// NB-IoT ¹× LoRa º¸Á¶Áß°è±â µ¿ÀÛ¿¡¼­´Â ¾Æ·¡ º¯¼ö°¡ ÇÊ¿ä ¾øÀ¸³ª
-// RF424/433 Á¦Ç° ÄÚµå¿Í ¸ÂÃß±â À§ÇØ À¯Áö. (ÂüÁ¶ ¸øÇÏµµ·Ï static Á¤ÀÇ.)
+// NB-IoT ë° LoRa ë³´ì¡°ì¤‘ê³„ê¸° ë™ì‘ì—ì„œëŠ” ì•„ë˜ ë³€ìˆ˜ê°€ í•„ìš” ì—†ìœ¼ë‚˜
+// RF424/433 ì œí’ˆ ì½”ë“œì™€ ë§ì¶”ê¸° ìœ„í•´ ìœ ì§€. (ì°¸ì¡° ëª»í•˜ë„ë¡ static ì •ì˜.)
 static BOOL drivebyFlag = FALSE;
 static BOOL PendingCarrierDetect = FALSE;
 
@@ -109,14 +109,14 @@ uint8 rxTempLen;
 
 /**
  * @brief Get the default channel (= config/control channel)
- *        º»·¡ Á¦¾î¿ë Ã¤³Î(¼³Á¤ Ã¤³Î)Àº º¸ÆíÀûÀ¸·Î CH0À» »ç¿ëÇÏÁö¸¸,
- *        RF424ÀÇ °æ¿ì °³¹ß´Ü°è¿¡¼­ CH6À» »ç¿ëÇÏ¿´À¸¸ç, È£È¯¼ºÀ» ÀÌÀ¯·Î À¯Áö.
+ *        ë³¸ë˜ ì œì–´ìš© ì±„ë„(ì„¤ì • ì±„ë„)ì€ ë³´í¸ì ìœ¼ë¡œ CH0ì„ ì‚¬ìš©í•˜ì§€ë§Œ,
+ *        RF424ì˜ ê²½ìš° ê°œë°œë‹¨ê³„ì—ì„œ CH6ì„ ì‚¬ìš©í•˜ì˜€ìœ¼ë©°, í˜¸í™˜ì„±ì„ ì´ìœ ë¡œ ìœ ì§€.
  *
  * @return uint8 default channel
  */
 uint8 CC1200_getDefaultChannel()
 {
-	// 424/447MHz »ç¿ë½Ã¿¡´Â 6¹ø Ã¤³ÎÀ», 433MHz¿¡¼­´Â 0¹ø Ã¤³ÎÀ» default·Î »ç¿ëÇÔ
+	// 424/447MHz ì‚¬ìš©ì‹œì—ëŠ” 6ë²ˆ ì±„ë„ì„, 433MHzì—ì„œëŠ” 0ë²ˆ ì±„ë„ì„ defaultë¡œ ì‚¬ìš©í•¨
 #if FREQ_BAND_424
 	return 6;
 #else
@@ -170,7 +170,7 @@ static void CC1200_hwReset()
 	CC1200_RESET_PIN_HIGH();
 
 	CC1200_RESET_PIN_LOW();
-	MISC_delayMs(200); //200msecÀÌ»ó ÇÊ¿ä
+	MISC_delayMs(200); //200msecì´ìƒ í•„ìš”
 
 	CC1200_RESET_PIN_HIGH();
 	MISC_delayMs(50);
@@ -240,7 +240,7 @@ void CC1200_setChannel(uint8 ch)
 	freq[1] = (uint8)((value % 0x10000) / 0x100);
 	freq[0] = (uint8)(value / 0x10000);
 
-	// cc1200 register index¿Í freqÀÇ index°¡ ¹İ´ëÀÓ¿¡ À¯ÀÇ
+	// cc1200 register indexì™€ freqì˜ indexê°€ ë°˜ëŒ€ì„ì— ìœ ì˜
 	cc120xSpiWriteReg(CC120X_FREQ2, &freq[0], 1);
 	cc120xSpiWriteReg(CC120X_FREQ1, &freq[1], 1);
 	cc120xSpiWriteReg(CC120X_FREQ0, &freq[2], 1);
@@ -285,7 +285,7 @@ BOOL CC1200_readPreambleDetect()
 
 void CC1200_open(int ch)
 {
-	//CC1200_swReset();// TCXO »ç¿ë½Ã no use
+	//CC1200_swReset();// TCXO ì‚¬ìš©ì‹œ no use
 
 	for (uint16 i = 0; i < (sizeof(PreferredSettings424) / sizeof(SpiRegisterSetting_t)); i++) {
 		CC1200_writeRegister(PreferredSettings424[i].addr, PreferredSettings424[i].data);
@@ -436,9 +436,9 @@ void CC1200_rfOff()
 	// DISABLE_CC1200_INTERRUPT();
 	// CC1200_spwd();
 
-	// º»·¡ CSN, MISO, CC1200 GPIO0(=Interrupt signal pin) À» outputÀ¸·Î ÇØµµ
-	// Á¤»óÀûÀ¸·Î µ¿ÀÛÇØ¾ß ÇÏÁö¸¸, CC1200 power off ÈÄ ÀÏºÎ pinÀÇ output high·Î ÀÎÇØ
-	// CC1200ÀÌ µ¿ÀÛÇÏ°í ±×¿¡ µû¶ó ÇØ´ç Pin¿¡¼­ output lowÇßÀ» ¶§ short°¡ ¹ß»ıÇÔ.
+	// ë³¸ë˜ CSN, MISO, CC1200 GPIO0(=Interrupt signal pin) ì„ outputìœ¼ë¡œ í•´ë„
+	// ì •ìƒì ìœ¼ë¡œ ë™ì‘í•´ì•¼ í•˜ì§€ë§Œ, CC1200 power off í›„ ì¼ë¶€ pinì˜ output highë¡œ ì¸í•´
+	// CC1200ì´ ë™ì‘í•˜ê³  ê·¸ì— ë”°ë¼ í•´ë‹¹ Pinì—ì„œ output lowí–ˆì„ ë•Œ shortê°€ ë°œìƒí•¨.
 
 	CC1200_RESET_PIN_LOW();
 
@@ -465,8 +465,8 @@ void CC1200_rfOn()
 	P2DIR &= ~CC1200_GPIO0; // make input
 	CC1200_POWER_ON();
 
-	// H/W reset ¾øÀÌ RESET pinÀ» HIGN·Î ÇØµµ µÇÁö¸¸,
-	// Timing ¹®Á¦°¡ ¹ß»ıÇÒ ¼ö ÀÖÀ¸¹Ç·Î H/W resetÀ¸·Î µ¿ÀÛ ½ÃÅ´.
+	// H/W reset ì—†ì´ RESET pinì„ HIGNë¡œ í•´ë„ ë˜ì§€ë§Œ,
+	// Timing ë¬¸ì œê°€ ë°œìƒí•  ìˆ˜ ìˆìœ¼ë¯€ë¡œ H/W resetìœ¼ë¡œ ë™ì‘ ì‹œí‚´.
 	CC1200_hwReset();
 }
 
@@ -743,7 +743,7 @@ uint32 CC1200_getParentAddr(uint32 addr)
 {
 	return 0;
 
-#if 0 // º¸Á¶Áß°è±â µ¿ÀÛÀÌ ¾Æ´Ñ °æ¿ì
+#if 0 // ë³´ì¡°ì¤‘ê³„ê¸° ë™ì‘ì´ ì•„ë‹Œ ê²½ìš°
     return (addr & MaskAddr[conf.depth-1]);
 #endif
 }
@@ -752,7 +752,7 @@ uint32 makeNextAddr(uint32 dest)
 {
 	return dest;
 
-#if 0 // º¸Á¶Áß°è±â µ¿ÀÛÀÌ ¾Æ´Ñ °æ¿ì
+#if 0 // ë³´ì¡°ì¤‘ê³„ê¸° ë™ì‘ì´ ì•„ë‹Œ ê²½ìš°
     uint32 next;
 
     if(dest == BROADCAST_ADDR || dest == DEFAULT_PDA_ADDR || dest == DEFAULT_GROUP_SCAN_ADDR
@@ -796,7 +796,7 @@ BOOL CC1200_dataRequest(uint32 destAddr, uint8 ackFlag, uint8 retryCnt, byte *ms
 	pHead->ack = rfConfig.ackNo;
 	pHead->seq = 1;
 
-#if 0 // º¸Á¶Áß°è±â µ¿ÀÛÀÌ ¾Æ´Ñ °æ¿ì
+#if 0 // ë³´ì¡°ì¤‘ê³„ê¸° ë™ì‘ì´ ì•„ë‹Œ ê²½ìš°
     pHead->seq = rfConfig.seqNo++;
 #endif
 
@@ -849,7 +849,7 @@ BOOL CC1200_dataRequest(uint32 destAddr, uint8 ackFlag, uint8 retryCnt, byte *ms
 		}
 	}
 
-#if 0 // ±âÁ¸ AMIÀÇ retry ¹× timeout ¼³Á¤ µ¿ÀÛ.
+#if 0 // ê¸°ì¡´ AMIì˜ retry ë° timeout ì„¤ì • ë™ì‘.
     if(SLAVE_reTxNeeded(msgType) && ackFlag == NWK_HDR_FLAG_DATA_REQ) {
         txPacket.retry = 3;
     } else if(msgType == MSG_PDA_NODE_CONF_SUCCESS){
@@ -874,7 +874,7 @@ BOOL CC1200_dataRequest(uint32 destAddr, uint8 ackFlag, uint8 retryCnt, byte *ms
         txPacket.retry = 1;
         txPacket.retryTimeout = 100;
     }else if(txPacket.preamble == LONG_PREAMBLE ||
-             msgType == MSG_PDA_MASTER_SLAVE_METER_REQ){// Slave MT_Down ÀÀ´ä½Ã°£ °í·Á
+             msgType == MSG_PDA_MASTER_SLAVE_METER_REQ){// Slave MT_Down ì‘ë‹µì‹œê°„ ê³ ë ¤
         txPacket.retryTimeout = CC1200_LONG_TIMEOUT;
     }else if(txPacket.retry == 1){
         txPacket.retryTimeout = CC1200_RETX_TIMEOUT;
@@ -967,7 +967,7 @@ void messageRxProcess(rxPacket_t *pPacket)
 
 	if (pPacket->len == 0 || checkCRC(pMsg) == 0 || MyMessage(pMsg) == FALSE) {
 		SLAVE_activeStart(1);
-#if 0 // º¸Á¶Áß°è±â µ¿ÀÛÀÌ ¾Æ´Ñ °æ¿ì
+#if 0 // ë³´ì¡°ì¤‘ê³„ê¸° ë™ì‘ì´ ì•„ë‹Œ ê²½ìš°
         if(Car_Meter_Confirm(msgType, reqType) || drivebyFlag == TRUE){// Car Meter // Group Meter
             SLAVE_activeStart(10);
         }else{
@@ -1013,14 +1013,14 @@ event32_t CC1200_tasks(uint8 taskId, event32_t events)
 		if (txPacket.retry) {
 			txPacket.retry--;
 
-			SLAVE_activeStart(10); //Timeout ¿¬Àå
+			SLAVE_activeStart(10); //Timeout ì—°ì¥
 			radioTx(txPacket.data, txPacket.len, txPacket.preamble);
 			SLAVE_activeStart(10);
 
 			OSAL_startEventTimer(rfConfig.taskId, RADIO_EVENT_RF_TX,
 					     (uint32)txPacket.retryTimeout);
 
-			CC1200_rx_short(); //yikim timer ¼³Á¤ ÀÌÈÄ ½ÇÇà
+			CC1200_rx_short(); //yikim timer ì„¤ì • ì´í›„ ì‹¤í–‰
 		} else {
 			// TODO : Have to check this procedure
 			if (txPacket.txOk == FAIL) {
@@ -1063,14 +1063,14 @@ event32_t CC1200_tasks(uint8 taskId, event32_t events)
 			rxPacket_t *p = &rxPacket[rxBuf_rptr];
 			messageRxProcess(p);
 
-			// RF Rx data´Â ISR¿¡¼­ Data¸¦ ÀĞ°í rxPacket¿¡ ÀúÀå(rxBuf_wptr)
+			// RF Rx dataëŠ” ISRì—ì„œ Dataë¥¼ ì½ê³  rxPacketì— ì €ì¥(rxBuf_wptr)
 			HAL_ENTER_CRITICAL_SECTION(intState);
 			if (++rxBuf_rptr >= NUM_RF_RX_BUF) {
 				rxBuf_rptr = 0;
 			}
 			HAL_EXIT_CRITICAL_SECTION(intState);
 
-			// ½Å±Ô µ¥ÀÌÅÍ ¹ß»ı ½Ã ISR¿¡¼­ event¸¦ µî·Ï.
+			// ì‹ ê·œ ë°ì´í„° ë°œìƒ ì‹œ ISRì—ì„œ eventë¥¼ ë“±ë¡.
 			// OSAL_startEventTimer(rfConfig.taskId, RADIO_EVENT_RF_RX, (uint32)50);
 		}
 		return (events ^ RADIO_EVENT_RF_RX);

@@ -7,7 +7,7 @@ BOOL TEST_isTestMode();
 void TEST_readRTC(int fromJig);
 void TEST_setRTC(int fromJig, int year, int mon, int day, int hour, int min, int sec);
 void TEST_readFlash(int sector);
-void TEST_eraseFlash(int sector);
+void TEST_eraseFlash(unsigned int sector);
 void TEST_lpm3(int mode);
 void TEST_lpm2();
 void TEST_reedSensor();

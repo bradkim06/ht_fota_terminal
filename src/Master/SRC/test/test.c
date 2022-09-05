@@ -38,7 +38,7 @@ extern Config_t conf;
 static BOOL IsTestMode = FALSE;
 static BOOL IsMeterTesting = FALSE;
 static BOOL IsReedTesting = FALSE;
-static uint8 TestTaskId = 0;
+static const uint8 TEST_TASK_ID = 0;
 
 #define TEST_MODE
 #undef TEST_MODE
@@ -142,26 +142,24 @@ static BOOL saveTerminalConfig(const char *sn, const int ri, const int mi)
 
 void TEST_config()
 {
-	Config_t config;
-	FLASH_readConfigInfo(&config);
+	FLASH_readConfigInfo(&conf);
 
-	APP_showConfig(&config);
+	APP_showConfig(&conf);
 }
 
 void TEST_debugPrint(int flag)
 {
-	Config_t config;
-	FLASH_readConfigInfo(&config);
+	FLASH_readConfigInfo(&conf);
 
 	if (flag != 0xff) {
 		if (flag) {
-			config.debugPrint = 1;
+			conf.debugPrint = 1;
 		} else {
-			config.debugPrint = 0;
+			conf.debugPrint = 0;
 		}
-		FLASH_saveConfigInfo(&config);
+		FLASH_saveConfigInfo(&conf);
 	}
-	printf("debug printing %s\n", config.debugPrint ? "on" : "off");
+	printf("debug printing %s\n", conf.debugPrint ? "on" : "off");
 }
 
 void TEST_meteringParamer(int ri, int mi)
@@ -176,16 +174,15 @@ void TEST_meteringParamer(int ri, int mi)
 		return;
 	}
 
-	Config_t config;
-	FLASH_readConfigInfo(&config);
+	FLASH_readConfigInfo(&conf);
 
-	config.meterInterval = mi;
-	config.reportInterval = ri;
+	conf.meterInterval = mi;
+	conf.reportInterval = ri;
 
-	FLASH_saveConfigInfo(&config);
+	FLASH_saveConfigInfo(&conf);
 
-	printf("meteringInterval:%d, reportInterval:%d, intervalBaseTime:%d\n",
-	       config.meterInterval, config.reportInterval, conf.intervalBaseTime);
+	printf("meteringInterval:%d, reportInterval:%d, intervalBaseTime:%d\n", conf.meterInterval,
+	       conf.reportInterval, conf.intervalBaseTime);
 }
 
 void TEST_readRTC(int fromJig)
@@ -213,7 +210,7 @@ void TEST_setRTC(int fromJig, int year, int mon, int day, int hour, int min, int
 	date.min = min;
 	date.sec = sec;
 
-	RTC_set(date);
+	RTC_set(&date);
 
 	TEST_readRTC(fromJig);
 }
@@ -237,13 +234,13 @@ void TEST_readFlash(int sector)
 	}
 
 	extern const uint8 *FlashAddr[];
-	for (int i = start; i < end; i++) {
+	for (unsigned int i = start; i < end; i++) {
 		HAL_ENTER_CRITICAL_SECTION(intState);
 		MSP430FLASH_read((uint8 *)FlashAddr[i], flash, LEN_INFO_FLASH_SECTOR);
 		HAL_EXIT_CRITICAL_SECTION(intState);
 
 		printf("\n======== Flash Memory - Sector[%d] =======\n", i);
-		for (int j = 0; j < LEN_INFO_FLASH_SECTOR; j++) {
+		for (unsigned int j = 0; j < LEN_INFO_FLASH_SECTOR; j++) {
 			if (j && !(j % 16)) {
 				printf("\n");
 			}
@@ -253,9 +250,9 @@ void TEST_readFlash(int sector)
 	}
 }
 
-void TEST_eraseFlash(int sector)
+void TEST_eraseFlash(unsigned int sector)
 {
-	if ((sector < 0 || sector > 3)) {
+	if (sector > 3) {
 		printf("Invalid sector number[%d]\n", sector);
 		return;
 	}
@@ -290,12 +287,11 @@ void TEST_readBattery()
 
 void TEST_readSerialNum()
 {
-	Config_t config;
-	FLASH_readConfigInfo(&config);
+	FLASH_readConfigInfo(&conf);
 
 	printf("trsn ");
-	for (int i = 0; i < SERIAL_NUM_LEN; i++) {
-		printf("%c", config.serialNum[i]);
+	for (unsigned int i = 0; i < SERIAL_NUM_LEN; i++) {
+		printf("%c", conf.serialNum[i]);
 	}
 	printf(" %s\n", FIRMWARE_VER);
 }
@@ -307,14 +303,13 @@ void TEST_writeSerialNum(char *serialNum)
 		return;
 	}
 
-	Config_t config;
-	FLASH_readConfigInfo(&config);
+	FLASH_readConfigInfo(&conf);
 
-	for (int i = 0; i < SERIAL_NUM_LEN; i++) {
-		config.serialNum[i] = *serialNum++;
+	for (unsigned int i = 0; i < SERIAL_NUM_LEN; i++) {
+		conf.serialNum[i] = *serialNum++;
 	}
 
-	FLASH_saveConfigInfo(&config);
+	FLASH_saveConfigInfo(&conf);
 
 	TEST_readSerialNum();
 }
@@ -328,7 +323,7 @@ static void reedResponse()
 void TEST_reedSensor()
 {
 	printf("ACK\n");
-	AppTaskId = TestTaskId;
+	AppTaskId = TEST_TASK_ID;
 
 	IsReedTesting = TRUE;
 	while (1) {
@@ -342,7 +337,7 @@ void TEST_reedSensor()
 
 void TEST_readMeter(int type)
 {
-	AppTaskId = TestTaskId;
+	AppTaskId = TEST_TASK_ID;
 
 	if (type == 0xff) {
 		printf("Usage : rmeter [TYPE]\n");
@@ -452,7 +447,7 @@ void TEST_writeMeter(char *valueStr)
 		}
 
 		p = pDot + 1;
-		for (int i = 6; i < 11; i++) {
+		for (unsigned int i = 6; i < 11; i++) {
 			if (*p == '\r' || *p == '\n' || *p == '\0') {
 				break;
 			}
@@ -461,7 +456,7 @@ void TEST_writeMeter(char *valueStr)
 
 		valid = 1;
 
-		for (int i = 0; i < 12; i++) {
+		for (unsigned int i = 0; i < 12; i++) {
 			if (isxdigit(value[i]) == 0) {
 				valid = 0;
 				break;
@@ -490,11 +485,11 @@ void TEST_writeMeter(char *valueStr)
 	pMsg->stx = STD_REQ_START;
 	pMsg->cfield = 0xA1;
 	pMsg->afield = STD_REQ_ADDR;
-	for (int i = 0; i < 6; i++) {
+	for (unsigned int i = 0; i < 6; i++) {
 		pMsg->value[i] = ascii2BCD(value[10 - 2 * i + 0], value[10 - 2 * i + 1]);
 	}
 	pMsg->checksum = pMsg->cfield + pMsg->afield;
-	for (int i = 0; i < 6; i++) {
+	for (unsigned int i = 0; i < 6; i++) {
 		pMsg->checksum += pMsg->value[i];
 	}
 	pMsg->etx = STD_REQ_STOP;
@@ -502,7 +497,7 @@ void TEST_writeMeter(char *valueStr)
 	uint8 *p = (uint8 *)pMsg;
 
 	printf("set meter value: ");
-	for (int i = 0; i < sizeof(set_meter_value_t); i++) {
+	for(unsigned int i = 0; i < sizeof(set_meter_value_t); i++) {
 		printf(" %02X", *(p + i));
 	}
 	printf("\n");
@@ -519,14 +514,13 @@ void TEST_lpm3(int mode)
 {
 	printf("ACK\n");
 
-	Config_t config;
-	FLASH_readConfigInfo(&config);
+	FLASH_readConfigInfo(&conf);
 	if (mode == 1) {
-		config.sleepMode = 0;
+		conf.sleepMode = 0;
 	} else if (mode == 0) {
-		config.sleepMode = 1;
+		conf.sleepMode = 1;
 	}
-	FLASH_saveConfigInfo(&config);
+	FLASH_saveConfigInfo(&conf);
 
 	METER_disable();
 	MODEM_disable();
@@ -550,7 +544,6 @@ void TEST_lpm3(int mode)
 
 	MODEM_turnOff();
 
-	device_sleep_state = FALSE;
 	GLOBAL_DISABLE_INT();
 	SLEEP_DEVICE();
 
@@ -562,10 +555,9 @@ void TEST_lpm2()
 {
 	printf("ACK\n");
 
-	Config_t config;
-	FLASH_readConfigInfo(&config);
-	config.sleepMode = 1;
-	FLASH_saveConfigInfo(&config);
+	FLASH_readConfigInfo(&conf);
+	conf.sleepMode = 1;
+	FLASH_saveConfigInfo(&conf);
 
 	METER_disable();
 	MODEM_disable();
@@ -590,9 +582,8 @@ void TEST_lpm2()
 	CC1200_rfOff();
 #endif
 
-	device_sleep_state = FALSE;
 	GLOBAL_DISABLE_INT();
-	SET_ACTIVE_OFF_LPM(TRUE);
+	__bis_SR_register(POWER_ACTIVE_OFF + GIE);
 
 	while (1)
 		;
@@ -629,15 +620,14 @@ void TEST_meterLCD()
 
 void TEST_sleepMode(int flag)
 {
-	Config_t config;
-	FLASH_readConfigInfo(&config);
+	FLASH_readConfigInfo(&conf);
 
 	if (flag != 0xff) {
-		config.sleepMode = flag ? 1 : 0;
-		FLASH_saveConfigInfo(&config);
+		conf.sleepMode = flag ? 1 : 0;
+		FLASH_saveConfigInfo(&conf);
 	}
 
-	if (config.sleepMode) {
+	if (conf.sleepMode) {
 		printf("sleep mode\n");
 	} else {
 		printf("active mode\n");
@@ -646,37 +636,34 @@ void TEST_sleepMode(int flag)
 
 void TEST_riCtrlMode(int flag)
 {
-	Config_t config;
-	FLASH_readConfigInfo(&config);
+	FLASH_readConfigInfo(&conf);
 
 	if (flag != 0xff) {
-		config.riCtrlMode = flag ? 1 : 0;
-		config.riCtrlChgCount = 0;
-		config.riCtrlValue = config.reportInterval;
-		FLASH_saveConfigInfo(&config);
+		conf.riCtrlMode = flag ? 1 : 0;
+		conf.riCtrlChgCount = 0;
+		conf.riCtrlValue = conf.reportInterval;
+		FLASH_saveConfigInfo(&conf);
 	}
 
-	printf("report control %s\n", config.riCtrlMode ? "on" : "off");
+	printf("report control %s\n", conf.riCtrlMode ? "on" : "off");
 }
 
 void TEST_shortInterval(int flag)
 {
-	Config_t config;
-	FLASH_readConfigInfo(&config);
+	FLASH_readConfigInfo(&conf);
 
 	if (flag != 0xff) {
-		config.isShortInterval = flag ? 1 : 0;
-		FLASH_saveConfigInfo(&config);
+		conf.isShortInterval = flag ? 1 : 0;
+		FLASH_saveConfigInfo(&conf);
 	}
 
-	printf("short interval %s\n", config.isShortInterval ? "on" : "off");
+	printf("short interval %s\n", conf.isShortInterval ? "on" : "off");
 	return;
 }
 
 void TEST_setMeterType(int type)
 {
-	Config_t config;
-	FLASH_readConfigInfo(&config);
+	FLASH_readConfigInfo(&conf);
 
 	if (type == 0xff) {
 		printf("Usage : mt [TYPE]\n");
@@ -693,27 +680,27 @@ void TEST_setMeterType(int type)
 	}
 
 	if (type == 1) {
-		config.meterType = W_STANDARD_D;
+		conf.meterType = W_STANDARD_D;
 	} else if (type == 2) {
-		config.meterType = W_SHINHAN_D;
+		conf.meterType = W_SHINHAN_D;
 	} else if (type == 3) {
-		config.meterType = W_SHINHAN_D_BIG;
+		conf.meterType = W_SHINHAN_D_BIG;
 	} else if (type == 4) {
-		config.meterType = W_MNS_D;
+		conf.meterType = W_MNS_D;
 	} else if (type == 5) {
-		config.meterType = C_ONETL_D;
+		conf.meterType = C_ONETL_D;
 	} else if (type == 6) {
-		config.meterType = W_ONETL_D;
+		conf.meterType = W_ONETL_D;
 	} else if (type == 7) {
-		config.meterType = G_ONETL_D;
+		conf.meterType = G_ONETL_D;
 	} else if (type == 8) {
-		config.meterType = H_ONETL_D;
+		conf.meterType = H_ONETL_D;
 	} else {
 		printf("Unknown type : %02X\n", type);
 		return;
 	}
 
-	FLASH_saveConfigInfo(&config);
+	FLASH_saveConfigInfo(&conf);
 }
 
 void TEST_pwsn(char *sn, int ri, int mi)
@@ -728,16 +715,13 @@ void TEST_pwsn(char *sn, int ri, int mi)
 
 void TEST_prsn()
 {
-	Config_t config;
-
-	FLASH_readConfigInfo(&config);
+	FLASH_readConfigInfo(&conf);
 
 	char serial[SERIAL_NUM_LEN + 1] = "";
-	memcpy(serial, config.serialNum, SERIAL_NUM_LEN);
+	memcpy(serial, conf.serialNum, SERIAL_NUM_LEN);
 	serial[SERIAL_NUM_LEN] = '\0';
 
-	printf("trsn %s %s %d %d\n", serial, FIRMWARE_VER, config.reportInterval,
-	       config.meterInterval);
+	printf("trsn %s %s %d %d\n", serial, FIRMWARE_VER, conf.reportInterval, conf.meterInterval);
 }
 
 void TEST_pwmeter(int numMeter, int type1, int port1, int type2, int port2, int type3, int port3)
@@ -747,7 +731,7 @@ void TEST_pwmeter(int numMeter, int type1, int port1, int type2, int port2, int 
 	conf.meterType = type1;
 	FLASH_saveConfigInfo(&conf);
 
-	MISC_delayMs(1000); // ª˝ªÍ∞¯¡§ø°º≠ ∏µ© BIPøœ∑· ∏ﬁºº¡ˆ ¥Î±‚∏¶ ¿ß«— µÙ∑π¿Ã
+	MISC_delayMs(1000); // ÏÉùÏÇ∞Í≥µÏ†ïÏóêÏÑú Î™®ÎéÄ BIPÏôÑÎ£å Î©îÏÑ∏ÏßÄ ÎåÄÍ∏∞Î•º ÏúÑÌïú ÎîúÎ†àÏù¥
 	printf("trmeter %d %d %d %d %d %d %d\n", numMeter, type1, port1, type2, port2, type3,
 	       port3);
 }
@@ -824,7 +808,7 @@ void TEST_pmwsn(char *sn, int ri, int mi, int caliber, int q3, int qt, int q2, i
 				recv_qt = result.qt[0] | result.qt[1] << 8;
 				recv_q2 = result.q2[0] | result.q2[1] << 8;
 				recv_q1 = result.q1[0] | result.q1[1] << 8;
-				// ªÁΩ« 40, 50mm¿∫ º“«¸/¥Î«¸¿Ã »•¿Á«œ¡ˆ∏∏ µ˚∑Œ ±∏∫–«“ πÊπ˝¿Ã æ¯æÓ 50mm±Ó¡¯ º“«¸¿∏∑Œ ∞Ì∑¡«—¥Ÿ.
+				// ÏÇ¨Ïã§ 40, 50mmÏùÄ ÏÜåÌòï/ÎåÄÌòïÏù¥ ÌòºÏû¨ÌïòÏßÄÎßå Îî∞Î°ú Íµ¨Î∂ÑÌï† Î∞©Î≤ïÏù¥ ÏóÜÏñ¥ 50mmÍπåÏßÑ ÏÜåÌòïÏúºÎ°ú Í≥†Î†§ÌïúÎã§.
 				if (caliber > MT_50mm) {
 					printf("%d %d %d %d %d %d %d %d\n", result.caliber, recv_q3,
 					       recv_qt, recv_q2, recv_q1, result.maker,
@@ -868,16 +852,15 @@ void TEST_pmrsn(BOOL isJigTest)
 				recv_q2 = result.q2[0] | result.q2[1] << 8;
 				recv_q1 = result.q1[0] | result.q1[1] << 8;
 				if (isJigTest) {
-					Config_t config;
-					FLASH_readConfigInfo(&config);
+					FLASH_readConfigInfo(&conf);
 
 					char serial[SERIAL_NUM_LEN + 1] = "";
-					memcpy(serial, config.serialNum, SERIAL_NUM_LEN);
+					memcpy(serial, conf.serialNum, SERIAL_NUM_LEN);
 					serial[SERIAL_NUM_LEN] = '\0';
 
 					printf("tmrsn %s %s %d %d ", serial, FIRMWARE_VER,
-					       config.reportInterval, config.meterInterval);
-					// ªÁΩ« 40, 50mm¿∫ º“«¸/¥Î«¸¿Ã »•¿Á«œ¡ˆ∏∏ µ˚∑Œ ±∏∫–«“ πÊπ˝¿Ã æ¯æÓ 50mm±Ó¡¯ º“«¸¿∏∑Œ ∞Ì∑¡«—¥Ÿ.
+					       conf.reportInterval, conf.meterInterval);
+					// ÏÇ¨Ïã§ 40, 50mmÏùÄ ÏÜåÌòï/ÎåÄÌòïÏù¥ ÌòºÏû¨ÌïòÏßÄÎßå Îî∞Î°ú Íµ¨Î∂ÑÌï† Î∞©Î≤ïÏù¥ ÏóÜÏñ¥ 50mmÍπåÏßÑ ÏÜåÌòïÏúºÎ°ú Í≥†Î†§ÌïúÎã§.
 					if (result.caliber > MT_50mm) {
 						printf("%d %d %d %d %d %d %d %d\n", result.caliber,
 						       recv_q3, recv_qt, recv_q2, recv_q1,
@@ -926,18 +909,18 @@ void TEST_resetNFC()
 	NFC_tagDisable();
 	NFC_fdDisable();
 
-	//VCC control ªÁøÎ¿¸ ∫∏µÂ => √ﬂ»ƒ ªË¡¶
+	//VCC control ÏÇ¨Ïö©Ï†Ñ Î≥¥Îìú => Ï∂îÌõÑ ÏÇ≠Ï†ú
 	PORT1_DIR |= BM(PORT_NFC_TAG);
 	PORT1_OUT |= BM(PORT_NFC_TAG);
 
-	MISC_delayMs(1000); // ª˝ªÍ∞¯¡§ø°º≠ ∏µ© BIPøœ∑· ∏ﬁºº¡ˆ ¥Î±‚∏¶ ¿ß«— µÙ∑π¿Ã
+	MISC_delayMs(1000); // ÏÉùÏÇ∞Í≥µÏ†ïÏóêÏÑú Î™®ÎéÄ BIPÏôÑÎ£å Î©îÏÑ∏ÏßÄ ÎåÄÍ∏∞Î•º ÏúÑÌïú ÎîúÎ†àÏù¥
 	if (NFC_factoryResetTag() == TRUE) {
 		printf("tnfc OK\n");
 	} else {
 		printf("tnfc ERR\n");
 	}
 
-	//VCC control ªÁøÎ¿¸ ∫∏µÂ => √ﬂ»ƒ ªË¡¶
+	//VCC control ÏÇ¨Ïö©Ï†Ñ Î≥¥Îìú => Ï∂îÌõÑ ÏÇ≠Ï†ú
 	PORT1_DIR &= ~BM(PORT_NFC_TAG);
 	NFC_init();
 }
@@ -945,7 +928,7 @@ void TEST_resetNFC()
 void TEST_checkNFC()
 {
 	uint8 org_AppTaskId = AppTaskId;
-	AppTaskId = TestTaskId;
+	AppTaskId = TEST_TASK_ID;
 
 	printf("ACK\n");
 
@@ -997,10 +980,9 @@ void TEST_runTasks()
 {
 	uint8 idx = 0;
 
-	WDTCTL = WDTPW | WDTCNTCL; // Clear watchdog timer
 	WDTCTL = WDT_ARST_16SEC; // Start watchdog timer(16 sec)
 
-	for (int i = 0; i < (testTasksCnt + 1); i++) {
+	for (unsigned int i = 0; i < (testTasksCnt + 1); i++) {
 		if (++idx >= testTasksCnt) {
 			idx = 0;
 		}
@@ -1020,7 +1002,7 @@ void TEST_runTasks()
 			TasksEvents[idx] = 0;
 			HAL_EXIT_CRITICAL_SECTION(intState);
 
-			//yikim 2017.09.06 NFC TEST¡ﬂ πﬂª˝«œø© √≥∏Æ
+			//yikim 2017.09.06 NFC TESTÏ§ë Î∞úÏÉùÌïòÏó¨ Ï≤òÎ¶¨
 			if (events == 0xFFFFFFFF) {
 				__no_operation();
 			} else {
@@ -1036,14 +1018,13 @@ void TEST_runTasks()
 
 void TEST_run()
 {
-	WDTCTL = WDTPW | WDTCNTCL; // Clear watchdog timer
 	WDTCTL = WDT_ARST_16SEC; // Start watchdog timer(16 sec)
 	PRINT_enable();
 
 	TasksEvents = (event32_t *)malloc(sizeof(event32_t) * testTasksCnt);
 	if (TasksEvents == NULL) {
 		printf("malloc error - TASKMGR_init\n");
-		exit(1);
+		REBOOT_SYSTEM();
 	}
 	memset(TasksEvents, 0, (sizeof(event32_t) * testTasksCnt));
 
@@ -1052,10 +1033,10 @@ void TEST_run()
 	LCD_init();
 	LCD_displayString("TEST");
 
-	//task √ ±‚»≠
-	AppTaskId = TestTaskId;
+	//task Ï¥àÍ∏∞Ìôî
+	AppTaskId = TEST_TASK_ID;
 #if defined(AUX_REPEATER)
-	// ≈◊Ω∫∆Æ∏¶ ¿ß«— Radio task µø¿€¿Ã « ø‰«œπ«∑Œ √ ±‚»≠.
+	// ÌÖåÏä§Ìä∏Î•º ÏúÑÌïú Radio task ÎèôÏûëÏù¥ ÌïÑÏöîÌïòÎØÄÎ°ú Ï¥àÍ∏∞Ìôî.
 	CC1200_init(TestTaskId + 1);
 #endif
 
@@ -1064,7 +1045,7 @@ void TEST_run()
 	FLASH_updateResetCount(&conf);
 
 	PRINT_stop();
-	TEST_initModem(TestTaskId);
+	TEST_initModem(TEST_TASK_ID);
 	PRINT_resume();
 
 	printf("\n\n\n\n");
@@ -1075,7 +1056,7 @@ void TEST_run()
 #else // NBIOT_DEVICE
 	printf("(NB-IoT)\n");
 #endif
-	printf("   Compiled at (%s / %s)\n", __DATE__, __TIME__);
+	/* printf("   Compiled at (%s / %s)\n", __DATE__, __TIME__); */
 	printf("===========================================\n");
 	printf("\n");
 

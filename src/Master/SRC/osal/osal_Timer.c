@@ -1,8 +1,10 @@
 
+#include "app.h"
 #include <msp430.h>
 #include "common_header.h"
 #include "osal_Timer.h"
 #include "port_desc.h"
+#include "uart.h"
 
 #include "Task_Mgr.h"
 #include "check_meter_misc.h"
@@ -137,6 +139,7 @@ static OsalTimerRec_t *addEventTimer(byte taskId, event32_t event_flag, uint16 t
 			return (newTimer);
 		} else {
 			printf("malloc error - addEventTimer\n");
+			REBOOT_SYSTEM();
 			return ((OsalTimerRec_t *)NULL);
 		}
 	}
@@ -264,7 +267,7 @@ __interrupt void TIMER1_A0_ISR(void)
 	OsalTimerRec_t *srchTimer;
 	OsalTimerRec_t *prevTimer;
 	OsalTimerRec_t *saveTimer;
-	int updateTime = 1;
+	static const char updateTime = 1;
 
 	HAL_ENTER_CRITICAL_SECTION(intState); // Hold off interrupts
 
@@ -284,10 +287,9 @@ __interrupt void TIMER1_A0_ISR(void)
 
 			// When timeout, execute the task
 			if (srchTimer->timeout == 0) {
-				OSAL_setEvent(srchTimer->taskId, srchTimer->event_flag);
-
-				//Active ON½Ã Power Mode¸¦ Á¾·áÇÑ´Ù.
+				//Active ONì‹œ Power Modeë¥¼ ì¢…ë£Œí•œë‹¤.
 				SET_ACTIVE_OFF_LPM(FALSE);
+				OSAL_setEvent(srchTimer->taskId, srchTimer->event_flag);
 
 				// Take out of list
 				if (prevTimer == NULL)
@@ -312,4 +314,5 @@ __interrupt void TIMER1_A0_ISR(void)
 	}
 
 	HAL_EXIT_CRITICAL_SECTION(intState); // Release interrupts
+	TA1IV = 0;
 }

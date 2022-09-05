@@ -15,9 +15,9 @@ typedef struct {
 	uint8 expect;
 } inputData_t;
 
-inputData_t inputData[12] = { { '1', 1 }, { '2', 2 },  { '3', 3 },  { '4', 4 },
-			      { '5', 5 }, { '6', 6 },  { '7', 7 },  { '8', 8 },
-			      { '9', 9 }, { 'a', 10 }, { 'A', 10 }, { ' ', 0 } };
+inputData_t testData[12] = { { '1', 1 }, { '2', 2 },  { '3', 3 },  { '4', 4 },
+			     { '5', 5 }, { '6', 6 },  { '7', 7 },  { '8', 8 },
+			     { '9', 9 }, { 'a', 10 }, { 'A', 10 }, { ' ', 0 } };
 
 void setUp()
 {
@@ -36,7 +36,7 @@ static void testFunction(inputData_t *data)
 
 void test_ascii2Hex()
 {
-	for (int i = 0; i < sizeof(inputData) / sizeof(inputData_t); i++) {
-		testFunction(&inputData[i]);
+	for (int i = 0; i < sizeof(testData) / sizeof(inputData_t); i++) {
+		testFunction(&testData[i]);
 	}
 }

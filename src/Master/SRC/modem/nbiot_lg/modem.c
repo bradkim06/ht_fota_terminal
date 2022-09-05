@@ -1,6 +1,7 @@
 #include "common_header.h"
 #include "modem.h"
 #include "flashDriver.h"
+#include "nbiotModem.h"
 
 #ifndef TDD_TEST
 #include <msp430.h>
@@ -12,19 +13,21 @@
 #include "uart.h"
 #include "check_meter_misc.h"
 
+#include "fota.h"
 #include "app.h"
 #include "meter.h"
 #include "lcdDriver.h"
 #include "shell.h"
 #include "rtcAlarm.h"
 #include "message.h"
-#include "nbiotModem.h"
 #include "assert.h"
 #include "battery.h"
 #include "test.h"
 #endif
 
-Modem_t modem;
+Modem_t modem = { 0 };
+ModemComm_t modemComm = { 0 };
+ModemContext_t modemCtx = { 0 };
 
 #ifndef TDD_TEST
 extern Config_t conf;
@@ -64,140 +67,119 @@ static void MODEM_STATUS_PRINT()
 #endif
 }
 
-static BOOL isPowerOn = FALSE;
-
 void MODEM_turnOff()
 {
-	if (isPowerOn) {
-		printf_ts("MODEM : power off\n");
+	printf_ts("MODEM : power off\n");
 
 #if (DEVICE_REVISION == DEV_REV_PWRCTRL_MOSFET_LDO)
-		if (conf.bslModel) {
-			// MOSFET work turn on power (P4.6)
-			P4SEL &= ~BM(6);
-			P4DIR |= BM(6);
-			P4OUT |= BM(6); // make low
-		} else {
-			// MOSFET work turn on power (P1.1)
-			P1SEL &= ~BM(1);
-			P1DIR |= BM(1);
-			P1OUT |= BM(1); // make low
-		}
+	if (conf.bslModel) {
+		// MOSFET work turn on power (P4.6)
+		P4SEL &= ~BM(6);
+		P4DIR |= BM(6);
+		P4OUT |= BM(6); // make low
+	} else {
+		// MOSFET work turn on power (P1.1)
+		P1SEL &= ~BM(1);
+		P1DIR |= BM(1);
+		P1OUT |= BM(1); // make low
+	}
 
-		MISC_delayMs(10);
+	MISC_delayMs(10);
 
-		// LDO work turn off power (P2.0)
-		P2SEL &= ~BM(0);
-		P2DIR |= BM(0);
-		P2OUT &= ~BM(0); // make low
+	// LDO work turn off power (P2.0)
+	P2SEL &= ~BM(0);
+	P2DIR |= BM(0);
+	P2OUT &= ~BM(0); // make low
 
-		MISC_delayMs(100);
+	MISC_delayMs(100);
 #elif (DEVICE_REVISION == DEV_REV_PWRCTRL_LDO_ONLY)
-		// LDO work turn off power (P2.0)
-		P2SEL &= ~BM(0);
-		P2DIR |= BM(0);
-		P2OUT &= ~BM(0); // make low
+	// LDO work turn off power (P2.0)
+	P2SEL &= ~BM(0);
+	P2DIR |= BM(0);
+	P2OUT &= ~BM(0); // make low
 
-		MISC_delayMs(100);
+	MISC_delayMs(100);
 #elif (DEVICE_REVISION == DEV_REV_PWRCTRL_MOSFET_ONLY)
-		// turn off power (P2.0)
-		P2SEL &= ~BM(0);
-		P2DIR |= BM(0);
-		P2OUT |= BM(0); // make high
+	// turn off power (P2.0)
+	P2SEL &= ~BM(0);
+	P2DIR |= BM(0);
+	P2OUT |= BM(0); // make high
 
-		MISC_delayMs(10);
+	MISC_delayMs(10);
 #endif
 
-		isPowerOn = FALSE;
-
-		modemCtx.lwm2m.value = 0;
-		modemCtx.status.cellreg = 0;
-		memset(&modem.lastCertifyTime, 0, sizeof(Date_t));
-	}
+	modemCtx.lwm2m.value = 0;
+	modemCtx.status.cellreg = 0;
+	/* memset(&modem.lastCertifyTime, 0, sizeof(Date_t)); */
 }
 
 void MODEM_turnOn()
 {
-	if (!isPowerOn) {
-		printf_ts("MODEM : power on\n");
+	printf_ts("MODEM : power on\n");
 
 #if (DEVICE_REVISION == DEV_REV_PWRCTRL_MOSFET_LDO)
-		// LDO work turn on power (P2.0)
-		P2SEL &= ~BM(0);
-		P2DIR |= BM(0);
-		P2OUT |= BM(0); // make high
+	// LDO work turn on power (P2.0)
+	P2SEL &= ~BM(0);
+	P2DIR |= BM(0);
+	P2OUT |= BM(0); // make high
 
-		MISC_delayMs(100);
+	MISC_delayMs(100);
 
-		if (conf.bslModel) {
-			// MOSFET work turn on power (P4.6)
-			P4SEL &= ~BM(6);
-			P4DIR |= BM(6);
-			P4OUT &= ~BM(6); // make low
-		} else {
-			// MOSFET work turn on power (P1.1)
-			P1SEL &= ~BM(1);
-			P1DIR |= BM(1);
-			P1OUT &= ~BM(1); // make low
-		}
-
-		MISC_delayMs(10);
-#elif (DEVICE_REVISION == DEV_REV_PWRCTRL_LDO_ONLY)
-		// LDO work turn on power (P2.0)
-		P2SEL &= ~BM(0);
-		P2DIR |= BM(0);
-		P2OUT |= BM(0); // make high
-
-		MISC_delayMs(100);
-#elif (DEVICE_REVISION == DEV_REV_PWRCTRL_MOSFET_ONLY)
-		// turn on power (P2.0)
-		P2SEL &= ~BM(0);
-		P2DIR |= BM(0);
-		P2OUT &= ~BM(0); // make low
-
-		MISC_delayMs(10);
-#endif
-		isPowerOn = TRUE;
+	if (conf.bslModel) {
+		// MOSFET work turn on power (P4.6)
+		P4SEL &= ~BM(6);
+		P4DIR |= BM(6);
+		P4OUT &= ~BM(6); // make low
+	} else {
+		// MOSFET work turn on power (P1.1)
+		P1SEL &= ~BM(1);
+		P1DIR |= BM(1);
+		P1OUT &= ~BM(1); // make low
 	}
+
+	MISC_delayMs(10);
+#elif (DEVICE_REVISION == DEV_REV_PWRCTRL_LDO_ONLY)
+	// LDO work turn on power (P2.0)
+	P2SEL &= ~BM(0);
+	P2DIR |= BM(0);
+	P2OUT |= BM(0); // make high
+
+	MISC_delayMs(100);
+#elif (DEVICE_REVISION == DEV_REV_PWRCTRL_MOSFET_ONLY)
+	// turn on power (P2.0)
+	P2SEL &= ~BM(0);
+	P2DIR |= BM(0);
+	P2OUT &= ~BM(0); // make low
+
+	MISC_delayMs(10);
+#endif
 }
 
 void MODEM_sleep()
 {
 #if (DEVICE_REVISION == DEV_REV_PWRCTRL_MOSFET_LDO)
-	printf_ts("MODEM : sleep");
+	printf_ts("MODEM : sleep\n");
 
-	if (!isPowerOn) {
-		printf(" - fail, MODEM is not on\n");
-	} else {
-		printf(" - success\n");
+	// LDO work
+	P2SEL &= ~BM(0);
+	P2DIR |= BM(0);
+	P2OUT &= ~BM(0); // make low
 
-		// LDO work
-		P2SEL &= ~BM(0);
-		P2DIR |= BM(0);
-		P2OUT &= ~BM(0); // make low
-
-		MISC_delayMs(100);
-	}
+	MISC_delayMs(100);
 #endif
 }
 
 void MODEM_wakeup()
 {
 #if (DEVICE_REVISION == DEV_REV_PWRCTRL_MOSFET_LDO)
-	printf_ts("MODEM : wake-up");
+	printf_ts("MODEM : wake-up\n");
 
-	if (!isPowerOn) {
-		printf(" - fail, MODEM is not on\n");
-	} else {
-		printf(" - success\n");
+	// LDO work
+	P2SEL &= ~BM(0);
+	P2DIR |= BM(0);
+	P2OUT |= BM(0); // make high
 
-		// LDO work
-		P2SEL &= ~BM(0);
-		P2DIR |= BM(0);
-		P2OUT |= BM(0); // make high
-
-		MISC_delayMs(100);
-	}
+	MISC_delayMs(1000);
 #endif
 }
 
@@ -207,8 +189,22 @@ void MODEM_initialization()
 	memset(&modemCtx, 0, sizeof(modemCtx));
 	memset(&modemComm, 0, sizeof(modemComm));
 
-	// LGU+ QA Report V1.75, UE INFO « µÂ √ ±‚∫∏∞ÌΩ√ 0x01
+	// LGU+ QA Report V1.75, UE INFO ÌïÑÎìú Ï¥àÍ∏∞Î≥¥Í≥†Ïãú 0x01
 	modemCtx.proc.initialReport = 1;
+}
+
+void MODEM_changeBaudrate(UartBaudrate_t baudrate)
+{
+	UART_close(UART_A2, GPIO_LOW);
+
+	UartInitParam_t param = { .isTxEnable = TRUE,
+				  .isRxEnable = TRUE,
+				  .baudrate = baudrate,
+				  .parity = UART_PARITY_NONE,
+				  .stopbit = UART_STOPBIT_ONE,
+				  .charLen = UART_8BITS_CHAR };
+
+	UART_open(UART_A2, &(param));
 }
 
 void MODEM_enable()
@@ -236,7 +232,7 @@ void MODEM_write(char *pCmd)
 {
 	if (TEST_isTestMode() == FALSE) {
 		printf(TP_ANSI_FG_BLUE);
-		// AT CMD∞° 512 byteø° ±Ÿ¡¢«“ ∞ÊøÏ buffer overflow¿« ¿ß«Ë¿Ã ¿÷æÓ timestamp √‚∑¬¿ª ∫–∏Æ
+		// AT CMDÍ∞Ä 512 byteÏóê Í∑ºÏ†ëÌï† Í≤ΩÏö∞ buffer overflowÏùò ÏúÑÌóòÏù¥ ÏûàÏñ¥ timestamp Ï∂úÎ†•ÏùÑ Î∂ÑÎ¶¨
 		printf_ts("");
 		printf("%s\n", pCmd);
 		printf(TP_ANSI_RESET);
@@ -258,7 +254,7 @@ void MODEM_read()
 		printf(TP_ANSI_RESET);
 	}
 
-	// Stop ªÛ≈¬¿Œ ∞ÊøÏ MODEM response π´Ω√.
+	// Stop ÏÉÅÌÉúÏù∏ Í≤ΩÏö∞ MODEM response Î¨¥Ïãú.
 	if (modemCtx.status.stop) {
 		return;
 	}
@@ -270,11 +266,11 @@ void MODEM_read()
 static void saveModemErrorLog(Date_t *date, ModemErrorCode_t errCode)
 {
 	/**
-     * @brief error log ªÛø°º≠ Ω√∞£∫Ò±≥∏¶ ≈Î«ÿ ∞°¿Â ø¿∑°µ» logø° overwrite.
-     *        errLog πËø≠¿« index 1 ~ 6¿∫ ≥Ø¬• BCD ∞™¿Ãπ«∑Œ µ˚∑Œ ∫Ø»Ø æ¯¿Ã ∫Ò±≥.
+     * @brief error log ÏÉÅÏóêÏÑú ÏãúÍ∞ÑÎπÑÍµêÎ•º ÌÜµÌï¥ Í∞ÄÏû• Ïò§ÎûòÎêú logÏóê overwrite.
+     *        errLog Î∞∞Ïó¥Ïùò index 1 ~ 6ÏùÄ ÎÇ†Ïßú BCD Í∞íÏù¥ÎØÄÎ°ú Îî∞Î°ú Î≥ÄÌôò ÏóÜÏù¥ ÎπÑÍµê.
      */
-	int old = 0;
-	for (int i = 1; i < CNT_ERROR_LOG; i++) {
+	unsigned int old = 0;
+	for (unsigned int i = 1; i < CNT_ERROR_LOG; i++) {
 		// year, month, day value mix and compare
 		uint32 val1 = (uint32)modemCtx.errLog[old][0] << 16 | modemCtx.errLog[old][1] << 8 |
 			      modemCtx.errLog[old][2];
@@ -323,7 +319,7 @@ void MODEM_stop(int resultCode)
 
 	if (resultCode == SUCCESS) {
 		modemCtx.errCode = MODEM_ERROR_NONE;
-		// µø¿€ øœ∑· »ƒ Detached µ» ∞ÊøÏ PSM off.
+		// ÎèôÏûë ÏôÑÎ£å ÌõÑ Detached Îêú Í≤ΩÏö∞ PSM off.
 		if (modemCtx.status.cellreg == MODEM_CELLREG_REJECTED) {
 			modemCtx.status.psmOn = 0;
 		}
@@ -337,16 +333,16 @@ void MODEM_stop(int resultCode)
 			LCD_redraw();
 		}
 	} else {
-		// Fail¿Œ ∞ÊøÏ PSM disable
+		// FailÏù∏ Í≤ΩÏö∞ PSM disable
 		modemCtx.status.psmOn = 0;
-		// Error code∞° AT command no resp¿Ã∞Ì ERROR flag∞° setµ» ∞ÊøÏ AT command fail∑Œ ∫Ø∞Ê.
+		// Error codeÍ∞Ä AT command no respÏù¥Í≥† ERROR flagÍ∞Ä setÎêú Í≤ΩÏö∞ AT command failÎ°ú Î≥ÄÍ≤Ω.
 		if (modemCtx.status.error) {
 			modemCtx.errCode = (modemCtx.errCode == MODEM_ERROR_AT_CMD_NO_RESP) ?
 						   MODEM_ERROR_AT_CMD_FAIL :
-							 modemCtx.errCode;
+						   modemCtx.errCode;
 		}
 
-		// Fail¿Œ ∞ÊøÏ µø¿€ ¡ﬂ∞£ø° ¡æ∑·«œπ«∑Œ process done flag∏¶ set«ÿæﬂ «‘.
+		// FailÏù∏ Í≤ΩÏö∞ ÎèôÏûë Ï§ëÍ∞ÑÏóê Ï¢ÖÎ£åÌïòÎØÄÎ°ú process done flagÎ•º setÌï¥Ïïº Ìï®.
 		if (AppProcess == APP_INITIAL_REPORT || AppProcess == APP_IMMEDIATE_REPORT) {
 			LCD_displayError(ERROR_REPORT);
 			MISC_delayMs(2000);
@@ -354,7 +350,7 @@ void MODEM_stop(int resultCode)
 		}
 	}
 
-	// µø¿€ øœ∑· »ƒ ∞¸∑√ context clear
+	// ÎèôÏûë ÏôÑÎ£å ÌõÑ Í¥ÄÎ†® context clear
 	modemCtx.retryCount = 0;
 	modemCtx.retryStep = MODEM_STEP_UNKNOWN;
 	modemCtx.step = MODEM_STEP_IDLE;
@@ -383,34 +379,40 @@ void MODEM_timeout()
 
 		OSAL_startEventTimer(AppTaskId, APP_EVENT_MODEM_TIMEOUT, modemComm.timeout);
 	} else {
+		// Clear MODEM AT command working flag
+		modemCtx.status.busy = 0;
+
+		// INIT/RETRY Îã®Í≥ÑÍ∞Ä ÏïÑÎãàÎ©¥ÏÑú ÌòÑÏû¨ Ïû¨ÏãúÎèÑ ÌöüÏàòÍ∞Ä MAXÎØ∏ÎßåÏù∏ Í≤ΩÏö∞ Ïû¨ÏãúÎèÑ.
+		// Í∑∏ Ïô∏ INIT/RETRY Îã®Í≥ÑÏù¥Í±∞ÎÇò ÌòÑÏû¨ Ïû¨ÏãúÎèÑ ÌöüÏàòÍ∞Ä MAXÏù¥ÏÉÅÏù∏ Í≤ΩÏö∞ Ï¢ÖÎ£å.
+#define NB_MAX_RETRY 2
+		static int maxRetryCount = NB_MAX_RETRY;
+		if (modemCtx.retryStep == MODEM_STEP_UNKNOWN) {
+			switch (modemCtx.step) {
+			case MODEM_STEP_ATTACH_NW: {
+				maxRetryCount = NB_MAX_RETRY;
+			} break;
+			case MODEM_STEP_CERTIFY: {
+				maxRetryCount = NB_MAX_RETRY;
+			} break;
+			case MODEM_STEP_TRANSFER: {
+				maxRetryCount = 1;
+			} break;
+			case MODEM_STEP_DFOTA: {
+				maxRetryCount = 0;
+				memset(&Fota, 0, sizeof(FotaStatus_t));
+			} break;
+			default: {
+				maxRetryCount = 0;
+
+			} break;
+			}
+		}
+
 		printf_ts("MODEM : state(%s) retry state(%s) retry count(%d)",
 			  MODEM_STEP_STRING(modemCtx.step), MODEM_STEP_STRING(modemCtx.retryStep),
 			  modemCtx.retryCount);
 
-		// Clear MODEM AT command working flag
-		modemCtx.status.busy = 0;
-
-		// INIT/RETRY ¥‹∞Ë∞° æ∆¥œ∏Èº≠ «ˆ¿Á ¿ÁΩ√µµ »Ωºˆ∞° MAXπÃ∏∏¿Œ ∞ÊøÏ ¿ÁΩ√µµ.
-		// ±◊ ø‹ INIT/RETRY ¥‹∞Ë¿Ã∞≈≥™ «ˆ¿Á ¿ÁΩ√µµ »Ωºˆ∞° MAX¿ÃªÛ¿Œ ∞ÊøÏ ¡æ∑·.
-		static int maxRetryCount = 0;
-		if (modemCtx.retryStep == MODEM_STEP_UNKNOWN) {
-			switch (modemCtx.step) {
-			case MODEM_STEP_BIP:
-				maxRetryCount = NBIOT_BIP_RETRY;
-				break;
-			case MODEM_STEP_ATTACH_NW:
-				maxRetryCount = NBIOT_ATTACH_RETRY;
-				break;
-			case MODEM_STEP_CERTIFY:
-				maxRetryCount = NBIOT_ONEM2M_RETRY;
-				break;
-			default:
-				maxRetryCount = 0;
-				break;
-			}
-		}
-
-		// ¿ÁΩ√µµ ∞˙¡§ø°º≠ Ω«∆–«“ ∞ÊøÏ ¿ÁΩ√µµ »ΩºˆøÕ ∞¸∞Ëæ¯¿Ã Fail√≥∏Æ.
+		// Ïû¨ÏãúÎèÑ Í≥ºÏ†ïÏóêÏÑú Ïã§Ìå®Ìï† Í≤ΩÏö∞ Ïû¨ÏãúÎèÑ ÌöüÏàòÏôÄ Í¥ÄÍ≥ÑÏóÜÏù¥ FailÏ≤òÎ¶¨.
 		if (modemCtx.step != MODEM_STEP_RETRY && modemCtx.retryCount < maxRetryCount) {
 			printf("- retry(%d/%d)\n", modemCtx.retryCount, maxRetryCount);
 
@@ -419,14 +421,8 @@ void MODEM_timeout()
 			modemCtx.step = MODEM_STEP_RETRY;
 			modemCtx.stepReset = TRUE;
 
-			// Retry count ¡ı∞° »ƒ ∏∂¡ˆ∏∑ ¿ÁΩ√µµ∑Œ ∆«¥‹µ… ∞ÊøÏ H/W reset on
-			// ¥‹, Max retry ∞° ¥‹ 1»∏¿Œ ∞ÊøÏ H/W reset ¿ª ªÁøÎ«œ¡ˆ æ ¥¬¥Ÿ.
-			if (maxRetryCount == 1) {
-				modemCtx.proc.hwRstRetry = FALSE;
-			} else {
-				modemCtx.proc.hwRstRetry =
-					(modemCtx.retryCount == maxRetryCount) ? TRUE : FALSE;
-			}
+			modemCtx.proc.hwRstRetry =
+				(modemCtx.retryCount == maxRetryCount) ? TRUE : FALSE;
 			OSAL_setEvent(AppTaskId, APP_EVENT_MODEM_PROCESS);
 		} else {
 			printf("- fail and close(%d/%d)\n", modemCtx.retryCount, maxRetryCount);
@@ -440,11 +436,10 @@ void MODEM_open(int process)
 	if (modemCtx.step != MODEM_STEP_IDLE) {
 		return;
 	} else {
-		// Process Ω√¿€ ¿¸ status flag √ ±‚»≠
+		// Process ÏãúÏûë Ï†Ñ status flag Ï¥àÍ∏∞Ìôî
 		modemCtx.status.error = 0;
 		modemCtx.status.busy = 0;
 		modemCtx.status.stop = 0;
-		modemCtx.status.lwm2mOn = 0;
 	}
 
 	AppProcess = process;
@@ -466,17 +461,18 @@ void MODEM_close()
 {
 	modemCtx.proc.initialReport = 0;
 
-	// ¥‹∏ª±‚ sleep mode ¿Œ ∞ÊøÏ sleep disable.
+	// Îã®ÎßêÍ∏∞ sleep mode Ïù∏ Í≤ΩÏö∞ sleep disable.
 	if (conf.sleepMode) {
 		modemCtx.status.psmOn = 0;
 	}
 
-	// MODEM µø¿€ ¡ﬂ∞£ø° πﬂª˝«“ ∞ÊøÏ IDLE∑Œ º≥¡§«œ∞Ì sleep disable.
+	// MODEM ÎèôÏûë Ï§ëÍ∞ÑÏóê Î∞úÏÉùÌï† Í≤ΩÏö∞ IDLEÎ°ú ÏÑ§Ï†ïÌïòÍ≥† sleep disable.
 	if (modemCtx.step != MODEM_STEP_IDLE) {
 		modemCtx.step = MODEM_STEP_IDLE;
 		modemCtx.status.psmOn = 0;
 	}
 	modemCtx.status.stop = 1;
+	modemCtx.lwm2m.value = 0;
 
 	MODEM_disable();
 	if (modemCtx.status.psmOn) {
@@ -536,7 +532,7 @@ void MODEM_copyImsi(uchar *imsi)
 void MODEM_copyIccid(uchar *iccid)
 {
 	char *p = modem.iccidStr;
-	int len = sizeof(modem.iccidStr) / 2;
+	static const int len = sizeof(modem.iccidStr) / 2;
 	for (int i = 0; i < len; i++) {
 		*(iccid + i) = ascii2BCD(*(p + i * 2), *(p + i * 2 + 1));
 	}
@@ -579,7 +575,7 @@ int MODEM_getAccessState()
 
 	int32 secDiff = RTC_calcSecDiff(&modem.lastAccessTime, &now);
 
-	if (secDiff < 0 || secDiff > 3) { // ∏µ© µø¿€ø° ¥Î«ÿ Interval¿ª ¿ß«ÿ √ﬂ∞°.
+	if (secDiff < 0 || secDiff > 3) { // Î™®ÎéÄ ÎèôÏûëÏóê ÎåÄÌï¥ IntervalÏùÑ ÏúÑÌï¥ Ï∂îÍ∞Ä.
 		return ACCESS_STATE_IDLE;
 	}
 
@@ -592,8 +588,8 @@ int MODEM_getStateOrResult()
 		int error = ERROR_CODE_UNKNOWN;
 		switch (modemCtx.errCode) {
 		case MODEM_ERROR_NONE:
-		case MODEM_ERROR_PF_EPNS_CHANGE: // EPNS ∫Ø∞Ê πﬂª˝. (error¥¬ æ∆¥‘.)
-		case MODEM_ERROR_PF_FOTA_FAIL: // Platform module FOTA Ω«∆–
+		case MODEM_ERROR_PF_EPNS_CHANGE: // EPNS Î≥ÄÍ≤Ω Î∞úÏÉù. (errorÎäî ÏïÑÎãò.)
+		case MODEM_ERROR_PF_FOTA_FAIL: // Platform module FOTA Ïã§Ìå®
 			error = ERROR_CODE_NONE;
 			break;
 
@@ -602,22 +598,22 @@ int MODEM_getStateOrResult()
 			error = ERROR_CODE_MODEM;
 			break;
 
-		case MODEM_ERROR_USIM_INVALID: // AT+CIMI π´¿¿¥‰ OR ERROR
+		case MODEM_ERROR_USIM_INVALID: // AT+CIMI Î¨¥ÏùëÎãµ OR ERROR
 			error = ERROR_CODE_SIM;
 			break;
 
-		case MODEM_ERROR_PF_UL_FAIL: // Platform ø¨µø Ω√ UL Ω«∆–
-		case MODEM_ERROR_PF_UD_FAIL: // Platform ø¨µø Ω√ DL Ω«∆–
-		case MODEM_ERROR_UDP_UL_FAIL: // UDP UL Ω«∆–
-		case MODEM_ERROR_UDP_DL_FAIL: // UDP DL Ω«∆–
+		case MODEM_ERROR_PF_UL_FAIL: // Platform Ïó∞Îèô Ïãú UL Ïã§Ìå®
+		case MODEM_ERROR_PF_UD_FAIL: // Platform Ïó∞Îèô Ïãú DL Ïã§Ìå®
+		case MODEM_ERROR_UDP_UL_FAIL: // UDP UL Ïã§Ìå®
+		case MODEM_ERROR_UDP_DL_FAIL: // UDP DL Ïã§Ìå®
 			error = ERROR_CODE_COMM;
 			break;
 
-		case MODEM_ERROR_PF_CERITY_FAIL: // Bootstrap or Register Ω«∆–
+		case MODEM_ERROR_PF_CERITY_FAIL: // Bootstrap or Register Ïã§Ìå®
 			error = ERROR_CODE_FAIL_CERTIFY;
 			break;
 
-		case MODEM_ERROR_ATTACH_FAIL: // ∏¡¡¢º” Ω«∆–
+		case MODEM_ERROR_ATTACH_FAIL: // ÎßùÏ†ëÏÜç Ïã§Ìå®
 			error = ERROR_CODE_FAIL_ATTACH;
 			break;
 		}
@@ -665,10 +661,10 @@ void MODEM_copyLastAccessTime(uint8 *p)
 // TDD_TEST
 void MODEM_copyCtn(uchar *ctn)
 {
-	// 11¿⁄∏Æ¿« CTN¿ª BCD∑Œ ∫Ø»Ø Ω√ ∞°¿Â æ’¿⁄∏Æ 0¿ª 1byte∑Œ «“¥Á«—¥Ÿ.
+	// 11ÏûêÎ¶¨Ïùò CTNÏùÑ BCDÎ°ú Î≥ÄÌôò Ïãú Í∞ÄÏû• ÏïûÏûêÎ¶¨ 0ÏùÑ 1byteÎ°ú Ìï†ÎãπÌïúÎã§.
 	// EX :  012-1234-5678 -> 0x00 0x12 0x12 0x34 0x56 0x78
 	char *p = modem.ctnStr;
-	int len = sizeof(modem.ctnStr) / 2;
+	static const int len = sizeof(modem.ctnStr) / 2;
 	*(ctn + 0) = ascii2BCD('0', '0');
 	for (int i = 1; i < len; i++) {
 		*(ctn + i) = ascii2BCD(*(p + i * 2 - 1), *(p + i * 2));

@@ -12,25 +12,24 @@
 #include "NFC_i2c.h"
 #include "test.h"
 
-// #define DATA_FLASH_TEST
+/* #define DATA_FLASH_TEST */
 
 #if defined(DATA_FLASH_TEST)
 Date_t testDate;
 static uint32 testMeterData = 0;
 #endif
 
-static void waitIdle()
+static int waitIdle()
 {
 	int idle = 0;
-	for (int i = 0; i < 1000; i++) {
+	for (int i = 0; i < 10000; i++) {
 		if ((FCTL3 & BUSY) == 0) {
 			idle = 1;
 			break;
 		}
 	}
-	if (idle == 0) {
-		REBOOT_SYSTEM();
-	}
+
+	return idle;
 }
 
 static int isValidDate(uint8 year, uint8 mon, uint8 day)
@@ -122,19 +121,35 @@ static void writeSector(int sector, uint8 *buf)
 		halIntState_t intState;
 		HAL_ENTER_CRITICAL_SECTION(intState);
 
-		waitIdle();
+		if (waitIdle() == 0) {
+			return;
+		}
 
 		FCTL3 = FWKEY; // clear lock
 		FCTL1 = FWKEY + ERASE; // Set Erase bit
 
 		__data20_write_long(address, 0);
 
+		// (Errata) Flash Read Error and Susceptibility for MSP430F54xxA
+		asm(" bis.w #0,R3 "); // Flash contents: 0x03 0xd3
+		asm(" bis.w #0,R3 "); // Flash contents: 0x03 0xd3
+		asm(" bis.w #0,R3 "); // Flash contents: 0x03 0xd3
+
+		FCTL1 = FWKEY;
+		FCTL3 = FWKEY + LOCK;
+
+		if (waitIdle() == 0) {
+			return;
+		}
+
 		FCTL3 = FWKEY; // clear lock
 		FCTL1 = FWKEY + WRT; // Set Write bit
 
 		for (int i = 0; i < SECTOR_SIZE / 4; i++) {
 			__data20_write_long(address + i * 4, *(p32 + i));
-			waitIdle();
+			if (waitIdle() == 0) {
+				return;
+			}
 		}
 
 		FCTL1 = FWKEY;
@@ -154,14 +169,22 @@ static void eraseSector(int sector)
 		halIntState_t intState;
 		HAL_ENTER_CRITICAL_SECTION(intState);
 
-		waitIdle();
+		if (waitIdle() == 0) {
+			return;
+		}
 
 		FCTL3 = FWKEY;
 		FCTL1 = FWKEY + ERASE; // Set Erase bit
 
 		__data20_write_char(address, 0);
 
-		waitIdle();
+		asm(" bis.w #0,R3 "); // Flash contents: 0x03 0xd3
+		asm(" bis.w #0,R3 "); // Flash contents: 0x03 0xd3
+		asm(" bis.w #0,R3 "); // Flash contents: 0x03 0xd3
+
+		if (waitIdle() == 0) {
+			return;
+		}
 
 		FCTL1 = FWKEY; // Set Erase bit
 		FCTL3 = FWKEY + LOCK;
@@ -560,7 +583,7 @@ static int make_dateList(int nDay, date_sort_t *pSort, day_data_map_t *pDayMap)
 	int mon = -1;
 	int year = -1;
 
-	for (int i = 0; i < nDay; i++) {
+	for (unsigned int i = 0; i < nDay; i++) {
 		date_sort_t *p = pSort + i;
 		if (year != p->year || mon != p->mon) {
 			if (++nMon >= 5) {
@@ -571,19 +594,19 @@ static int make_dateList(int nDay, date_sort_t *pSort, day_data_map_t *pDayMap)
 			pDayMap->unitDayDataMap[nMon].year = p->year;
 			pDayMap->unitDayDataMap[nMon].mon = p->mon;
 		}
-		int nByte = (p->day - 1) / 8;
-		int nBit = 7 - ((p->day - 1) % 8);
+		unsigned int nByte = (p->day - 1) / 8;
+		unsigned int nBit = 7 - ((p->day - 1) % 8);
 		pDayMap->unitDayDataMap[nMon].dayFlag[nByte] |= BM(nBit);
 	}
 
 	nMon += 1; // 시작이 -1이기 때문...
 
-	for (int i = 0; i < nMon; i++) {
+	for (unsigned int i = 0; i < nMon; i++) {
 		unit_day_data_map_t *pUnitMap = &pDayMap->unitDayDataMap[i];
 		if (isValidDate(pUnitMap->year, pUnitMap->mon, 1)) {
 			printf("%04d-%02d ", pUnitMap->year + 2000, pUnitMap->mon);
 
-			for (int j = 0; j < 4; j++) {
+			for (unsigned int j = 0; j < 4; j++) {
 				char binary[0x10] = "";
 				hex2binary(pUnitMap->dayFlag[j], binary);
 				printf("%s ", binary);
@@ -622,7 +645,7 @@ static void print_dataReport(NfcFlashDataReport_t *p)
 	printf("[%04d-%02d-%02d %02dH] %08ld [%02X] - %d/%d\n", p->year + 2000, p->mon, p->day,
 	       p->hour, value, p->caliber_dp, p->nCurrent, p->nTotal);
 
-	for (int i = 0; i < 12; i++) {
+	for (unsigned int i = 0; i < 12; i++) {
 		uint16 diff = 0;
 		memcpy(&diff, p->diff[i], 2);
 
@@ -654,7 +677,7 @@ static void make_nfcDataReport(int part, int nSeq, int nTotal, NfcFlashDataRepor
 	pMsg->mon = pUnit->mon;
 	pMsg->day = pUnit->day;
 
-	int firstHour = part * 12;
+	unsigned int firstHour = part * 12;
 	pMsg->hour = firstHour;
 
 	int refPos = -1;
@@ -663,7 +686,7 @@ static void make_nfcDataReport(int part, int nSeq, int nTotal, NfcFlashDataRepor
 	uint32 currValue = 0;
 	uint16 diff = 0;
 
-	for (int i = 0; i < 12; i++) {
+	for (unsigned int i = 0; i < 12; i++) {
 		if (isValidMeterValue(pUnit->data[firstHour + i])) {
 			if (refPos < 0) {
 				refPos = i;
@@ -723,7 +746,7 @@ void dataFlash_displayDataSector(int sector)
 
 			printf("[%2d:%d] %04d-%02d-%02d dp:%02X\n", sector, unit,
 			       pUnit->year + 2000, pUnit->mon, pUnit->day, pUnit->caliber_dp);
-			for (int hour = 0; hour < 24; hour++) {
+			for (unsigned int hour = 0; hour < 24; hour++) {
 				printf("   %2d) %02X%02X%02X%02X ", hour, pUnit->data[hour][0],
 				       pUnit->data[hour][1], pUnit->data[hour][2],
 				       pUnit->data[hour][3]);

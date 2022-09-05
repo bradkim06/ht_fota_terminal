@@ -1,0 +1,12 @@
+# .bashrc
+
+REMOTE_DIR=/home/sholee/work/fota-server/firmware/origin
+REMOTE_IP=1.233.95.235
+REMOTE_PORT=17091
+USER=sholee
+
+sftp -oPort=$REMOTE_PORT $USER@$REMOTE_IP << EOF
+cd $REMOTE_DIR
+put ./NB_PF_BC95G/Release/U326.txt
+quit
+EOF

@@ -27,13 +27,13 @@
 #define LEN_TEST_NBIOT_ICCID 19
 #endif
 
-struct {
+static struct {
 	// will be set '1' when reading success MODEM booting message
 	BOOL isAlive;
 	// will be set '1' when want to show MODEM response
 	BOOL isPrintOn;
-	// ´ë´Ù¼öÀÇ AT COMMAND¿¡ ´ëÇØ ÀûÀıÇÑ ÀÀ´äÀÌ ¿Ã °æ¿ì '1'·Î ¼³Á¤.
-	// ´Ù¸¸, ÀÏºÎ AT COMMAND¿¡ ´ëÇØ Ã³¸®°¡ ¾ÈµÉ ¼ö ÀÖÀ¸¹Ç·Î »çÀü µ¿ÀÛÈ®ÀÎÀÌ ÇÊ¿ä.
+	// ëŒ€ë‹¤ìˆ˜ì˜ AT COMMANDì— ëŒ€í•´ ì ì ˆí•œ ì‘ë‹µì´ ì˜¬ ê²½ìš° '1'ë¡œ ì„¤ì •.
+	// ë‹¤ë§Œ, ì¼ë¶€ AT COMMANDì— ëŒ€í•´ ì²˜ë¦¬ê°€ ì•ˆë  ìˆ˜ ìˆìœ¼ë¯€ë¡œ ì‚¬ì „ ë™ì‘í™•ì¸ì´ í•„ìš”.
 	BOOL isAcked;
 	BOOL isError;
 #if LORA_DEVICE
@@ -48,7 +48,9 @@ struct {
 	char imsi[LEN_TEST_NBIOT_IMSI + 1]; // +1 will be set 0. '0' is for string print.
 	char iccid[LEN_TEST_NBIOT_ICCID + 1]; // +1 will be set 0. '0' is for string print.
 #endif
-} modemTestCtx;
+} modemTestCtx = { 0 };
+
+extern Config_t conf;
 
 /*
  ***************************************************************
@@ -163,17 +165,17 @@ static void sendToModem(char *p)
 		return;
 	}
 
-	modemTestCtx.isAcked = FALSE; // ÀÌÀü AT command¿¡ ´ëÇÑ Ack ¼ö½Å Flag ÃÊ±âÈ­
-	modemTestCtx.isError = FALSE; // ÀÌÀü AT command¿¡ ´ëÇÑ Error ¼ö½Å Flag ÃÊ±âÈ­
+	modemTestCtx.isAcked = FALSE; // ì´ì „ AT commandì— ëŒ€í•œ Ack ìˆ˜ì‹  Flag ì´ˆê¸°í™”
+	modemTestCtx.isError = FALSE; // ì´ì „ AT commandì— ëŒ€í•œ Error ìˆ˜ì‹  Flag ì´ˆê¸°í™”
 	MODEM_write(p);
 }
 
 #if NBIOT_DEVICE
 static void resetModem()
 {
-	// ¸ğµ© S/W ¸®¼Â
+	// ëª¨ë€ S/W ë¦¬ì…‹
 	sendToModem("AT+NRB");
-	// ºÎÆÃ ÀçÈ®ÀÎ ¹× CFUN=0 Àç½ÇÇàÀ» À§ÇØ Flag ÃÊ±âÈ­.
+	// ë¶€íŒ… ì¬í™•ì¸ ë° CFUN=0 ì¬ì‹¤í–‰ì„ ìœ„í•´ Flag ì´ˆê¸°í™”.
 	modemTestCtx.isBootup = FALSE;
 	modemTestCtx.isAlive = FALSE;
 	modemTestCtx.isBipOk = FALSE;
@@ -316,11 +318,11 @@ static void parseNbiotModemResp(char *pStr)
 #define PATTERN_IMEI "+CGSN:"
 	if (p = strstr(pStr, PATTERN_IMEI)) {
 		p += strlen(PATTERN_IMEI);
-		for (int idx = 0; idx < LEN_TEST_NBIOT_IMEI; idx++) {
+		for (unsigned int idx = 0; idx < LEN_TEST_NBIOT_IMEI; idx++) {
 			if (*p >= '0' && *p <= '9') {
 				modemTestCtx.imei[idx] = *p;
 			} else {
-				// °ªÀÌ ¿¬¼ÓµÈ 15ÀÚ¸® ¼ıÀÚ°ªÀÌ ¾Æ´Ñ °æ¿ì ½ÇÆĞ·Î °£ÁÖÇØ¾ß ÇÑ´Ù.
+				// ê°’ì´ ì—°ì†ëœ 15ìë¦¬ ìˆ«ìê°’ì´ ì•„ë‹Œ ê²½ìš° ì‹¤íŒ¨ë¡œ ê°„ì£¼í•´ì•¼ í•œë‹¤.
 				memset(modemTestCtx.imei, 0x00, sizeof(modemTestCtx.imei));
 				modemTestCtx.imei[0] = 'E';
 				modemTestCtx.imei[1] = 'R';
@@ -333,8 +335,8 @@ static void parseNbiotModemResp(char *pStr)
 
 #define PATTERN_IMSI "450"
 	if (p = strstr(pStr, PATTERN_IMSI)) {
-		// CTNÀÇ °æ¿ì PREFIX°¡ ¾ø¾î µ¥ÀÌÅÍÁ¤ÇÕ¼º À¯¹«¸¦ Á¤È®È÷ ¾Ë±â Èûµë.
-		// À§ ÀÌÀ¯·Î IMEI, ICCID¿Í ´Ù¸£°Ô ERRORÃ³¸®¸¦ »ı·«ÇÑ´Ù.
+		// CTNì˜ ê²½ìš° PREFIXê°€ ì—†ì–´ ë°ì´í„°ì •í•©ì„± ìœ ë¬´ë¥¼ ì •í™•íˆ ì•Œê¸° í˜ë“¬.
+		// ìœ„ ì´ìœ ë¡œ IMEI, ICCIDì™€ ë‹¤ë¥´ê²Œ ERRORì²˜ë¦¬ë¥¼ ìƒëµí•œë‹¤.
 		BOOL isCtn = TRUE;
 		for (int idx = 0; idx < LEN_TEST_NBIOT_IMSI; idx++) {
 			if (!isdigit(*(p + idx))) {
@@ -342,7 +344,7 @@ static void parseNbiotModemResp(char *pStr)
 			}
 		}
 		if (isCtn) {
-			for (int idx = 0; idx < LEN_TEST_NBIOT_IMSI; idx++) {
+			for (unsigned int idx = 0; idx < LEN_TEST_NBIOT_IMSI; idx++) {
 				modemTestCtx.imsi[idx] = *(p + idx);
 			}
 		}
@@ -351,11 +353,11 @@ static void parseNbiotModemResp(char *pStr)
 #define PATTERN_ICCID "+NCCID:"
 	if (p = strstr(pStr, PATTERN_ICCID)) {
 		p += strlen(PATTERN_ICCID);
-		for (int idx = 0; idx < LEN_TEST_NBIOT_ICCID; idx++) {
+		for (unsigned int idx = 0; idx < LEN_TEST_NBIOT_ICCID; idx++) {
 			if (*p >= '0' && *p <= '9') {
 				modemTestCtx.iccid[idx] = *p;
 			} else {
-				// °ªÀÌ ¿¬¼ÓµÈ 19ÀÚ¸® ¼ıÀÚ°ªÀÌ ¾Æ´Ñ °æ¿ì ½ÇÆĞ·Î °£ÁÖÇØ¾ß ÇÑ´Ù.
+				// ê°’ì´ ì—°ì†ëœ 19ìë¦¬ ìˆ«ìê°’ì´ ì•„ë‹Œ ê²½ìš° ì‹¤íŒ¨ë¡œ ê°„ì£¼í•´ì•¼ í•œë‹¤.
 				memset(modemTestCtx.iccid, 0x00, sizeof(modemTestCtx.iccid));
 				modemTestCtx.iccid[0] = 'E';
 				modemTestCtx.iccid[1] = 'R';
@@ -399,8 +401,8 @@ void TEST_modem()
 
 	modemTestCtx.isPrintOn = TRUE;
 
-	// ConsoleÀ» ÅëÇØ Shell command¸¦ ¹Ş¾Æ Ã³¸®ÇÏ¹Ç·Î
-	// ÃÖ´ë ±æÀÌ´Â Shell command buffer ÃÖ´ë ±æÀÌ¿¡ Á¾¼Ó µÈ´Ù. (+1 is for string end)
+	// Consoleì„ í†µí•´ Shell commandë¥¼ ë°›ì•„ ì²˜ë¦¬í•˜ë¯€ë¡œ
+	// ìµœëŒ€ ê¸¸ì´ëŠ” Shell command buffer ìµœëŒ€ ê¸¸ì´ì— ì¢…ì† ëœë‹¤. (+1 is for string end)
 	char shellCmdBuf[MAX_COLUMN + 1];
 	while (1) {
 		while (SHELL_gets(shellCmdBuf) <= 0)
@@ -427,7 +429,7 @@ void TEST_modemResponse()
 	memset(buf, 0, MODEM_RX_BUF_LEN + 1);
 	int len = UART_receive(UART_A2, buf, MODEM_RX_BUF_LEN);
 	if (modemTestCtx.isPrintOn &&
-	    len > 1) { // ¹«Á¶°Ç '\0'ÀÌ ÇÒ´çµÇ¹Ç·Î ¸Ş¼¼Áö°¡ ¾ø´õ¶óµµ lenÀº 0º¸´Ù Å­.
+	    len > 1) { // ë¬´ì¡°ê±´ '\0'ì´ í• ë‹¹ë˜ë¯€ë¡œ ë©”ì„¸ì§€ê°€ ì—†ë”ë¼ë„ lenì€ 0ë³´ë‹¤ í¼.
 		printf(TP_ANSI_FG_RED);
 		PRINT_string(buf, len);
 		printf(TP_ANSI_RESET);
@@ -440,23 +442,23 @@ void TEST_modemResponse()
 			modemTestCtx.isAlive = TRUE;
 		}
 #else // NBIOT_DEVICE                                                          \
-	// ±âÅ¸ ¹®Á¦·Î ¸ğµâÀÌ Áö¼ÓÀûÀ¸·Î ¸®¼ÂµÉ °æ¿ì¸¦ °í·ÁÇÏ¿©                \
-	// REBOOTÀÌ ¹ß»ıµÉ °æ¿ì Flag ¹× ½Ã°£°ª ÃÊ±âÈ­.
+	// ê¸°íƒ€ ë¬¸ì œë¡œ ëª¨ë“ˆì´ ì§€ì†ì ìœ¼ë¡œ ë¦¬ì…‹ë  ê²½ìš°ë¥¼ ê³ ë ¤í•˜ì—¬                \
+	// REBOOTì´ ë°œìƒë  ê²½ìš° Flag ë° ì‹œê°„ê°’ ì´ˆê¸°í™”.
 		if (strstr(buf, "REBOOT_CAUSE_")) {
 			modemTestCtx.isBootup = TRUE;
 			modemTestCtx.bootupMsec = TIMER_getMsec();
 		}
 
 		if (modemTestCtx.isBootup) {
-			// ¸®¼Â ÈÄ ºÎÆÃ¿Ï·á±îÁö 5ÃÊ°¡ ÇÊ¿äÇÏÁö¸¸ 'REBOOT' ¸Ş¼¼Áö´Â
-			// ¾à 4ÃÊ ÈÄ ¹ß»ıÇÏ¹Ç·Î ½ÇÁ¦ ºÎÆÃ ¿Ï·á ±îÁö Ãß°¡µô·¹ÀÌ°¡ ÇÊ¿ä.
+			// ë¦¬ì…‹ í›„ ë¶€íŒ…ì™„ë£Œê¹Œì§€ 5ì´ˆê°€ í•„ìš”í•˜ì§€ë§Œ 'REBOOT' ë©”ì„¸ì§€ëŠ”
+			// ì•½ 4ì´ˆ í›„ ë°œìƒí•˜ë¯€ë¡œ ì‹¤ì œ ë¶€íŒ… ì™„ë£Œ ê¹Œì§€ ì¶”ê°€ë”œë ˆì´ê°€ í•„ìš”.
 			if (TIMER_getMsecDiff(modemTestCtx.bootupMsec) >= 1000) {
 				modemTestCtx.isAlive = TRUE;
 #if defined(NBIOT_MODEM_BC95G)
-				// BC95G´Â BIP µ¿ÀÛ Áß¿¡µµ Á¤»óÀûÀ¸·Î µ¿ÀÛÀÌ °¡´ÉÇÏ¹Ç·Î BIPÃ¼Å© »ı·«.
+				// BC95GëŠ” BIP ë™ì‘ ì¤‘ì—ë„ ì •ìƒì ìœ¼ë¡œ ë™ì‘ì´ ê°€ëŠ¥í•˜ë¯€ë¡œ BIPì²´í¬ ìƒëµ.
 				modemTestCtx.isBipOk = TRUE;
 #endif
-				// Alive ¼³Á¤ ÈÄ AT command Àü¼Û.
+				// Alive ì„¤ì • í›„ AT command ì „ì†¡.
 				sendToModem("AT+CFUN=0");
 			}
 		}
@@ -501,14 +503,13 @@ void TEST_prdeui()
 	}
 
 	// save devEui in flash
-	Config_t config;
-	FLASH_readConfigInfo(&config);
+	FLASH_readConfigInfo(&conf);
 
 	for (int i = 0; i < 8; i++) {
 		config.devEui[i] =
 			ascii2BCD(modemTestCtx.devEUI[2 * i + 0], modemTestCtx.devEUI[2 * i + 1]);
 	}
-	FLASH_saveConfigInfo(&config);
+	FLASH_saveConfigInfo(&conf);
 }
 
 void TEST_pwdeui(char *deui)
@@ -584,16 +585,16 @@ BOOL TEST_writeAppKeyUsingDEUI()
 	char modemTx[LEN_TEST_LORA_APPKEY + 7];
 	snprintf(modemTx, sizeof(modemTx), "AT+AK ");
 
-	// Dev EUI¸¦ AppKey·Î º¯È¯ (Hex to ASCII)
+	// Dev EUIë¥¼ AppKeyë¡œ ë³€í™˜ (Hex to ASCII)
 	for (int i = 0; i < LEN_TEST_LORA_DEVEUI; i++) {
 		snprintf(modemTx, sizeof(modemTx), "%s%x", modemTx, modemTestCtx.devEUI[i]);
 	}
 
 	sendToModem(modemTx);
 	waitModem(500);
-	// Read AppKey°¡ ±â´ë°ª°ú µ¿ÀÏÇÑÁö È®ÀÎ.
+	// Read AppKeyê°€ ê¸°ëŒ€ê°’ê³¼ ë™ì¼í•œì§€ í™•ì¸.
 	if (memcmp(&modemTx[6], modemTestCtx.appKey, LEN_TEST_LORA_APPKEY) == 0) {
-		// WriteÇÑ AppKey ÀúÀå.
+		// Writeí•œ AppKey ì €ì¥.
 		sendToModem("AT+SCFG");
 		waitModem(500);
 		return TRUE;
@@ -612,54 +613,50 @@ BOOL TEST_writeAppKeyUsingDEUI()
 
 void TEST_pwserver(char *ip, int port, char *serviceCode)
 {
-	Config_t config;
-	FLASH_readConfigInfo(&config);
+	FLASH_readConfigInfo(&conf);
 
-	strcpy(config.serverIp, ip);
-	config.serverPort = port;
+	strcpy(conf.serverIp, ip);
+	conf.serverPort = port;
 
 #if (defined(NBIOT_LG_TYPE) || defined(NBIOT_BASE_TYPE))
-	int sc_len = sizeof(config.serviceCode);
-	strncpy(config.serviceCode, serviceCode, sc_len);
-	// ¹è¿­ ¸¶Áö¸·Àº stringÃ³¸®¸¦ À§ÇØ '0'À¸·Î ¼³Á¤.
-	config.serviceCode[sc_len - 1] = 0;
+	static const int sc_len = sizeof(conf.serviceCode);
+	strncpy(conf.serviceCode, serviceCode, sc_len);
+	// ë°°ì—´ ë§ˆì§€ë§‰ì€ stringì²˜ë¦¬ë¥¼ ìœ„í•´ '0'ìœ¼ë¡œ ì„¤ì •.
+	conf.serviceCode[sc_len - 1] = 0;
 #endif
 
-	FLASH_saveConfigInfo(&config);
+	FLASH_saveConfigInfo(&conf);
 
 	TEST_prserver();
 }
 
 void TEST_prserver()
 {
-	Config_t config;
-	FLASH_readConfigInfo(&config);
+	FLASH_readConfigInfo(&conf);
 #if (defined(NBIOT_LG_TYPE) || defined(NBIOT_BASE_TYPE))
-	printf("trserver %s %d %s\n", config.serverIp, config.serverPort, config.serviceCode);
+	printf("trserver %s %d %s\n", conf.serverIp, conf.serverPort, conf.serviceCode);
 #else
-	printf("trserver %s %d NOTUSE\n", config.serverIp, config.serverPort);
+	printf("trserver %s %d NOTUSE\n", conf.serverIp, conf.serverPort);
 #endif
 }
 
 void TEST_pwfota(char *ip, int port, int interval)
 {
-	Config_t config;
-	FLASH_readConfigInfo(&config);
+	FLASH_readConfigInfo(&conf);
 
-	strcpy(config.fotaIp, ip);
-	config.fotaPort = port;
-	config.fotaInterval = interval;
+	strcpy(conf.fotaIp, ip);
+	conf.fotaPort = port;
+	conf.fotaInterval = interval;
 
-	FLASH_saveConfigInfo(&config);
+	FLASH_saveConfigInfo(&conf);
 
 	TEST_prfota();
 }
 
 void TEST_prfota()
 {
-	Config_t config;
-	FLASH_readConfigInfo(&config);
-	printf("trfota %s %d %d\n", config.fotaIp, config.fotaPort, config.fotaInterval);
+	FLASH_readConfigInfo(&conf);
+	printf("trfota %s %d %d\n", conf.fotaIp, conf.fotaPort, conf.fotaInterval);
 }
 
 void TEST_prnbid()
@@ -669,7 +666,7 @@ void TEST_prnbid()
 	BOOL isIccidOk = FALSE;
 
 	if (!waitModemBipOk(1)) {
-		// BIP ¿Ï·á Àü "+CFUN=1"À» ÇÒ°æ¿ì BIP°¡ ÁøÇàµÇ¹Ç·Î ¿Ï·á ¿©ºÎ¸¦ È®ÀÎ.
+		// BIP ì™„ë£Œ ì „ "+CFUN=1"ì„ í• ê²½ìš° BIPê°€ ì§„í–‰ë˜ë¯€ë¡œ ì™„ë£Œ ì—¬ë¶€ë¥¼ í™•ì¸.
 		printf("trnbid ERR ERR ERR ERR\n");
 		return;
 	}
@@ -677,8 +674,8 @@ void TEST_prnbid()
 	sendToModem("AT+CGSN=1");
 	isImeiOk = waitModemAck(2);
 
-	// USIM IMSI ¹× ICCID ÀĞ±âÀÇ °æ¿ì USIMÀÌ ¾ø´Â °æ¿ìµµ ÀÖÀ¸¹Ç·Î
-	// ¾Æ·¡¿Í °°ÀÌ '+CFUN=1'ÀÌ ¼º°øÇßÀ» ¶§¸¸ ½ÃµµÇÑ´Ù.
+	// USIM IMSI ë° ICCID ì½ê¸°ì˜ ê²½ìš° USIMì´ ì—†ëŠ” ê²½ìš°ë„ ìˆìœ¼ë¯€ë¡œ
+	// ì•„ë˜ì™€ ê°™ì´ '+CFUN=1'ì´ ì„±ê³µí–ˆì„ ë•Œë§Œ ì‹œë„í•œë‹¤.
 	sendToModem("AT+CFUN=1");
 	if (waitModemAck(4)) {
 		sendToModem("AT+CIMI");
@@ -687,8 +684,7 @@ void TEST_prnbid()
 		isIccidOk = waitModemAck(2);
 	}
 
-	Config_t config;
-	FLASH_readConfigInfo(&config);
+	FLASH_readConfigInfo(&conf);
 
 	if (isImeiOk && isImsiOk && isIccidOk) {
 #if (defined(NBIOT_LG_TYPE) || defined(NBIOT_BASE_TYPE))
@@ -696,7 +692,7 @@ void TEST_prnbid()
 		snprintf(ctnStr, sizeof(ctnStr), "0%s", &modemTestCtx.imsi[5]);
 
 		char cseid[LEN_MODEM_EP_NAME + 1];
-		if (MODEM_generateCseID(config.serviceCode, ctnStr, modemTestCtx.iccid, cseid,
+		if (MODEM_generateCseID(conf.serviceCode, ctnStr, modemTestCtx.iccid, cseid,
 					sizeof(cseid))) {
 			printf("trnbid %s %s %s %s\n", modemTestCtx.imei, modemTestCtx.imsi, cseid,
 			       modemTestCtx.iccid);
@@ -714,13 +710,13 @@ void TEST_prnbid()
 		       (isIccidOk) ? modemTestCtx.iccid : "ERR");
 	}
 
-	if (isImeiOk) { // IMEI ÀĞ±â ¼º°ø ½Ã Flash¿¡ ÀúÀå.
-		for (int i = 0; i < 8; i++) {
-			config.imei[i] = ascii2BCD(modemTestCtx.imei[2 * i + 0],
-						   modemTestCtx.imei[2 * i + 1]);
+	if (isImeiOk) { // IMEI ì½ê¸° ì„±ê³µ ì‹œ Flashì— ì €ì¥.
+		for (unsigned int i = 0; i < 8; i++) {
+			conf.imei[i] = ascii2BCD(modemTestCtx.imei[2 * i + 0],
+						 modemTestCtx.imei[2 * i + 1]);
 		}
-		config.imei[7] &= 0xf0;
-		FLASH_saveConfigInfo(&config);
+		conf.imei[7] &= 0xf0;
+		FLASH_saveConfigInfo(&conf);
 	}
 
 	sendToModem("AT+CFUN=0");
@@ -730,12 +726,12 @@ void TEST_prnbid()
 void TEST_pnbctx()
 {
 	if (!waitModemReady(2)) {
-		// "Å×½ºÆ® ÁØºñÁß"À» È®ÀÎ ¹× º¸°í ÇØ¾ßÇÏ¹Ç·Î
-		// Å×½ºÆ® ½ÃÀÛ Àü ¸ğµ© READY ¿©ºÎ¸¦ È®ÀÎ.
+		// "í…ŒìŠ¤íŠ¸ ì¤€ë¹„ì¤‘"ì„ í™•ì¸ ë° ë³´ê³  í•´ì•¼í•˜ë¯€ë¡œ
+		// í…ŒìŠ¤íŠ¸ ì‹œì‘ ì „ ëª¨ë€ READY ì—¬ë¶€ë¥¼ í™•ì¸.
 		printf("tnbctx WAIT\n");
 		return;
 	}
-	waitModem(500); // ready ÈÄ ½ÃÇàÇÏ´Â command Ã³¸® ´ë±â½Ã°£.
+	waitModem(500); // ready í›„ ì‹œí–‰í•˜ëŠ” command ì²˜ë¦¬ ëŒ€ê¸°ì‹œê°„.
 
 	BOOL result = FALSE;
 	// detach and full function disable
@@ -790,7 +786,7 @@ PNBCTX_FINISH:
 
 #endif // NBIOT_DEIVCE
 
-// TODO : SKT Å×½ºÆ® ¹×  10ÃÊ ÁÖ±â unconfirmed message Àü¼Û ±â´É. ÃßÈÄ ±¸ÇöÇØ¾ß ÇÔ.
+// TODO : SKT í…ŒìŠ¤íŠ¸ ë°  10ì´ˆ ì£¼ê¸° unconfirmed message ì „ì†¡ ê¸°ëŠ¥. ì¶”í›„ êµ¬í˜„í•´ì•¼ í•¨.
 // #if (FOR_SKT_TEST && PERIODIC_TX)
 //     LCD_init();
 //     LCD_displayString("TEST");

@@ -23,7 +23,7 @@
 #include "meter.h"
 #include "modem.h"
 
-// Á¤ÀÇµÈ RTC Å¸ÀÌ¸Ó ÀÌº¥Æ® °³¼ö.
+// ì •ì˜ëœ RTC íƒ€ì´ë¨¸ ì´ë²¤íŠ¸ ê°œìˆ˜.
 #if defined(AUX_REPEATER)
 #define RTC_ALARM_COUNT 1
 #else
@@ -31,15 +31,15 @@
 #endif
 
 #define ALARM_TYPE_STR(x)                                                                          \
-	(((x) == RTC_ALARM_METERING) ? "metering" :                                                \
-				       ((x) == RTC_ALARM_REPORT) ?                                 \
-				       "report" :                                                  \
-				       ((x) == RTC_ALARM_METER_SAVE) ? "meter save" : "unknown")
+	(((x) == RTC_ALARM_METERING)   ? "metering" :                                              \
+	 ((x) == RTC_ALARM_REPORT)     ? "report" :                                                \
+	 ((x) == RTC_ALARM_METER_SAVE) ? "meter save" :                                            \
+					 "unknown")
 
 static int TimeSyncFlag = 0;
-static Date_t TimeSyncDate;
+static Date_t TimeSyncDate = { 0 };
 
-static RtcAlarm_t AlarmList[RTC_ALARM_COUNT];
+static RtcAlarm_t AlarmList[RTC_ALARM_COUNT] = { 0 };
 static RtcAlarm_t *NextAlarm = NULL;
 
 static void setDefaultRTC(Date_t *date)
@@ -54,26 +54,26 @@ static void setDefaultRTC(Date_t *date)
 
 void RTC_read(Date_t *date)
 {
-	date->year = GetRTCYEAR();
-	date->mon = GetRTCMON();
-	date->day = GetRTCDAY();
-	date->hour = GetRTCHOUR();
-	date->min = GetRTCMIN();
-	date->sec = GetRTCSEC();
+	date->year = RTCYEAR;
+	date->mon = RTCMON;
+	date->day = RTCDAY;
+	date->hour = RTCHOUR;
+	date->min = RTCMIN;
+	date->sec = RTCSEC;
 }
 
-void RTC_set(Date_t date)
+void RTC_set(Date_t *date)
 {
-	if (RTC_isValidDate(&date)) {
+	if (RTC_isValidDate(date)) {
 		RTCCTL01 |= RTCMODE;
 		RTCCTL01 &= ~(RTCHOLD);
 
-		SetRTCYEAR(date.year);
-		SetRTCMON(date.mon);
-		SetRTCDAY(date.day);
-		SetRTCHOUR(date.hour);
-		SetRTCMIN(date.min);
-		SetRTCSEC(date.sec);
+		RTCYEAR = date->year;
+		RTCMON = date->mon;
+		RTCDAY = date->day;
+		RTCHOUR = date->hour;
+		RTCMIN = date->min;
+		RTCSEC = date->sec;
 	}
 }
 
@@ -83,18 +83,18 @@ void RTC_init()
 	RTC_read(&date);
 
 	do {
-		if (RTC_isValidDate(&date)) { // CPU ³»ÀÇ RTC register°¡ À¯È¿ÇÑ °ª.
+		if (RTC_isValidDate(&date)) { // CPU ë‚´ì˜ RTC registerê°€ ìœ íš¨í•œ ê°’.
 			break;
 		}
 
-		setDefaultRTC(&date); // default ½Ã°£ ¼³Á¤
+		setDefaultRTC(&date); // default ì‹œê°„ ì„¤ì •
 	} while (0);
 
-	RTC_set(date);
+	RTC_set(&date);
 
-	// º¸Á¶Áß°è±â ¹× ºĞ´ÜÀ§ °ËÄ§ ½Ã alaramÀº 1°³¸¸ metering type ¹× report minÀ¸·Î µî·Ï.
-	// report min¿¡ ¸ÂÃç °ËÄ§ ¹× º¸°í¸¦ ¼öÇà. (ºĞ´ÜÀ§ µ¿ÀÛÀº RTC_Alarm_Scheduler_short() ÂüÁ¶)
-	if (conf.isShortInterval) {
+	// ë³´ì¡°ì¤‘ê³„ê¸° ë° ë¶„ë‹¨ìœ„ ê²€ì¹¨ ì‹œ alaramì€ 1ê°œë§Œ metering type ë° report minìœ¼ë¡œ ë“±ë¡.
+	// report minì— ë§ì¶° ê²€ì¹¨ ë° ë³´ê³ ë¥¼ ìˆ˜í–‰. (ë¶„ë‹¨ìœ„ ë™ì‘ì€ RTC_Alarm_Scheduler_short() ì°¸ì¡°)
+	if (conf.isShortInterval == 1) {
 		AlarmList[0].type = RTC_ALARM_METERING;
 		AlarmList[0].minute = conf.reportMin;
 #if !defined(AUX_REPEATER)
@@ -112,14 +112,14 @@ void RTC_init()
 		AlarmList[0].minute = 0;
 		if (conf.reportMin > 30) {
 			AlarmList[1].type = RTC_ALARM_METER_SAVE;
-			AlarmList[1].minute = 15;
+			AlarmList[1].minute = 20;
 			AlarmList[2].type = RTC_ALARM_REPORT;
 			AlarmList[2].minute = conf.reportMin;
 		} else {
 			AlarmList[1].type = RTC_ALARM_REPORT;
 			AlarmList[1].minute = conf.reportMin;
 			AlarmList[2].type = RTC_ALARM_METER_SAVE;
-			AlarmList[2].minute = 45;
+			AlarmList[2].minute = 40;
 		}
 #endif
 	}
@@ -128,12 +128,12 @@ void RTC_init()
 	memset(&TimeSyncDate, 0, sizeof(Date_t));
 }
 
-//¾Ë¶÷½Ã°£ ¼³Á¤
-// »ç¿ëÇÏÁö ¾Ê´Â ÆÄ¶ó¸ŞÅ¸´Â 0xFF·Î ¼³Á¤
-// ex: ¸ÅÀÏ 12:00¿¡ ¾Ë¶÷À» ¼³Á¤
+//ì•ŒëŒì‹œê°„ ì„¤ì •
+// ì‚¬ìš©í•˜ì§€ ì•ŠëŠ” íŒŒë¼ë©”íƒ€ëŠ” 0xFFë¡œ ì„¤ì •
+// ex: ë§¤ì¼ 12:00ì— ì•ŒëŒì„ ì„¤ì •
 //      day = 0xFF, hour=12, min=0xFF
 
-// ex: ¸Å¿ù 1ÀÏ 15:30¿¡ ¾Ë¶÷À» ¼³Á¤
+// ex: ë§¤ì›” 1ì¼ 15:30ì— ì•ŒëŒì„ ì„¤ì •
 //      day = 1, hour=15, min=30
 
 static void rtcAlarmSet(uint8 day, uint8 hour, uint8 min)
@@ -181,7 +181,8 @@ void RTC_decDateHour(Date_t *p, uint8 hour)
 	}
 
 	if (--p->mon > 0) {
-		p->day = MaxDays[p->mon - 1];
+		const uint8 idx = p->mon - 1;
+		p->day = MaxDays[idx];
 		if (p->mon == 2 && (p->year % 4) == 0) {
 			p->day = 29; // leap year
 		}
@@ -200,7 +201,8 @@ void RTC_incDateHour(Date_t *p, uint8 hour)
 	}
 	p->hour -= 24;
 
-	uint8 maxDay = MaxDays[p->mon - 1];
+	const uint8 idx = p->mon - 1;
+	uint8 maxDay = MaxDays[idx];
 	if (p->mon == 2 && (p->year % 4) == 0) {
 		maxDay++;
 	}
@@ -254,7 +256,8 @@ void RTC_incDateTime(Date_t *p, uint16 secOffset)
 	}
 	p->hour -= 24;
 
-	uint8 maxDay = MaxDays[p->mon - 1];
+	uint8 idx = p->mon - 1;
+	uint8 maxDay = MaxDays[idx];
 	if (p->mon == 2 && (p->year % 4) == 0) {
 		maxDay++;
 	}
@@ -281,7 +284,7 @@ int RTC_isTimeSync()
 
 BOOL RTC_needTimeSync()
 {
-	// LORA¿¡¼­´Â ³¯ÀÚ°¡ ¹Ù²î¸é »õ·Î¿î time sync¸¦ ½ÇÇàÇÔ.
+	// LORAì—ì„œëŠ” ë‚ ìê°€ ë°”ë€Œë©´ ìƒˆë¡œìš´ time syncë¥¼ ì‹¤í–‰í•¨.
 
 	Date_t date;
 	RTC_read(&date);
@@ -293,9 +296,9 @@ BOOL RTC_needTimeSync()
 	return TRUE;
 }
 
-int RTC_writeTime(Date_t date)
+int RTC_writeTime(Date_t *date)
 {
-	if (RTC_isValidDate(&date)) {
+	if (RTC_isValidDate(date)) {
 		TimeSyncFlag = 1;
 		RTC_set(date);
 		memcpy(&TimeSyncDate, &date, sizeof(Date_t));
@@ -309,11 +312,11 @@ void RTC_Alarm_Scheduler_short()
 	Date_t date;
 	RTC_read(&date);
 
-	// ÇöÀç½Ã°£ÀÌ 55ÃÊ¸¦ ÃÊ°úÇÒ °æ¿ì ºĞÀ¸·Î ¿Ã¸²ÇÏ¿© °è»ê.
+	// í˜„ì¬ì‹œê°„ì´ 55ì´ˆë¥¼ ì´ˆê³¼í•  ê²½ìš° ë¶„ìœ¼ë¡œ ì˜¬ë¦¼í•˜ì—¬ ê³„ì‚°.
 	if (date.sec > 55) {
 		date.min++;
 	}
-	// ºĞ´ÜÀ§ °ËÄ§ ½Ã Alarm list[0]¸¸ »ç¿ëÇÏ¸ç, minuteÀ» ±â¹İÀ¸·Î °íÁ¤µÈ ½Ã°£¿¡ ¼öÇàÇÏµµ·Ï schdulingÇÑ´Ù.
+	// ë¶„ë‹¨ìœ„ ê²€ì¹¨ ì‹œ Alarm list[0]ë§Œ ì‚¬ìš©í•˜ë©°, minuteì„ ê¸°ë°˜ìœ¼ë¡œ ê³ ì •ëœ ì‹œê°„ì— ìˆ˜í–‰í•˜ë„ë¡ schdulingí•œë‹¤.
 	// ex) AlarmList[0].minute = 8, interval = 3 >> alarm set = 8, 11, 14, 17, ..., 59
 	// int ri   = conf.reportInterval;
 	int ri = conf.riCtrlValue;
@@ -338,25 +341,25 @@ void RTC_Alarm_Scheduler_normal()
 	Date_t date;
 	RTC_read(&date);
 
-	// ½Ã°£ µ¿±âÈ­¿¡ ÀÇÇÑ ¾Ë¶÷ Áßº¹ µî·ÏÀ» ÇÇÇÏ±â À§ÇØ ÀÌÀü ¾Ë¶÷ ÀÌº¥Æ®¿¡ ÀÇÇÑ ¼øÂ÷ µî·ÏÀ¸·Î ¼öÁ¤.
-	// ´Ü, ½Ã°£ µ¿±âÈ­ ÈÄ ¹ß»ı ¿ÀÂ÷¿¡ ÀÇÇÑ ¹®Á¦¸¦ ¹æÁöÇÏ±â À§ÇØ ¾Æ·¡¿Í °°Àº ±âÁØÀ¸·Î ¾Ë¶÷À» ¼³Á¤.
-	// 1. ¾Ë¶÷ ¹ß»ı ÈÄ ¿Ï·á±îÁö ½Ã°£ 5ºĞ.
-	// 2. ¾Ë¶÷ µ¿ÀÛ ¿Ï·á ÈÄ Idle ½Ã°£ 5ºĞ.
-	// 3. ½Ã°£ ¿ÀÂ÷¸¦ °í·ÁÇÏ¿© ½ÇÁ¦ ¾Ë¶÷ ½Ã°£ÀÇ +-1ºĞ ¿ÀÂ÷¸¦ °í·Á.
+	// ì‹œê°„ ë™ê¸°í™”ì— ì˜í•œ ì•ŒëŒ ì¤‘ë³µ ë“±ë¡ì„ í”¼í•˜ê¸° ìœ„í•´ ì´ì „ ì•ŒëŒ ì´ë²¤íŠ¸ì— ì˜í•œ ìˆœì°¨ ë“±ë¡ìœ¼ë¡œ ìˆ˜ì •.
+	// ë‹¨, ì‹œê°„ ë™ê¸°í™” í›„ ë°œìƒ ì˜¤ì°¨ì— ì˜í•œ ë¬¸ì œë¥¼ ë°©ì§€í•˜ê¸° ìœ„í•´ ì•„ë˜ì™€ ê°™ì€ ê¸°ì¤€ìœ¼ë¡œ ì•ŒëŒì„ ì„¤ì •.
+	// 1. ì•ŒëŒ ë°œìƒ í›„ ì™„ë£Œê¹Œì§€ ì‹œê°„ 5ë¶„.
+	// 2. ì•ŒëŒ ë™ì‘ ì™„ë£Œ í›„ Idle ì‹œê°„ 5ë¶„.
+	// 3. ì‹œê°„ ì˜¤ì°¨ë¥¼ ê³ ë ¤í•˜ì—¬ ì‹¤ì œ ì•ŒëŒ ì‹œê°„ì˜ +-1ë¶„ ì˜¤ì°¨ë¥¼ ê³ ë ¤.
 
 	int diff, lastDiff = 60;
 	RtcAlarm_t *pNext = NULL;
-	for (int idx = 0; idx < RTC_ALARM_COUNT; idx++) {
+	for (uchar idx = 0; idx < RTC_ALARM_COUNT; idx++) {
 		diff = AlarmList[idx].minute - date.min;
 		if (diff <= 0) {
-			// diff °ªÀÌ À½¼öÀÌ°Å³ª Â÷ÀÌ°¡ ¾ø´Â °æ¿ì ´ÙÀ½ ½Ã°£¿¡ event¸¦ ¹ß»ı½ÃÅ°±â À§ÇØ 1½Ã°£À» ´õÇÑ´Ù.
+			// diff ê°’ì´ ìŒìˆ˜ì´ê±°ë‚˜ ì°¨ì´ê°€ ì—†ëŠ” ê²½ìš° ë‹¤ìŒ ì‹œê°„ì— eventë¥¼ ë°œìƒì‹œí‚¤ê¸° ìœ„í•´ 1ì‹œê°„ì„ ë”í•œë‹¤.
 			diff += 60;
 		}
 
 		printf_ts("set next alarm [%10s:%02dm diff=%02dm] - ",
 			  ALARM_TYPE_STR(AlarmList[idx].type), AlarmList[idx].minute, diff);
 
-		// diff °ªÀÌ 0ÀÌ°Å³ª 1ÀÎ ¾Ë¶÷À» ¼³Á¤ÇÒ °æ¿ì ¾Ë¶÷ÀÌ ¹ß»ıÇÏÁö ¾ÊÀ» ¼ö ÀÖÀ¸¹Ç·Î Á¦¿ÜÇÑ´Ù.
+		// diff ê°’ì´ 0ì´ê±°ë‚˜ 1ì¸ ì•ŒëŒì„ ì„¤ì •í•  ê²½ìš° ì•ŒëŒì´ ë°œìƒí•˜ì§€ ì•Šì„ ìˆ˜ ìˆìœ¼ë¯€ë¡œ ì œì™¸í•œë‹¤.
 		if (diff > 1) {
 			if (diff <= lastDiff) {
 				pNext = &AlarmList[idx];
@@ -371,7 +374,7 @@ void RTC_Alarm_Scheduler_normal()
 		}
 	}
 
-	// °Ë»öµÈ next alarmÀÌ ¾ø´Â °æ¿ì Ã¹¹øÂ° ¾Ë¶÷À» ¼³Á¤ÇÑ´Ù.
+	// ê²€ìƒ‰ëœ next alarmì´ ì—†ëŠ” ê²½ìš° ì²«ë²ˆì§¸ ì•ŒëŒì„ ì„¤ì •í•œë‹¤.
 	if (pNext) {
 		NextAlarm = pNext;
 	} else {
@@ -389,7 +392,7 @@ void RTC_Alarm_Scheduler_normal()
 
 void RTC_alarmSchedule()
 {
-	if (conf.isShortInterval) {
+	if (conf.isShortInterval == 1) {
 		RTC_Alarm_Scheduler_short();
 	} else {
 		RTC_Alarm_Scheduler_normal();
@@ -399,19 +402,17 @@ void RTC_alarmSchedule()
 void RTC_runAlarm()
 {
 	if (NextAlarm == NULL) {
-		APP_prepareToSleep();
 		return;
 	}
 
 	printf_ts("alarm occurred - '%s'%s\n", ALARM_TYPE_STR(NextAlarm->type),
 		  (conf.sleepMode) ? "(sleep)" : "(active)");
 	if (conf.sleepMode) {
-		MISC_delayMs(1500); // sleep mode ÀÎ °æ¿ì 1.5sec ´ë±â ÈÄ ´Ù½Ã LPM3ÁØºñ
-		APP_prepareToSleep();
+		MISC_delayMs(1500); // sleep mode ì¸ ê²½ìš° 1.5sec ëŒ€ê¸° í›„ ë‹¤ì‹œ LPM3ì¤€ë¹„
 		return;
 	}
 
-	if (conf.isShortInterval) {
+	if (conf.isShortInterval == 1) {
 		APP_runMetering(PERIODIC_METERING);
 		return;
 	}
@@ -424,42 +425,23 @@ void RTC_runAlarm()
 	if (alarmType == RTC_ALARM_METERING) {
 		if (APP_checkTimeInterval(date.hour, conf.intervalBaseTime, conf.riCtrlValue)) {
 			APP_runMetering(PERIODIC_METERING);
-		} else {
-			APP_prepareToSleep();
 		}
 	}
 #else
 	if (alarmType == RTC_ALARM_REPORT) {
 		if (APP_checkTimeInterval(date.hour, conf.intervalBaseTime, conf.riCtrlValue)) {
 			APP_runPeriodicReport();
-		} else {
-			APP_prepareToSleep();
 		}
 	} else if (alarmType == RTC_ALARM_METERING) {
 		if (APP_checkTimeInterval(date.hour, conf.intervalBaseTime, conf.meterInterval)) {
 			APP_runMetering(PERIODIC_METERING);
-		} else {
-			APP_prepareToSleep();
 		}
 	} else if (alarmType == RTC_ALARM_METER_SAVE) {
-		if (conf.periodMode && RTC_isTimeSync()) {
-			// ±â°£°ËÄ§ µ¥ÀÌÅÍ ÀúÀå Base TimeÀ» "Åë½Å Base Time + 1½Ã°£" À¸·Î ¼³Á¤.
-			// ÇØ´ç ÀÌÀ¯´Â LoRa Åë½Å ¹®Á¦ ¹ß»ı ½Ã Join½Ãµµ¸¦ 1½Ã°£µ¿¾È ÇÏ¹Ç·Î
-			// °æ¿ì¿¡ µû¶ó 0½Ã¿¡ ±â°£°ËÄ§ µ¥ÀÌÅÍ¸¦ ÀúÀåÇÏÁö ¾Ê´Â ¹®Á¦°¡ ¹ß»ıÇÏ¹Ç·Î ¼öÁ¤.
-			if ((date.hour % METER_DATA_SAVE_INTERVAL) == (conf.intervalBaseTime + 1)) {
-				APP_runMetering(PERIODIC_METERING_FOR_SAVE);
-			} else {
-				APP_prepareToSleep();
-			}
-		} else {
-			APP_prepareToSleep();
-		}
+		// ê¸°ê°„ê²€ì¹¨ì€ ë”ì´ìƒ ì‚¬ìš©í•˜ì§€ ì•Šìœ¼ë‚˜ ì¥ê¸°ê°„ sleep ë°©ì§€ë¥¼ ìœ„í•´ rtcë§Œ ë‚¨ê²¨ë†“ìŒ
 	}
-
 #endif
 	else {
 		printf_ts("unknow alarm type(%d)\n", alarmType);
-		APP_prepareToSleep();
 	}
 }
 

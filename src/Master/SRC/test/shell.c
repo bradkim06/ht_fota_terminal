@@ -34,7 +34,7 @@ void SHELL_init()
 	ShellCmdBuf = (ShellCmdBuffer_t *)malloc(sizeof(ShellCmdBuffer_t));
 	if (ShellCmdBuf == NULL) {
 		printf("malloc(ShellCmdBuf) failed\n");
-		exit(1);
+		REBOOT_SYSTEM();
 	}
 	memset(ShellCmdBuf, 0, sizeof(ShellCmdBuffer_t));
 }
@@ -263,7 +263,7 @@ uint32 SHELL_decimal(char *p)
 
 static int getArguments(char *p, char **cmdArgs, int maxArgs)
 {
-	int numOfArguments = 0;
+	unsigned int numOfArguments = 0;
 	while (1) {
 		// search space
 		while (*p != 0x20) {
@@ -293,8 +293,8 @@ static void help()
 	printf("                                Command set                                 \n");
 	printf("----------------------------------------------------------------------------\n");
 
-	int nCmd = sizeof(CmdSet) / sizeof(ShellCommandSet_t);
-	for (int i = 0; i < nCmd; i++) {
+	static const int nCmd = sizeof(CmdSet) / sizeof(ShellCommandSet_t);
+	for (unsigned int i = 0; i < nCmd; i++) {
 		if (strlen(CmdSet[i].usage)) {
 			printf("%s\n", CmdSet[i].usage);
 		}
@@ -304,7 +304,7 @@ static void help()
 
 static int whatCommand(char *p)
 {
-	int i;
+	unsigned int i;
 	char tmp[0x10];
 
 	i = 0;
@@ -312,7 +312,7 @@ static int whatCommand(char *p)
 		tmp[i++] = *p++;
 	tmp[i] = '\0';
 
-	int nCmd = sizeof(CmdSet) / sizeof(ShellCommandSet_t);
+	static const int nCmd = sizeof(CmdSet) / sizeof(ShellCommandSet_t);
 	for (i = 0; i < nCmd; i++) {
 		if (!strcmp(CmdSet[i].cmd, tmp)) {
 			return i;
@@ -510,18 +510,14 @@ void SHELL_run()
 		case CMDN_PWMETER:
 		case CMDN_PMETER:
 			if (numOfCmdArgs >= 3) {
-				// Ã³À½ 3°³ ÆÄ¶ó¹ÌÅÍ¸¦ Á¦¿ÜÇÑ ³ª¸ÓÁö 4°³´Â ¼±ÅÃÀÌ¹Ç·Î ¾Æ·¡¿Í °°ÀÌ Ã³¸®.
+				// ì²˜ìŒ 3ê°œ íŒŒë¼ë¯¸í„°ë¥¼ ì œì™¸í•œ ë‚˜ë¨¸ì§€ 4ê°œëŠ” ì„ íƒì´ë¯€ë¡œ ì•„ëž˜ì™€ ê°™ì´ ì²˜ë¦¬.
 				int numMeter = SHELL_decimal(cmdArgs[0]); /* num of meter */
-				int type1 = SHELL_decimal(cmdArgs[1]); /* type 1 */
-				int port1 = SHELL_decimal(cmdArgs[2]); /* port 1 */
-				int type2 = (numOfCmdArgs >= 4) ? SHELL_decimal(cmdArgs[3]) :
-								  0xFF; /* type 2 */
-				int port2 = (numOfCmdArgs >= 5) ? SHELL_decimal(cmdArgs[4]) :
-								  0xFF; /* port 2 */
-				int type3 = (numOfCmdArgs >= 6) ? SHELL_decimal(cmdArgs[5]) :
-								  0xFF; /* type 3 */
-				int port3 = (numOfCmdArgs >= 7) ? SHELL_decimal(cmdArgs[6]) :
-								  0xFF; /* port 3 */
+				int type1 = SHELL_decimal(cmdArgs[1]);
+				int port1 = SHELL_decimal(cmdArgs[2]);
+				int type2 = (numOfCmdArgs >= 4) ? SHELL_decimal(cmdArgs[3]) : 0xFF;
+				int port2 = (numOfCmdArgs >= 5) ? SHELL_decimal(cmdArgs[4]) : 0xFF;
+				int type3 = (numOfCmdArgs >= 6) ? SHELL_decimal(cmdArgs[5]) : 0xFF;
+				int port3 = (numOfCmdArgs >= 7) ? SHELL_decimal(cmdArgs[6]) : 0xFF;
 				if (cmdIdx == CMDN_PWMETER) {
 					TEST_pwmeter(numMeter, type1, port1, type2, port2, type3,
 						     port3);
@@ -687,8 +683,7 @@ void SHELL_run()
 		case CMDN_PCTX:
 			if (numOfCmdArgs >= 1) {
 				int ch = SHELL_decimal(cmdArgs[0]); /* channel */
-				int txLevel = (numOfCmdArgs >= 2) ? SHELL_decimal(cmdArgs[1]) :
-								    0; /* tx power level */
+				int txLevel = (numOfCmdArgs >= 2) ? SHELL_decimal(cmdArgs[1]) : 0;
 				TEST_ContinuousTx(ch, txLevel, 1);
 			} else {
 				goto SHELL_CMD_ERROR;
@@ -698,10 +693,8 @@ void SHELL_run()
 		case CMDN_PTX:
 			if (numOfCmdArgs >= 1) {
 				int ch = SHELL_decimal(cmdArgs[0]); /* channel */
-				int txLevel = (numOfCmdArgs >= 2) ? SHELL_decimal(cmdArgs[1]) :
-								    0; /* tx power level */
-				int msgLen = (numOfCmdArgs >= 3) ? SHELL_decimal(cmdArgs[2]) :
-								   60; /* message len */
+				int txLevel = (numOfCmdArgs >= 2) ? SHELL_decimal(cmdArgs[1]) : 0;
+				int msgLen = (numOfCmdArgs >= 3) ? SHELL_decimal(cmdArgs[2]) : 60;
 				TEST_TxData(ch, txLevel, msgLen, 1);
 			} else {
 				goto SHELL_CMD_ERROR;

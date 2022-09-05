@@ -1,13 +1,11 @@
 #ifndef __MESSAGE_H__
 #define __MESSAGE_H__
 
-#if 0
-#define PROTOCOL_VERSION 0xA1
-#else
+#include "common_header.h"
+
 #define PROTOCOL_VERSION_A1 0xA1
 #define PROTOCOL_VERSION_A2 0xA2
 #define PROTOCOL_VERSION_A3 0xA3
-#endif
 
 #if 0
 #define NBIOT_JOIN 0x30
@@ -182,6 +180,16 @@ typedef struct {
 #endif
 
 typedef struct {
+	uchar protocol;
+	uchar len;
+	uchar mtype;
+	uchar ip[4];
+	uchar port[2];
+	uchar fwVer[4];
+	uchar checksum;
+} NbiotCmdFotaReq_t;
+
+typedef struct {
 	uchar protocol; // 1 -  1
 	uchar len; // 1 -  2
 	uchar mtype; // 1 -  3
@@ -222,10 +230,9 @@ typedef struct {
 int MODEM_errData(uchar *buf, int pfUlCnt, int pfDlCnt, int udpUlCnt, int udpDlCnt);
 int MODEM_qaData(uchar *buf);
 int MODEM_sendJoin(uchar *buf);
-int MODEM_sendCurrentData(uchar *buf);
-int MODEM_sendPeriodicData(uchar *buf);
+unsigned int MODEM_sendCurrentData(uchar *buf);
+unsigned int MODEM_sendPeriodicData(uchar *buf);
 int MODEM_recvAck(char *p, int len);
-int MODEM_recvResetReq(uchar *buf, int len);
 int MODEM_recvIntervalReq(uchar *buf, int len);
 int MODEM_checkDlMessage(uchar *buf, int len);
 

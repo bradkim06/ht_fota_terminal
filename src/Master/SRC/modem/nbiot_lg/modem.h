@@ -15,14 +15,12 @@
 #define LG_DEFAULT_FOTA_DAY_INTERVAL 15
 
 #define LG_QA_HOUR_INTERVAL 24
-#define LG_CERTIFY_HOUR_INTERVAL 18
-// #define LG_PUASED_RETRY_HOUR_INTERVAL   48
 #define LG_PUASED_RETRY_HOUR_INTERVAL 24
 
 // NB-IoT 총 재시도 횟수 (마지막 1회는 H/W reset, 그 외 재시도는 S/W reset)
-#define NBIOT_BIP_RETRY 2
-#define NBIOT_ATTACH_RETRY 1
-#define NBIOT_ONEM2M_RETRY 1
+#define NBIOT_ATTACH_RETRY 2
+#define NBIOT_ONEM2M_RETRY 2
+#define NBIOT_TRANSFER_RETRY 2
 
 // LG platform 연동시 생성하는 데이터 길이 정의
 #define LEN_MODEM_IMEI_IMSI 15
@@ -35,7 +33,7 @@
 #define LEN_MODEM_FW_VER 14
 
 #define LEN_MAX_AT_DATA MODEM_TX_BUF_LEN
-#define LEN_MAX_DL_DATA 0x20
+#define LEN_MAX_DL_DATA 64
 
 // MCC in IMSI
 #define IMSI_MCC_KOREA "450"
@@ -52,13 +50,6 @@ typedef enum {
 	MODEM_TYPE_KT = 1,
 	MODEM_TYPE_UNKNOWN = 99,
 } ModemType_t;
-
-// modem type definition
-typedef enum {
-	MODEM_NW_STATUS_NORMAL = 0,
-	MODEM_NW_STATUS_PAUSED = 1,
-	MODEM_NW_STATUS_REJECTED = 2,
-} ModemNwStatus_t;
 
 typedef struct {
 	int lastRSSI;
@@ -82,7 +73,6 @@ typedef struct {
 	Date_t lastCertifyTime;
 	Date_t lastAccessTime;
 	Date_t lastAttachTime;
-	ModemNwStatus_t lastAttachStatus;
 	ModemType_t modemType;
 	char FwVer[LEN_MODEM_FW_VER + 1];
 } Modem_t;
@@ -124,6 +114,7 @@ int MODEM_getLastRssi();
 int MODEM_getLastRsrp();
 int MODEM_getLastRsrq();
 int MODEM_getLastSNR();
+void MODEM_changeBaudrate(UartBaudrate_t baudrate);
 
 int MODEM_getStateOrResult();
 

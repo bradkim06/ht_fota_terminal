@@ -40,14 +40,12 @@
 
 #define TERM_MODEL_STRING_LEN 8
 #define TERM_MODEL_STRING(x)                                                                       \
-	((x) == TERM_MODEL_HAT_114W ?                                                              \
-		 "HAT-114W" :                                                                      \
-		 (x) == TERM_MODEL_HAT_124W ?                                                      \
-		 "HAT-124W" :                                                                      \
-		 (x) == TERM_MODEL_HTM_115W ?                                                      \
-		 "HTM-115W" :                                                                      \
-		 (x) == TERM_MODEL_HAT_314W ? "HAT-314W" :                                         \
-					      (x) == TERM_MODEL_HAT_435W ? "HAT-435W" : "UNKNOWN")
+	((x) == TERM_MODEL_HAT_114W ? "HAT-114W" :                                                 \
+	 (x) == TERM_MODEL_HAT_124W ? "HAT-124W" :                                                 \
+	 (x) == TERM_MODEL_HTM_115W ? "HTM-115W" :                                                 \
+	 (x) == TERM_MODEL_HAT_314W ? "HAT-314W" :                                                 \
+	 (x) == TERM_MODEL_HAT_435W ? "HAT-435W" :                                                 \
+				      "UNKNOWN")
 
 #define TERM_HAS_LCD(x) ((x) == TERM_MODEL_HAT_114W)
 #define SMART_WATER_METER(x) ((x) == TERM_MODEL_HTM_115W)
@@ -83,8 +81,8 @@
 #define POWER_MODE LPM3_bits //RTC 동작시 파워모드
 #define POWER_ACTIVE_OFF LPM2_bits //ACTIVE_OFF시 파워모드
 
-#define WDT_ARST_16SEC (WDTPW + WDTCNTCL + WDTSSEL0 + WDTIS1 + WDTIS0) // Use ACLK, 16sec
-#define WDT_VRST_3SEC (WDTPW + WDTCNTCL + WDTSSEL1 + WDTIS2) // Use VLOCLK, abour 3~4sec
+#define WDT_ARST_16SEC (WDTPW + WDTCNTCL + WDTSSEL0 + WDTIS0) // Use ACLK, 1hour 8min
+#define WDT_VRST_50SEC (WDTPW + WDTCNTCL + WDTSSEL1 + WDTIS1 + WDTIS0) // Use VLOCLK, abour 50sec
 
 //==============================================================================
 // HAL data type
@@ -159,8 +157,8 @@ typedef struct {
 	uint8 imei[8];
 	uint8 imsi[8];
 	BOOL isModemInit;
-	uint8 dataSkipMode;
 #endif
+	uint8 dataSkipMode;
 	uint8 sleepMode;
 	uint8 riCtrlMode; // 0 : no ctrl, 1 : ctrl
 	uint8 riCtrlChgCount;
@@ -175,8 +173,8 @@ typedef struct {
 	uint16 resetCount;
 	uint8 debugPrint;
 	uint8 termModel;
-	uint8 periodMode;
 	uint8 bslModel;
+	uint8 checksum;
 } Config_t;
 
 extern Config_t conf;
@@ -225,6 +223,7 @@ extern void MODEM_disable();
 
 #define SLEEP_DEVICE()                                                                             \
 	do {                                                                                       \
+		WDTCTL = WDT_ARST_16SEC;                                                           \
 		if (device_sleep_state == FALSE) {                                                 \
 			P2OUT &= ~0x20;                                                            \
 			TIMER_stop();                                                              \
@@ -232,7 +231,6 @@ extern void MODEM_disable();
 			METER_disable();                                                           \
 			PRINT_disable();                                                           \
 			MODEM_disable();                                                           \
-			WDTCTL = WDTPW | WDTHOLD;                                                  \
 			device_sleep_state = TRUE;                                                 \
 			__bis_SR_register(POWER_MODE + GIE);                                       \
 		}                                                                                  \

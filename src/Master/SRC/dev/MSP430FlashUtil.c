@@ -1,12 +1,8 @@
-
-
 #include <msp430.h>
 #include "check_meter_misc.h"
 #include "uart.h"
 #include "common_header.h"
 #include "MSP430FlashUtil.h"
-
-#define STATIC static
 
 /**
  * @brief Flash sector size in MSP430
@@ -22,37 +18,19 @@
  */
 #define FLASH_SECTOR_PROGRAM_USEC (uint32)(FLASH_BYTE_PROGRAM_USEC * FLASH_SECTOR_LENGTH)
 
-// Function prototypes
-STATIC void initFlash(void);
-STATIC void doneFlash(void);
-
-#pragma inline
-STATIC BOOL isBusyFlash(uint32 timeoutUsec)
+static BOOL isBusyFlash(uint32 timeoutUsec)
 {
 	if (FCTL3 & BUSY) {
 		MISC_delayUs(timeoutUsec);
+		printf("busy flash 0x%02X\n", FCTL3 & BUSY);
 		return (FCTL3 & BUSY);
 	}
 
 	return FALSE;
 }
 
-STATIC void initFlash(void)
-{
-#if defined FCTL2
-	FCTL2 = FWKEY + FSSEL_1 + FN4 + FN3; // Flash Timing Generator as MCLK/24 -> 333 kHz.
-#endif
-}
-
-STATIC void doneFlash()
-{
-	return;
-}
-
 BOOL MSP430FLASH_erasePage(unsigned char *addr)
 {
-	initFlash();
-
 	if (isBusyFlash(FLASH_SECTOR_PROGRAM_USEC)) {
 		return FALSE;
 	}
@@ -70,6 +48,11 @@ BOOL MSP430FLASH_erasePage(unsigned char *addr)
 
 	*addr = 0; // Dummy write to erase Flash segment
 
+	// (Errata) Flash Read Error and Susceptibility for MSP430F54xxA
+	asm(" bis.w #0,R3 "); // Flash contents: 0x03 0xd3
+	asm(" bis.w #0,R3 "); // Flash contents: 0x03 0xd3
+	asm(" bis.w #0,R3 "); // Flash contents: 0x03 0xd3
+
 	BOOL result = TRUE;
 	if (isBusyFlash(FLASH_SECTOR_PROGRAM_USEC)) {
 		result = FALSE;
@@ -86,8 +69,6 @@ BOOL MSP430FLASH_erasePage(unsigned char *addr)
 		FCTL3 = FWKEY + LOCK; // Set LOCK bit
 	}
 
-	doneFlash();
-
 	return result;
 }
 
@@ -102,8 +83,6 @@ BOOL MSP430FLASH_read(unsigned char *addr, unsigned char *value, unsigned short 
 
 BOOL MSP430FLASH_write(unsigned char *addr, unsigned char *buf, unsigned short len)
 {
-	initFlash();
-
 	// Check busy befor operating
 	if (isBusyFlash(FLASH_SECTOR_PROGRAM_USEC)) {
 		return FALSE;
@@ -154,8 +133,6 @@ BOOL MSP430FLASH_write(unsigned char *addr, unsigned char *buf, unsigned short l
 	} else {
 		FCTL3 = FWKEY + LOCK; // Set LOCK bit
 	}
-
-	doneFlash();
 
 	return result;
 }

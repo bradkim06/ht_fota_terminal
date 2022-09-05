@@ -157,7 +157,7 @@ void MODEM_turnOn()
 	}
 }
 
-void MODEM_sleep()
+static void MODEM_sleep()
 {
 #if (DEVICE_REVISION == DEV_REV_PWRCTRL_MOSFET_LDO)
 	printf_ts("MODEM : sleep");
@@ -348,7 +348,7 @@ void MODEM_stop(int resultCode)
 		if (modemCtx.status.error) {
 			modemCtx.errCode = (modemCtx.errCode == MODEM_ERROR_AT_CMD_NO_RESP) ?
 						   MODEM_ERROR_AT_CMD_FAIL :
-						   modemCtx.errCode;
+							 modemCtx.errCode;
 		}
 
 		// Fail인 경우 동작 중간에 종료하므로 process done flag를 set해야 함.
@@ -449,7 +449,6 @@ void MODEM_open(int process)
 		modemCtx.status.error = 0;
 		modemCtx.status.busy = 0;
 		modemCtx.status.stop = 0;
-		modemCtx.status.lwm2mOn = 0;
 	}
 
 	AppProcess = process;

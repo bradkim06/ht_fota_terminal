@@ -9,7 +9,7 @@ typedef struct {
 	int result;
 } inputData_t;
 
-inputData_t inputData[2] = {
+inputData_t testData[2] = {
 	{ .string = "..BC95GJBR02A02_LGU....OK..", .expect = "BC95GJBR02A02_", .result = 1 },
 	{ .string = "..C95GJBR02A02_LGU....OK..", .expect = "", .result = 0 }
 };
@@ -28,16 +28,16 @@ static void testFunction(int i)
 {
 	memset(&modem, 0, sizeof(Modem_t));
 
-	int result = parseQGMR(inputData[i].string, &modem);
-	TEST_ASSERT_EQUAL_INT(inputData[i].result, result);
-	TEST_ASSERT_EQUAL_STRING(inputData[i].expect, modem.FwVer);
-	tddPrint("input : %s\nparseFwVer : %s\n", inputData[i].string, modem.FwVer);
+	int result = parseQGMR(testData[i].string, &modem);
+	TEST_ASSERT_EQUAL_INT(testData[i].result, result);
+	TEST_ASSERT_EQUAL_STRING(testData[i].expect, modem.FwVer);
+	tddPrint("input : %s\nparseFwVer : %s\n", testData[i].string, modem.FwVer);
 }
 
 void test_tdd_parseQGMR(void)
 {
 	char msg[100];
-	for (int i = 0; i < sizeof(inputData) / sizeof(inputData_t); i++) {
+	for (int i = 0; i < sizeof(testData) / sizeof(inputData_t); i++) {
 		sprintf(msg, "Test Case %d", i);
 		TEST_MESSAGE(msg);
 		testFunction(i);
